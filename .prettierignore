@@ -10,20 +10,22 @@ build/
 # Generated files
 *.generated.*
 *.d.ts
+next-env.d.ts
 
 # Coverage
 coverage/
+.nyc_output/
 
 # Cache
 .prettiercache
 
-# Lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Config files
+*.config.mjs
+*.config.ts
 
 # Public files
 public/
+public/sw.js
 
 # Prisma
 prisma/migrations/
@@ -34,3 +36,17 @@ prisma/migrations/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Test results
+playwright-report/
+test-results/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Temporary files
+*.tmp
+*.swp
+*~

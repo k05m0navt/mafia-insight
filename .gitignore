@@ -116,6 +116,7 @@ dump.rdb
 # Testing
 coverage/
 .nyc_output/
+test-results/
 
 # PWA
 sw.js
@@ -126,3 +127,6 @@ workbox-*.js
 
 # Sentry
 .sentryclirc
+
+# Playwright
+.playwright-mcp/

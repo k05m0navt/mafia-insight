@@ -1,227 +1,291 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Players Page', () => {
+test.describe('Players Page E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/test-players');
+    // Mock API responses
+    await page.route('**/api/players**', async (route) => {
+      const url = new URL(route.request().url());
+      const pageParam = url.searchParams.get('page') || '1';
+      const limitParam = url.searchParams.get('limit') || '10';
+
+      const mockPlayers = Array.from(
+        { length: parseInt(limitParam) },
+        (_, i) => ({
+          id: `player${i + 1}`,
+          gomafiaId: `gomafia${i + 1}`,
+          name: `Player ${i + 1}`,
+          eloRating: 1500 + i * 10,
+          totalGames: 100 + i,
+          wins: 60 + i,
+          losses: 40 + i,
+          lastSyncAt: new Date('2024-01-15T00:00:00Z').toISOString(),
+          syncStatus: 'SYNCED',
+        })
+      );
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          players: mockPlayers,
+          pagination: {
+            page: parseInt(pageParam),
+            limit: parseInt(limitParam),
+            total: 100,
+            totalPages: 10,
+            hasNext: parseInt(pageParam) < 10,
+            hasPrev: parseInt(pageParam) > 1,
+          },
+        }),
+      });
+    });
   });
 
-  test('should display players list', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('Test Players');
-    await expect(page.locator('[data-testid="players-grid"]')).toBeVisible();
+  test('should display players list with pagination', async ({ page }) => {
+    await page.goto('/players');
+
+    // Wait for the page to load
+    await expect(page.locator('h1')).toContainText('Players');
+
+    // Check that players are displayed
+    await expect(page.locator('[data-testid="player-card"]')).toHaveCount(10);
+
+    // Check pagination
+    await expect(page.locator('[data-testid="pagination"]')).toBeVisible();
+    await expect(page.locator('[data-testid="pagination-info"]')).toContainText(
+      'Page 1 of 10'
+    );
   });
 
-  test('should search players', async ({ page }) => {
-    const searchInput = page.locator('input[placeholder="Search players..."]');
-    await searchInput.fill('John');
-    await searchInput.press('Enter');
+  test('should handle pagination navigation', async ({ page }) => {
+    await page.goto('/players');
 
-    // Wait for results to load
-    await page.waitForSelector('[data-testid="players-grid"]');
+    // Click next page
+    await page.click('[data-testid="pagination-next"]');
 
-    // Verify search results
-    const players = page.locator('[data-testid="player-card"]');
-    await expect(players).toHaveCount(1);
+    // Wait for new data to load
+    await expect(page.locator('[data-testid="pagination-info"]')).toContainText(
+      'Page 2 of 10'
+    );
+
+    // Click previous page
+    await page.click('[data-testid="pagination-prev"]');
+
+    // Wait for data to load
+    await expect(page.locator('[data-testid="pagination-info"]')).toContainText(
+      'Page 1 of 10'
+    );
   });
 
-  test('should filter by role', async ({ page }) => {
-    const donButton = page.locator('button:has-text("DON")');
-    await donButton.click();
+  test('should handle filtering by sync status', async ({ page }) => {
+    await page.goto('/players');
+
+    // Open filter dropdown
+    await page.click('[data-testid="filter-button"]');
+
+    // Select sync status filter
+    await page.selectOption('[data-testid="sync-status-filter"]', 'SYNCED');
+
+    // Apply filter
+    await page.click('[data-testid="apply-filters"]');
 
     // Wait for filtered results
-    await page.waitForSelector('[data-testid="players-grid"]');
-
-    // Verify only DON players are shown
-    const players = page.locator('[data-testid="player-card"]');
-    await expect(players).toHaveCount(1);
+    await expect(page.locator('[data-testid="player-card"]')).toBeVisible();
   });
 
-  test('should navigate to player analytics', async ({ page }) => {
-    const playerCard = page.locator('[data-testid="player-card"]').first();
-    const viewButton = playerCard.locator('button:has-text("View Analytics")');
+  test('should handle search functionality', async ({ page }) => {
+    await page.goto('/players');
 
-    await viewButton.click();
+    // Type in search box
+    await page.fill('[data-testid="search-input"]', 'Player 1');
 
-    // Should navigate to player analytics page
-    await expect(page).toHaveURL(/\/test-players\/[^\/]+$/);
-    await expect(page.locator('h1')).toContainText('John Doe');
+    // Click search button
+    await page.click('[data-testid="search-button"]');
+
+    // Wait for search results
+    await expect(page.locator('[data-testid="player-card"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="player-card"]')).toContainText(
+      'Player 1'
+    );
   });
 
-  test.skip('should display loading state', async ({ page }) => {
-    // Navigate to a new page to trigger loading
-    await page.goto('/test-players?search=loading-test');
+  test('should handle sorting by different fields', async ({ page }) => {
+    await page.goto('/players');
 
-    // Wait for loading spinner to appear (with longer timeout)
-    await expect(page.locator('[data-testid="loading-spinner"]')).toBeVisible({
-      timeout: 10000,
+    // Open sort dropdown
+    await page.click('[data-testid="sort-button"]');
+
+    // Select ELO rating sort
+    await page.selectOption('[data-testid="sort-field"]', 'eloRating');
+    await page.selectOption('[data-testid="sort-order"]', 'desc');
+
+    // Apply sort
+    await page.click('[data-testid="apply-sort"]');
+
+    // Wait for sorted results
+    await expect(page.locator('[data-testid="player-card"]')).toBeVisible();
+  });
+
+  test('should display player details when clicked', async ({ page }) => {
+    await page.goto('/players');
+
+    // Click on first player
+    await page.click('[data-testid="player-card"]:first-child');
+
+    // Wait for navigation to player details
+    await expect(page).toHaveURL(/\/players\/player1/);
+    await expect(page.locator('h1')).toContainText('Player 1');
+  });
+
+  test('should handle loading states', async ({ page }) => {
+    // Mock slow API response
+    await page.route('**/api/players**', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          players: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        }),
+      });
     });
+
+    await page.goto('/players');
+
+    // Check loading state
+    await expect(page.locator('[data-testid="loading-spinner"]')).toBeVisible();
 
     // Wait for loading to complete
     await expect(
       page.locator('[data-testid="loading-spinner"]')
-    ).not.toBeVisible({ timeout: 10000 });
+    ).not.toBeVisible();
   });
 
-  test('should handle empty state', async ({ page }) => {
-    const searchInput = page.locator('input[placeholder="Search players..."]');
-    await searchInput.fill('nonexistent-player');
-    await searchInput.press('Enter');
+  test('should handle error states', async ({ page }) => {
+    // Mock API error
+    await page.route('**/api/players**', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Internal server error' }),
+      });
+    });
 
-    // Should show no results message
-    await expect(page.locator('text=No players found')).toBeVisible();
+    await page.goto('/players');
+
+    // Check error state
+    await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
+    await expect(page.locator('[data-testid="error-message"]')).toContainText(
+      'Failed to load players'
+    );
   });
 
-  test('should be responsive', async ({ page }) => {
+  test('should handle empty results', async ({ page }) => {
+    // Mock empty API response
+    await page.route('**/api/players**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          players: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        }),
+      });
+    });
+
+    await page.goto('/players');
+
+    // Check empty state
+    await expect(page.locator('[data-testid="empty-state"]')).toBeVisible();
+    await expect(page.locator('[data-testid="empty-state"]')).toContainText(
+      'No players found'
+    );
+  });
+
+  test('should handle responsive design', async ({ page }) => {
     // Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/players');
 
-    // Should stack elements vertically on mobile
-    const searchContainer = page.locator('[data-testid="search-container"]');
-    await expect(searchContainer).toHaveClass(/flex-col/);
+    // Check that mobile layout is applied
+    await expect(page.locator('[data-testid="mobile-layout"]')).toBeVisible();
 
     // Test tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto('/players');
 
-    // Should show 2 columns on tablet
-    const playersGrid = page.locator('[data-testid="players-grid"]');
-    await expect(playersGrid).toHaveClass(/grid-cols-2/);
+    // Check that tablet layout is applied
+    await expect(page.locator('[data-testid="tablet-layout"]')).toBeVisible();
 
     // Test desktop viewport
-    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto('/players');
 
-    // Should show 3 columns on desktop
-    await expect(playersGrid).toHaveClass(/grid-cols-3/);
-  });
-});
-
-test.describe('Player Analytics Page', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/test-players/player-1');
+    // Check that desktop layout is applied
+    await expect(page.locator('[data-testid="desktop-layout"]')).toBeVisible();
   });
 
-  test('should display player analytics', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('John Doe');
-    await expect(page.locator('[data-testid="role-stats"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="performance-chart"]')
-    ).toBeVisible();
-  });
+  test('should handle keyboard navigation', async ({ page }) => {
+    await page.goto('/players');
 
-  test('should filter by role', async ({ page }) => {
-    const donButton = page.locator('button:has-text("DON")');
-    await donButton.click();
+    // Focus on search input
+    await page.focus('[data-testid="search-input"]');
 
-    // Should update analytics based on role filter
-    await expect(page.locator('[data-testid="role-stats"]')).toBeVisible();
-  });
+    // Type search term
+    await page.keyboard.type('Player');
 
-  test('should change time range', async ({ page }) => {
-    const weeklyButton = page.locator('button:has-text("Last Week")');
-    await weeklyButton.click();
+    // Press Enter to search
+    await page.keyboard.press('Enter');
 
-    // Should update analytics based on time range
-    await expect(
-      page.locator('[data-testid="performance-chart"]')
-    ).toBeVisible();
-  });
+    // Wait for search results
+    await expect(page.locator('[data-testid="player-card"]')).toBeVisible();
 
-  test('should display error state', async ({ page }) => {
-    // Navigate to non-existent player
-    await page.goto('/test-players/nonexistent-player');
-
-    // Should show error message
-    await expect(page.locator('text=Player not found')).toBeVisible();
-  });
-
-  test('should have back button', async ({ page }) => {
-    const backButton = page.locator('button:has-text("Back to Players")');
-    await backButton.click();
-
-    // Should navigate back to players list
-    await expect(page).toHaveURL('/test-players');
-  });
-});
-
-test.describe('PWA Features', () => {
-  test('should be installable', async ({ page, context }) => {
-    await page.goto('/');
-
-    // Check for PWA manifest
-    const manifest = await page.evaluate(() => {
-      const link = document.querySelector('link[rel="manifest"]');
-      return link?.getAttribute('href');
-    });
-
-    expect(manifest).toBe('/manifest.json');
-  });
-
-  test('should work offline', async ({ page, context }) => {
-    await page.goto('/test-players');
-
-    // Wait for page to load first
-    await expect(page.locator('h1')).toContainText('Test Players');
-
-    // Go offline
-    await context.setOffline(true);
-
-    // Navigate to a new page to test offline functionality
-    await page.goto('/test-players');
-
-    // Should still show cached content
-    await expect(page.locator('h1')).toContainText('Test Players');
-  });
-
-  test('should have service worker', async ({ page }) => {
-    await page.goto('/');
-
-    // Check if service worker is registered
-    const swRegistered = await page.evaluate(() => {
-      return 'serviceWorker' in navigator;
-    });
-
-    expect(swRegistered).toBe(true);
-  });
-});
-
-test.describe('Accessibility', () => {
-  test('should be keyboard navigable', async ({ page }) => {
-    await page.goto('/test-players');
-
-    // Tab through interactive elements
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
+    // Tab to next element
     await page.keyboard.press('Tab');
 
-    // Should be able to navigate without mouse
-    const focusedElement = page.locator(':focus');
-    await expect(focusedElement).toBeVisible();
+    // Check that focus is on next element
+    await expect(page.locator(':focus')).toBeVisible();
   });
 
-  test('should have proper ARIA labels', async ({ page }) => {
-    await page.goto('/test-players');
+  test('should handle accessibility features', async ({ page }) => {
+    await page.goto('/players');
 
-    // Check for proper ARIA labels
-    const searchInput = page.locator('input[placeholder="Search players..."]');
-    await expect(searchInput).toHaveAttribute('aria-label');
-
-    const buttons = page.locator('button');
-    const buttonCount = await buttons.count();
-
-    for (let i = 0; i < buttonCount; i++) {
-      const button = buttons.nth(i);
-      const ariaLabel = await button.getAttribute('aria-label');
-      const textContent = await button.textContent();
-
-      // Should have either aria-label or text content
-      expect(ariaLabel || textContent).toBeTruthy();
-    }
-  });
-
-  test('should have proper color contrast', async ({ page }) => {
-    await page.goto('/test-players');
-
-    // This would need a proper color contrast testing library
-    // For now, just check that elements are visible
+    // Check for proper heading structure
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('button').first()).toBeVisible();
+
+    // Check for proper button labels
+    await expect(page.locator('[data-testid="search-button"]')).toHaveAttribute(
+      'aria-label'
+    );
+
+    // Check for proper form labels
+    await expect(page.locator('[data-testid="search-input"]')).toHaveAttribute(
+      'aria-label'
+    );
+
+    // Check for proper table headers
+    await expect(page.locator('[data-testid="player-table"] th')).toHaveCount(
+      6
+    ); // ID, Name, ELO, Games, Wins, Losses
+
+    // Check for proper pagination labels
+    await expect(page.locator('[data-testid="pagination"]')).toHaveAttribute(
+      'aria-label'
+    );
   });
 });

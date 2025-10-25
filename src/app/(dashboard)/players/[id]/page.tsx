@@ -2,81 +2,96 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { PerformanceChart } from '@/components/analytics/PerformanceChart';
-import { RoleStats } from '@/components/analytics/RoleStats';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ArrowLeft, RefreshCw, Trophy, Target, Users } from 'lucide-react';
+import Link from 'next/link';
 
-interface PlayerAnalytics {
-  player: {
+interface Player {
+  id: string;
+  gomafiaId: string;
+  name: string;
+  eloRating: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  lastSyncAt: string;
+  syncStatus: 'SYNCED' | 'PENDING' | 'ERROR';
+  clubId?: string;
+  club?: {
     id: string;
     name: string;
-    eloRating: number;
-    totalGames: number;
-    wins: number;
-    losses: number;
-    club?: {
+  };
+  participations: Array<{
+    game: {
       id: string;
-      name: string;
-    } | null;
-  };
-  overallStats: {
-    totalGames: number;
-    wins: number;
-    losses: number;
-    winRate: number;
-    eloRating: number;
-  };
+      gomafiaId: string;
+      date: string;
+      durationMinutes: number;
+      winnerTeam: string;
+      status: string;
+    };
+  }>;
   roleStats: Array<{
     role: string;
     gamesPlayed: number;
     wins: number;
     losses: number;
+  }>;
+  statistics: {
+    totalGames: number;
     winRate: number;
-    averagePerformance: number;
-  }>;
-  trends: Array<{
-    date: string;
-    value: number;
-    change?: number;
-  }>;
-  rankings: {
-    globalRank: number;
-    roleRank: Record<string, number>;
+    recentGames: Array<{
+      id: string;
+      gomafiaId: string;
+      date: string;
+      durationMinutes: number;
+      winnerTeam: string;
+      status: string;
+    }>;
+    roleStats: Record<
+      string,
+      {
+        gamesPlayed: number;
+        wins: number;
+        losses: number;
+        winRate: number;
+      }
+    >;
   };
 }
 
-export default function PlayerAnalyticsPage() {
+export default function PlayerDetailsPage() {
   const params = useParams();
-  const playerId = params.id as string;
-
-  const [analytics, setAnalytics] = useState<PlayerAnalytics | null>(null);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState('all_time');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [playerId, selectedRole, timeRange]);
-
-  const fetchAnalytics = async () => {
+  const fetchPlayer = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (selectedRole) params.append('role', selectedRole);
-      params.append('period', timeRange);
+      setError(null);
 
-      const response = await fetch(
-        `/api/players/${playerId}/analytics?${params.toString()}`
-      );
+      const response = await fetch(`/api/players/${params.id}`);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch player analytics');
+        if (response.status === 404) {
+          throw new Error('Player not found');
+        }
+        throw new Error('Failed to fetch player');
       }
 
-      const data = await response.json();
-      setAnalytics(data);
+      const data: Player = await response.json();
+      setPlayer(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -84,167 +99,283 @@ export default function PlayerAnalyticsPage() {
     }
   };
 
+  useEffect(() => {
+    if (params.id) {
+      fetchPlayer();
+    }
+  }, [params.id]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const getSyncStatusBadge = (status: string) => {
+    switch (status) {
+      case 'SYNCED':
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            Synced
+          </Badge>
+        );
+      case 'PENDING':
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            Pending
+          </Badge>
+        );
+      case 'ERROR':
+        return <Badge variant="destructive">Error</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Loading analytics...</p>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading player...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <Button onClick={fetchPlayer} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </div>
       </div>
     );
   }
 
-  if (error || !analytics) {
+  if (!player) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">
-                Error: {error || 'Player not found'}
-              </p>
-              <Button onClick={() => window.history.back()}>Go Back</Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Player not found</p>
       </div>
     );
   }
-
-  const roles = ['DON', 'MAFIA', 'SHERIFF', 'CITIZEN'];
-  const timeRanges = [
-    { value: 'all_time', label: 'All Time' },
-    { value: 'monthly', label: 'Last Month' },
-    { value: 'weekly', label: 'Last Week' },
-    { value: 'daily', label: 'Last 7 Days' },
-  ];
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">{analytics.player.name}</h1>
-            {analytics.player.club && (
-              <Badge variant="secondary" className="mt-2">
-                {analytics.player.club.name}
-              </Badge>
-            )}
-          </div>
-          <Button onClick={() => window.history.back()}>Back to Players</Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/players">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Players
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold">{player.name}</h1>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex gap-2">
-            <Button
-              variant={selectedRole === null ? 'default' : 'outline'}
-              onClick={() => setSelectedRole(null)}
-            >
-              All Roles
-            </Button>
-            {roles.map((role) => (
-              <Button
-                key={role}
-                variant={selectedRole === role ? 'default' : 'outline'}
-                onClick={() =>
-                  setSelectedRole(selectedRole === role ? null : role)
-                }
-              >
-                {role}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            {timeRanges.map((range) => (
-              <Button
-                key={range.value}
-                variant={timeRange === range.value ? 'default' : 'outline'}
-                onClick={() => setTimeRange(range.value)}
-              >
-                {range.label}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <Button onClick={fetchPlayer} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      {/* Player Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Overall Stats</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ELO Rating</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>ELO Rating</span>
-                <span className="font-bold">
-                  {analytics.overallStats.eloRating}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Games</span>
-                <span className="font-bold">
-                  {analytics.overallStats.totalGames}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Win Rate</span>
-                <span className="font-bold">
-                  {analytics.overallStats.winRate.toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Global Rank</span>
-                <span className="font-bold">
-                  #{analytics.rankings.globalRank}
-                </span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{player.eloRating}</div>
+            <p className="text-xs text-muted-foreground">Current rating</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Performance</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Games</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {analytics.overallStats.wins}
-              </div>
-              <div className="text-sm text-muted-foreground">Wins</div>
-            </div>
+            <div className="text-2xl font-bold">{player.totalGames}</div>
+            <p className="text-xs text-muted-foreground">
+              {player.wins} wins, {player.losses} losses
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Performance</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">
-                {analytics.overallStats.losses}
-              </div>
-              <div className="text-sm text-muted-foreground">Losses</div>
+            <div className="text-2xl font-bold">
+              {player.statistics.winRate}%
             </div>
+            <p className="text-xs text-muted-foreground">Success rate</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Sync Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-2">
+              {getSyncStatusBadge(player.syncStatus)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Last sync: {formatDate(player.lastSyncAt)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Player Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PerformanceChart
-          data={analytics.trends}
-          title="ELO Rating Trend"
-          metric="ELO Rating"
-        />
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Gomafia ID
+                </label>
+                <p className="text-sm">{player.gomafiaId}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Club
+                </label>
+                <p className="text-sm">{player.club?.name || 'No club'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Games Played
+                </label>
+                <p className="text-sm">{player.totalGames}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Win Rate
+                </label>
+                <p className="text-sm">{player.statistics.winRate}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <RoleStats roleStats={analytics.roleStats} />
+        {/* Role Statistics */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Role Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Object.keys(player.statistics.roleStats).length > 0 ? (
+              <div className="space-y-2">
+                {Object.entries(player.statistics.roleStats).map(
+                  ([role, stats]) => (
+                    <div
+                      key={role}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-sm font-medium capitalize">
+                        {role}
+                      </span>
+                      <div className="text-sm text-gray-500">
+                        {stats.gamesPlayed} games ({stats.winRate}% win rate)
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No role statistics available
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Recent Games */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Games</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {player.participations.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Winner</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {player.participations.slice(0, 10).map((participation) => (
+                  <TableRow key={participation.game.id}>
+                    <TableCell>{formatDate(participation.game.date)}</TableCell>
+                    <TableCell>
+                      {participation.game.durationMinutes
+                        ? formatDuration(participation.game.durationMinutes)
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          participation.game.winnerTeam === 'BLACK'
+                            ? 'default'
+                            : 'secondary'
+                        }
+                      >
+                        {participation.game.winnerTeam}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {participation.game.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/games/${participation.game.id}`}>
+                          View Game
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-gray-500">No recent games found</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
