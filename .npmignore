@@ -1,0 +1,55 @@
+# Source files
+src/
+docs/
+specs/
+
+# Development files
+.env*
+*.config.js
+*.config.ts
+tsconfig.json
+next.config.js
+tailwind.config.js
+
+# Dependencies
+node_modules/
+
+# Production builds
+.next/
+out/
+dist/
+build/
+
+# Testing
+tests/
+coverage/
+.nyc_output/
+
+# Development tools
+.eslintrc*
+.prettierrc*
+.husky/
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Cache
+.cache/
+.eslintcache
+.prettiercache
+
+# Prisma
+prisma/migrations/
+
+# Public files (keep only essential)
+public/icons/
+public/manifest.json
+public/sw.js

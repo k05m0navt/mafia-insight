@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Production builds
+.next/
+out/
+dist/
+build/
+
+# Generated files
+*.generated.*
+*.d.ts
+
+# Coverage
+coverage/
+
+# Cache
+.prettiercache
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Public files
+public/
+
+# Prisma
+prisma/migrations/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
