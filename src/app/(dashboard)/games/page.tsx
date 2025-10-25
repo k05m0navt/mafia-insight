@@ -20,20 +20,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
-interface Player {
+interface Game {
   id: string;
   gomafiaId: string;
-  name: string;
-  eloRating: number;
-  totalGames: number;
-  wins: number;
-  losses: number;
+  date: string;
+  durationMinutes: number;
+  winnerTeam: string;
+  status: string;
   lastSyncAt: string;
   syncStatus: 'SYNCED' | 'PENDING' | 'ERROR';
-  clubId?: string;
+  tournamentId?: string;
+  participations: Array<{
+    player: {
+      id: string;
+      name: string;
+      eloRating: number;
+    };
+    role: string;
+    team: string;
+    isWinner: boolean;
+  }>;
 }
 
 interface Pagination {
@@ -45,29 +54,31 @@ interface Pagination {
   hasPrev: boolean;
 }
 
-interface PlayersResponse {
-  players: Player[];
+interface GamesResponse {
+  games: Game[];
   pagination: Pagination;
 }
 
-export default function PlayersPage() {
-  const [players, setPlayers] = useState<Player[]>([]);
+export default function GamesPage() {
+  const [games, setGames] = useState<Game[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [search, setSearch] = useState('');
-  const [syncStatus, setSyncStatus] = useState<string>('');
-  const [clubId, setClubId] = useState<string>('');
-  const [sortBy, setSortBy] = useState<string>('lastSyncAt');
+  const [status, setStatus] = useState<string>('');
+  const [winnerTeam, setWinnerTeam] = useState<string>('');
+  const [tournamentId, setTournamentId] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<string>('desc');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
-  const fetchPlayers = async () => {
+  const fetchGames = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -79,18 +90,20 @@ export default function PlayersPage() {
         sortOrder,
       });
 
-      if (search) params.append('search', search);
-      if (syncStatus) params.append('syncStatus', syncStatus);
-      if (clubId) params.append('clubId', clubId);
+      if (status) params.append('status', status);
+      if (winnerTeam) params.append('winnerTeam', winnerTeam);
+      if (tournamentId) params.append('tournamentId', tournamentId);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
 
-      const response = await fetch(`/api/players?${params}`);
+      const response = await fetch(`/api/games?${params}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch players');
+        throw new Error('Failed to fetch games');
       }
 
-      const data: PlayersResponse = await response.json();
-      setPlayers(data.players);
+      const data: GamesResponse = await response.json();
+      setGames(data.games);
       setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -100,21 +113,35 @@ export default function PlayersPage() {
   };
 
   useEffect(() => {
-    fetchPlayers();
-  }, [currentPage, pageSize, search, syncStatus, clubId, sortBy, sortOrder]);
-
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
+    fetchGames();
+  }, [
+    currentPage,
+    pageSize,
+    status,
+    winnerTeam,
+    tournamentId,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+  ]);
 
   const handleFilterChange = (key: string, value: string) => {
     switch (key) {
-      case 'syncStatus':
-        setSyncStatus(value);
+      case 'status':
+        setStatus(value);
         break;
-      case 'clubId':
-        setClubId(value);
+      case 'winnerTeam':
+        setWinnerTeam(value);
+        break;
+      case 'tournamentId':
+        setTournamentId(value);
+        break;
+      case 'startDate':
+        setStartDate(value);
+        break;
+      case 'endDate':
+        setEndDate(value);
         break;
       case 'sortBy':
         setSortBy(value);
@@ -130,22 +157,45 @@ export default function PlayersPage() {
     setCurrentPage(page);
   };
 
-  const getSyncStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'SYNCED':
+      case 'COMPLETED':
         return (
           <Badge variant="default" className="bg-green-100 text-green-800">
-            Synced
+            Completed
           </Badge>
         );
-      case 'PENDING':
+      case 'IN_PROGRESS':
         return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            Pending
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            In Progress
           </Badge>
         );
-      case 'ERROR':
-        return <Badge variant="destructive">Error</Badge>;
+      case 'SCHEDULED':
+        return (
+          <Badge variant="outline" className="bg-gray-100 text-gray-800">
+            Scheduled
+          </Badge>
+        );
+      case 'CANCELLED':
+        return <Badge variant="destructive">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const getWinnerBadge = (winnerTeam: string) => {
+    switch (winnerTeam) {
+      case 'BLACK':
+        return (
+          <Badge variant="default" className="bg-gray-800 text-white">
+            Black
+          </Badge>
+        );
+      case 'RED':
+        return <Badge variant="destructive">Red</Badge>;
+      case 'DRAW':
+        return <Badge variant="secondary">Draw</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -161,11 +211,17 @@ export default function PlayersPage() {
     });
   };
 
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading players...</span>
+        <span className="ml-2">Loading games...</span>
       </div>
     );
   }
@@ -175,7 +231,7 @@ export default function PlayersPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error: {error}</p>
-          <Button onClick={fetchPlayers} variant="outline">
+          <Button onClick={fetchGames} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
@@ -187,8 +243,8 @@ export default function PlayersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Players</h1>
-        <Button onClick={fetchPlayers} variant="outline">
+        <h1 className="text-3xl font-bold">Games</h1>
+        <Button onClick={fetchGames} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -200,36 +256,42 @@ export default function PlayersPage() {
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search players..."
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sync Status</label>
+              <label className="text-sm font-medium">Status</label>
               <Select
-                value={syncStatus}
-                onValueChange={(value) =>
-                  handleFilterChange('syncStatus', value)
-                }
+                value={status}
+                onValueChange={(value) => handleFilterChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All statuses</SelectItem>
-                  <SelectItem value="SYNCED">Synced</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Winner Team</label>
+              <Select
+                value={winnerTeam}
+                onValueChange={(value) =>
+                  handleFilterChange('winnerTeam', value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All teams</SelectItem>
+                  <SelectItem value="BLACK">Black</SelectItem>
+                  <SelectItem value="RED">Red</SelectItem>
+                  <SelectItem value="DRAW">Draw</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,12 +306,10 @@ export default function PlayersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="eloRating">ELO Rating</SelectItem>
-                  <SelectItem value="totalGames">Total Games</SelectItem>
-                  <SelectItem value="wins">Wins</SelectItem>
-                  <SelectItem value="losses">Losses</SelectItem>
-                  <SelectItem value="lastSyncAt">Last Sync</SelectItem>
+                  <SelectItem value="date">Date</SelectItem>
+                  <SelectItem value="durationMinutes">Duration</SelectItem>
+                  <SelectItem value="winnerTeam">Winner</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -271,57 +331,68 @@ export default function PlayersPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) =>
+                  handleFilterChange('startDate', e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Players Table */}
+      {/* Games Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Players ({pagination?.total || 0})</CardTitle>
+          <CardTitle>Games ({pagination?.total || 0})</CardTitle>
         </CardHeader>
         <CardContent>
-          {players.length === 0 ? (
+          {games.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No players found</p>
+              <p className="text-gray-500">No games found</p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>ELO Rating</TableHead>
-                    <TableHead>Games</TableHead>
-                    <TableHead>Wins</TableHead>
-                    <TableHead>Losses</TableHead>
-                    <TableHead>Sync Status</TableHead>
-                    <TableHead>Last Sync</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Winner</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Participants</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {players.map((player) => (
-                    <TableRow key={player.id}>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/players/${player.id}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {player.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{player.eloRating}</TableCell>
-                      <TableCell>{player.totalGames}</TableCell>
-                      <TableCell>{player.wins}</TableCell>
-                      <TableCell>{player.losses}</TableCell>
+                  {games.map((game) => (
+                    <TableRow key={game.id}>
+                      <TableCell>{formatDate(game.date)}</TableCell>
                       <TableCell>
-                        {getSyncStatusBadge(player.syncStatus)}
+                        {game.durationMinutes
+                          ? formatDuration(game.durationMinutes)
+                          : 'N/A'}
                       </TableCell>
-                      <TableCell>{formatDate(player.lastSyncAt)}</TableCell>
+                      <TableCell>{getWinnerBadge(game.winnerTeam)}</TableCell>
+                      <TableCell>{getStatusBadge(game.status)}</TableCell>
+                      <TableCell>{game.participations.length}</TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/players/${player.id}`}>View</Link>
+                          <Link href={`/games/${game.id}`}>View</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -338,7 +409,7 @@ export default function PlayersPage() {
                       pagination.page * pagination.limit,
                       pagination.total
                     )}{' '}
-                    of {pagination.total} players
+                    of {pagination.total} games
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button

@@ -1,170 +1,355 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { GET, POST } from '../../../src/app/api/players/route';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET } from '@/app/api/players/route';
 
-// Mock the database
-vi.mock('../../../src/lib/db', () => ({
-  prisma: {
+// Mock database
+vi.mock('@/lib/db', () => ({
+  db: {
     player: {
-      findMany: vi.fn().mockResolvedValue([]),
-      count: vi.fn().mockResolvedValue(0),
-      create: vi.fn().mockResolvedValue({ id: '1', name: 'Test Player' }),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
 
-describe('/api/players', () => {
-  describe('GET /api/players', () => {
-    it('should return players list', async () => {
-      const request = new Request(
-        'http://localhost:3000/api/players?page=1&limit=20'
-      );
+describe('Players API Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-      const response = await GET(request);
-      const data = await response.json();
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
-      expect(response.status).toBe(200);
-      expect(data).toHaveProperty('data');
-      expect(data).toHaveProperty('pagination');
-      expect(Array.isArray(data.data)).toBe(true);
+  it('should return paginated player list', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'Player 1',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+      },
+      {
+        id: 'player2',
+        gomafiaId: 'gomafia2',
+        name: 'Player 2',
+        eloRating: 1600,
+        totalGames: 80,
+        wins: 50,
+        losses: 30,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+      },
+    ];
+
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(2);
+
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?page=1&limit=10'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      players: mockPlayers,
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 2,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
     });
 
-    it('should filter players by search term', async () => {
-      const request = new Request(
-        'http://localhost:3000/api/players?search=John&page=1&limit=20'
-      );
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.data).toBeDefined();
-    });
-
-    it('should filter players by club', async () => {
-      const request = new Request(
-        'http://localhost:3000/api/players?club_id=club-1&page=1&limit=20'
-      );
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.data).toBeDefined();
-    });
-
-    it('should handle pagination', async () => {
-      const request = new Request(
-        'http://localhost:3000/api/players?page=2&limit=10'
-      );
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.pagination.page).toBe(2);
-      expect(data.pagination.limit).toBe(10);
-    });
-
-    it('should handle errors gracefully', async () => {
-      const request = new Request('http://localhost:3000/api/players');
-
-      const response = await GET(request);
-
-      // Should not throw, should return error response
-      expect(response.status).toBeDefined();
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: { lastSyncAt: 'desc' },
+      skip: 0,
+      take: 10,
     });
   });
 
-  describe('POST /api/players', () => {
-    it('should create a new player', async () => {
-      const playerData = {
-        gomafiaId: 'gm-123',
-        name: 'Test Player',
-        eloRating: 1200,
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-        userId: 'user-1',
-      };
+  it('should handle pagination parameters', async () => {
+    const mockPlayers = Array.from({ length: 25 }, (_, i) => ({
+      id: `player${i}`,
+      gomafiaId: `gomafia${i}`,
+      name: `Player ${i}`,
+      eloRating: 1500 + i,
+      totalGames: 100,
+      wins: 60,
+      losses: 40,
+      lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+      syncStatus: 'SYNCED',
+    }));
 
-      const request = new Request('http://localhost:3000/api/players', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(playerData),
-      });
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers.slice(10, 20));
+    vi.mocked(db.player.count).mockResolvedValue(25);
 
-      const response = await POST(request);
-      const data = await response.json();
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?page=2&limit=10'
+    );
+    const response = await GET(request);
+    const data = await response.json();
 
-      expect(response.status).toBe(201);
-      expect(data).toHaveProperty('id');
-      expect(data.name).toBe('Test Player');
+    expect(response.status).toBe(200);
+    expect(data.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      total: 25,
+      totalPages: 3,
+      hasNext: true,
+      hasPrev: true,
     });
 
-    it('should validate required fields', async () => {
-      const request = new Request('http://localhost:3000/api/players', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          // Missing required fields
-          name: 'Test Player',
-        }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: { lastSyncAt: 'desc' },
+      skip: 10,
+      take: 10,
     });
+  });
 
-    it('should require userId', async () => {
-      const playerData = {
-        gomafiaId: 'gm-123',
-        name: 'Test Player',
-        eloRating: 1200,
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-      };
+  it('should handle filtering by sync status', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'Player 1',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+      },
+    ];
 
-      const request = new Request('http://localhost:3000/api/players', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(playerData), // Missing userId
-      });
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(1);
 
-      const response = await POST(request);
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?syncStatus=SYNCED'
+    );
+    const response = await GET(request);
+    const data = await response.json();
 
-      expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
+    expect(data.players).toHaveLength(1);
+
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: { syncStatus: 'SYNCED' },
+      orderBy: { lastSyncAt: 'desc' },
+      skip: 0,
+      take: 10,
     });
+  });
 
-    it('should validate player data', async () => {
-      const invalidData = {
-        gomafiaId: '',
-        name: 'A', // Too short
-        eloRating: -100, // Invalid
-        totalGames: 5,
-        wins: 3,
-        losses: 1, // Doesn't add up
-        userId: 'user-1',
-      };
+  it('should handle filtering by club', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'Player 1',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+        clubId: 'club1',
+      },
+    ];
 
-      const request = new Request('http://localhost:3000/api/players', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(1);
+
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?clubId=club1'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.players).toHaveLength(1);
+
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: { clubId: 'club1' },
+      orderBy: { lastSyncAt: 'desc' },
+      skip: 0,
+      take: 10,
+    });
+  });
+
+  it('should handle search by name', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'John Doe',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+      },
+    ];
+
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(1);
+
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?search=John'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.players).toHaveLength(1);
+
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: {
+        name: {
+          contains: 'John',
+          mode: 'insensitive',
         },
-        body: JSON.stringify(invalidData),
-      });
+      },
+      orderBy: { lastSyncAt: 'desc' },
+      skip: 0,
+      take: 10,
+    });
+  });
 
-      const response = await POST(request);
+  it('should handle sorting by different fields', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'Player 1',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+      },
+    ];
 
-      expect(response.status).toBe(400);
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(1);
+
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?sortBy=eloRating&sortOrder=desc'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.players).toHaveLength(1);
+
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: { eloRating: 'desc' },
+      skip: 0,
+      take: 10,
+    });
+  });
+
+  it('should handle database errors gracefully', async () => {
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockRejectedValue(
+      new Error('Database connection failed')
+    );
+
+    const request = new NextRequest('http://localhost:3000/api/players');
+    const response = await GET(request);
+
+    expect(response.status).toBe(500);
+    const data = await response.json();
+    expect(data.error).toContain('Database connection failed');
+  });
+
+  it('should validate query parameters', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?page=-1&limit=0'
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toContain('Invalid query parameters');
+  });
+
+  it('should handle empty results', async () => {
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue([]);
+    vi.mocked(db.player.count).mockResolvedValue(0);
+
+    const request = new NextRequest('http://localhost:3000/api/players');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.players).toEqual([]);
+    expect(data.pagination.total).toBe(0);
+  });
+
+  it('should handle multiple filters combined', async () => {
+    const mockPlayers = [
+      {
+        id: 'player1',
+        gomafiaId: 'gomafia1',
+        name: 'John Doe',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        lastSyncAt: new Date('2024-01-15T00:00:00Z'),
+        syncStatus: 'SYNCED',
+        clubId: 'club1',
+      },
+    ];
+
+    const { db } = await import('@/lib/db');
+    vi.mocked(db.player.findMany).mockResolvedValue(mockPlayers);
+    vi.mocked(db.player.count).mockResolvedValue(1);
+
+    const request = new NextRequest(
+      'http://localhost:3000/api/players?syncStatus=SYNCED&clubId=club1&search=John&sortBy=eloRating&sortOrder=desc'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.players).toHaveLength(1);
+
+    expect(db.player.findMany).toHaveBeenCalledWith({
+      where: {
+        syncStatus: 'SYNCED',
+        clubId: 'club1',
+        name: {
+          contains: 'John',
+          mode: 'insensitive',
+        },
+      },
+      orderBy: { eloRating: 'desc' },
+      skip: 0,
+      take: 10,
     });
   });
 });

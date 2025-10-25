@@ -38,6 +38,8 @@ model Player {
   wins        Int       @default(0)
   losses      Int       @default(0)
   clubId      String?
+  lastSyncAt  DateTime?
+  syncStatus  EntitySyncStatus?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
@@ -72,6 +74,8 @@ model Game {
   durationMinutes Int?
   winnerTeam      WinnerTeam?
   status          GameStatus @default(SCHEDULED)
+  lastSyncAt      DateTime?
+  syncStatus      EntitySyncStatus?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -149,6 +153,33 @@ model Analytics {
   @@map("analytics")
 }
 
+model SyncLog {
+  id                String    @id @default(uuid())
+  type              SyncType
+  status            SyncStatusEnum
+  startTime         DateTime  @default(now())
+  endTime           DateTime?
+  recordsProcessed  Int?
+  errors            Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@map("sync_logs")
+}
+
+model SyncStatus {
+  id                String    @id @default("current")
+  lastSyncTime      DateTime?
+  lastSyncType      String?
+  isRunning         Boolean   @default(false)
+  progress          Int?
+  currentOperation  String?
+  lastError         String?
+  updatedAt         DateTime  @updatedAt
+  
+  @@map("sync_status")
+}
+
 enum SubscriptionTier {
   FREE
   PREMIUM
@@ -199,4 +230,21 @@ enum MetricPeriod {
   WEEKLY
   MONTHLY
   ALL_TIME
+}
+
+enum SyncType {
+  FULL
+  INCREMENTAL
+}
+
+enum SyncStatusEnum {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum EntitySyncStatus {
+  SYNCED
+  PENDING
+  ERROR
 }

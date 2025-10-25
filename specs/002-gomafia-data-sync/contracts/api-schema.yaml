@@ -1,0 +1,233 @@
+openapi: 3.0.0
+info:
+  title: Gomafia Data Sync API
+  description: API for managing data synchronization from gomafia.pro
+  version: 1.0.0
+servers:
+  - url: /api/gomafia-sync
+    description: Local development server
+
+paths:
+  /sync/status:
+    get:
+      summary: Get current sync status
+      description: Returns the current synchronization status
+      operationId: getSyncStatus
+      tags:
+        - Sync
+      responses:
+        '200':
+          description: Current sync status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isRunning:
+                    type: boolean
+                    description: Whether a sync is currently running
+                  lastSyncTime:
+                    type: string
+                    format: date-time
+                    description: Last successful sync time
+                  lastSyncType:
+                    type: string
+                    enum: [FULL, INCREMENTAL]
+                    description: Type of last sync
+                  progress:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                    description: Progress percentage
+                  currentOperation:
+                    type: string
+                    description: Current operation being performed
+                  lastError:
+                    type: string
+                    nullable: true
+                    description: Last error message if any
+
+  /sync/trigger:
+    post:
+      summary: Trigger manual sync
+      description: Manually trigger a data synchronization
+      operationId: triggerSync
+      tags:
+        - Sync
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [FULL, INCREMENTAL]
+                  description: Type of sync to run
+              required:
+                - type
+      responses:
+        '200':
+          description: Sync triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  syncId:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '409':
+          description: Sync already running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /sync/logs:
+    get:
+      summary: Get sync logs
+      description: Returns a list of sync operation logs
+      operationId: getSyncLogs
+      tags:
+        - Sync
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of logs to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of logs to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [RUNNING, COMPLETED, FAILED]
+      responses:
+        '200':
+          description: List of sync logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                          enum: [FULL, INCREMENTAL]
+                        status:
+                          type: string
+                          enum: [RUNNING, COMPLETED, FAILED]
+                        startTime:
+                          type: string
+                          format: date-time
+                        endTime:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        recordsProcessed:
+                          type: integer
+                          nullable: true
+                        errors:
+                          type: array
+                          items:
+                            type: object
+                          nullable: true
+                  total:
+                    type: integer
+
+  /sync/logs/{id}:
+    get:
+      summary: Get sync log by ID
+      description: Returns details of a specific sync operation
+      operationId: getSyncLogById
+      tags:
+        - Sync
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sync log ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sync log details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                    enum: [FULL, INCREMENTAL]
+                  status:
+                    type: string
+                    enum: [RUNNING, COMPLETED, FAILED]
+                  startTime:
+                    type: string
+                    format: date-time
+                  endTime:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  recordsProcessed:
+                    type: integer
+                    nullable: true
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                    nullable: true
+        '404':
+          description: Sync log not found
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+tags:
+  - name: Sync
+    description: Data synchronization operations

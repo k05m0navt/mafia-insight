@@ -3,43 +3,54 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 
 // Query parameters validation schema
-const PlayersQuerySchema = z.object({
+const GamesQuerySchema = z.object({
   page: z.string().transform(Number).pipe(z.number().int().min(1)).default(1),
   limit: z
     .string()
     .transform(Number)
     .pipe(z.number().int().min(1).max(100))
     .default(10),
-  search: z.string().optional(),
-  syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
-  clubId: z.string().uuid().optional(),
+  status: z
+    .enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+    .optional(),
+  winnerTeam: z.enum(['BLACK', 'RED', 'DRAW']).optional(),
+  tournamentId: z.string().uuid().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
   sortBy: z
-    .enum(['name', 'eloRating', 'totalGames', 'wins', 'losses', 'lastSyncAt'])
-    .default('lastSyncAt'),
+    .enum(['date', 'durationMinutes', 'winnerTeam', 'status'])
+    .default('date'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = PlayersQuerySchema.parse(Object.fromEntries(searchParams));
+    const query = GamesQuerySchema.parse(Object.fromEntries(searchParams));
 
     // Build where clause
     const where: Record<string, unknown> = {};
 
-    if (query.search) {
-      where.name = {
-        contains: query.search,
-        mode: 'insensitive',
-      };
+    if (query.status) {
+      where.status = query.status;
     }
 
-    if (query.syncStatus) {
-      where.syncStatus = query.syncStatus;
+    if (query.winnerTeam) {
+      where.winnerTeam = query.winnerTeam;
     }
 
-    if (query.clubId) {
-      where.clubId = query.clubId;
+    if (query.tournamentId) {
+      where.tournamentId = query.tournamentId;
+    }
+
+    if (query.startDate || query.endDate) {
+      where.date = {};
+      if (query.startDate) {
+        where.date.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        where.date.lte = new Date(query.endDate);
+      }
     }
 
     // Build orderBy clause
@@ -50,8 +61,8 @@ export async function GET(request: NextRequest) {
     const skip = (query.page - 1) * query.limit;
 
     // Execute queries in parallel
-    const [players, total] = await Promise.all([
-      db.player.findMany({
+    const [games, total] = await Promise.all([
+      db.game.findMany({
         where,
         orderBy,
         skip,
@@ -59,17 +70,30 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           gomafiaId: true,
-          name: true,
-          eloRating: true,
-          totalGames: true,
-          wins: true,
-          losses: true,
+          date: true,
+          durationMinutes: true,
+          winnerTeam: true,
+          status: true,
           lastSyncAt: true,
           syncStatus: true,
-          clubId: true,
+          tournamentId: true,
+          participations: {
+            select: {
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  eloRating: true,
+                },
+              },
+              role: true,
+              team: true,
+              isWinner: true,
+            },
+          },
         },
       }),
-      db.player.count({ where }),
+      db.game.count({ where }),
     ]);
 
     // Calculate pagination info
@@ -78,7 +102,7 @@ export async function GET(request: NextRequest) {
     const hasPrev = query.page > 1;
 
     return NextResponse.json({
-      players,
+      games,
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -89,7 +113,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching players:', error);
+    console.error('Error fetching games:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -99,7 +123,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch players' },
+      { error: 'Failed to fetch games' },
       { status: 500 }
     );
   }
