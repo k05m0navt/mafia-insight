@@ -264,7 +264,7 @@ class DataSyncService {
   // Calculate player analytics
   private async calculatePlayerAnalytics(
     playerId: string
-  ): Promise<Record<string, unknown>> {
+  ): Promise<Record<string, unknown> | null> {
     try {
       const { data: player } = await supabase
         .from('players')

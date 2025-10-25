@@ -5,13 +5,14 @@ const clubService = new ClubService();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'all_time';
+    const { id } = await params;
 
-    const analytics = await clubService.getClubAnalytics(params.id, period);
+    const analytics = await clubService.getClubAnalytics(id, period);
 
     return NextResponse.json(analytics);
   } catch (error) {

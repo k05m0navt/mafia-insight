@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { PlayerRole } from '@prisma/client';
 
 export class AnalyticsService {
   async getPlayerAnalytics(
@@ -9,7 +10,7 @@ export class AnalyticsService {
     const player = await prisma.player.findUnique({
       where: { id: playerId },
       include: {
-        roleStats: role ? { where: { role: role as string } } : true,
+        roleStats: role ? { where: { role: role as PlayerRole } } : true,
         participations: {
           include: {
             game: {
@@ -183,7 +184,7 @@ export class AnalyticsService {
   ) {
     const players = await prisma.player.findMany({
       include: {
-        roleStats: role ? { where: { role: role as string } } : true,
+        roleStats: role ? { where: { role: role as PlayerRole } } : true,
         club: {
           select: {
             id: true,
@@ -289,7 +290,7 @@ export class AnalyticsService {
       const roleRank =
         (await prisma.playerRoleStats.count({
           where: {
-            role: role as string,
+            role: role as PlayerRole,
             winRate: { gt: 0 }, // TODO: Get player's win rate for this role
           },
         })) + 1;

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { TournamentSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { TournamentStatus } from '@prisma/client';
 
 export class TournamentService {
   async getTournaments(
@@ -18,7 +19,7 @@ export class TournamentService {
           mode: 'insensitive' as const,
         },
       }),
-      ...(status && { status: status as string }),
+      ...(status && { status: status as TournamentStatus }),
     };
 
     const [tournaments, total] = await Promise.all([

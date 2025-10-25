@@ -120,11 +120,11 @@ export const mockDb = {
     },
     create: async (params: Record<string, unknown>) => {
       console.log('Mock DB: create player', params);
-      return { ...mockPlayers[0], ...params.data };
+      return { ...mockPlayers[0], ...(params.data as Record<string, unknown>) };
     },
     update: async (params: Record<string, unknown>) => {
       console.log('Mock DB: update player', params);
-      return { ...mockPlayers[0], ...params.data };
+      return { ...mockPlayers[0], ...(params.data as Record<string, unknown>) };
     },
     delete: async (params: Record<string, unknown>) => {
       console.log('Mock DB: delete player', params);

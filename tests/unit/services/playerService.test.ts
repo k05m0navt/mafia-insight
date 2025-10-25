@@ -19,9 +19,10 @@ describe('PlayerService', () => {
   let playerService: PlayerService;
   let mockPrisma: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     playerService = new PlayerService();
-    mockPrisma = vi.mocked(require('../../../src/lib/db').prisma);
+    const { prisma } = await import('../../../src/lib/db');
+    mockPrisma = vi.mocked(prisma);
     vi.clearAllMocks();
   });
 

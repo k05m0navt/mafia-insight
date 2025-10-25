@@ -68,7 +68,7 @@ export class DataExporter {
 
       this.updateProgress('Generating file...', 75, 100, 75);
 
-      const blob = new Blob([processedData], { type: mimeType });
+      const blob = new Blob([processedData as BlobPart], { type: mimeType });
       this.updateProgress('Export complete', 100, 100, 100);
 
       return blob;
@@ -121,7 +121,7 @@ export class DataExporter {
 
       this.updateProgress('Generating file...', 90, 100, 90);
 
-      const blob = new Blob([processedData], { type: mimeType });
+      const blob = new Blob([processedData as BlobPart], { type: mimeType });
       this.updateProgress('Export complete', 100, 100, 100);
 
       return blob;
@@ -131,7 +131,7 @@ export class DataExporter {
   // Export to JSON
   private exportToJSON(data: unknown, options: ExportOptions): string {
     const exportData = {
-      ...data,
+      ...(data as Record<string, unknown>),
       ...(options.includeMetadata && {
         metadata: {
           exportedAt: new Date().toISOString(),
@@ -151,7 +151,7 @@ export class DataExporter {
     }
 
     // Flatten nested objects for CSV
-    const flattened = this.flattenObject(data);
+    const flattened = this.flattenObject(data as Record<string, unknown>);
     return this.objectToCSV(flattened);
   }
 
@@ -171,12 +171,12 @@ export class DataExporter {
   private arrayToCSV(data: unknown[]): string {
     if (data.length === 0) return '';
 
-    const headers = Object.keys(data[0]);
+    const headers = Object.keys(data[0] as Record<string, unknown>);
     const csvRows = [headers.join(',')];
 
     for (const row of data) {
       const values = headers.map((header) => {
-        const value = row[header];
+        const value = (row as Record<string, unknown>)[header];
         return typeof value === 'string'
           ? `"${value.replace(/"/g, '""')}"`
           : value;
@@ -218,7 +218,10 @@ export class DataExporter {
           obj[key] !== null &&
           !Array.isArray(obj[key])
         ) {
-          Object.assign(flattened, this.flattenObject(obj[key], newKey));
+          Object.assign(
+            flattened,
+            this.flattenObject(obj[key] as Record<string, unknown>, newKey)
+          );
         } else {
           flattened[newKey] = obj[key];
         }

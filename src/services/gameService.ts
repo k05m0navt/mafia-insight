@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { GameSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { PlayerRole, Team, WinnerTeam } from '@prisma/client';
 
 export class GameService {
   async getGames(
@@ -175,8 +176,8 @@ export class GameService {
       data: {
         gameId,
         playerId,
-        role: role as string,
-        team: team as string,
+        role: role as PlayerRole,
+        team: team as Team,
         isWinner: false,
       },
       include: {
@@ -192,7 +193,7 @@ export class GameService {
     const game = await prisma.game.update({
       where: { id: gameId },
       data: {
-        winnerTeam: winnerTeam as string,
+        winnerTeam: winnerTeam as WinnerTeam,
         status: 'COMPLETED',
       },
       include: {

@@ -77,28 +77,31 @@ export class DataSyncJob {
       try {
         // Check if player exists
         const existingPlayer = await prisma.player.findUnique({
-          where: { gomafiaId: playerData.gomafiaId },
+          where: { gomafiaId: playerData.gomafiaId as string },
         });
 
         if (existingPlayer) {
           // Update existing player
           await prisma.player.update({
-            where: { gomafiaId: playerData.gomafiaId },
+            where: { gomafiaId: playerData.gomafiaId as string },
             data: {
-              name: playerData.name,
-              eloRating: playerData.eloRating,
-              totalGames: playerData.totalGames,
-              wins: playerData.wins,
-              losses: playerData.losses,
+              name: playerData.name as string,
+              eloRating: playerData.eloRating as number,
+              totalGames: playerData.totalGames as number,
+              wins: playerData.wins as number,
+              losses: playerData.losses as number,
             },
           });
         } else {
           // Create new player (this would need a user ID in a real implementation)
-          console.log('New player found:', playerData.name);
+          console.log('New player found:', playerData.name as string);
           // For now, we'll skip creating new players without a user
         }
       } catch (error) {
-        console.error(`Error updating player ${playerData.name}:`, error);
+        console.error(
+          `Error updating player ${playerData.name as string}:`,
+          error
+        );
       }
     }
   }
@@ -126,8 +129,8 @@ export class DataSyncJob {
     try {
       // In a real implementation, you would log to a monitoring service like Sentry
       console.error('Data sync error logged:', {
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString(),
       });
     } catch (logError) {

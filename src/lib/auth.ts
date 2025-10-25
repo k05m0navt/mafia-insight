@@ -27,7 +27,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     session: async ({ session, token }) => {
       if (session?.user && token?.uid) {
-        (session.user as { id: string }).id = token.uid;
+        (session.user as { id: string }).id = token.uid as string;
         // Add subscription tier to session
         const { data: userData } = await supabase
           .from('users')
