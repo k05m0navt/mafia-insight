@@ -1,0 +1,1007 @@
+openapi: 3.0.3
+info:
+  title: Sport Mafia Game Analytics API
+  description: API for Sport Mafia Game Analytics Platform
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Team
+    email: support@mafiainsight.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.mafiainsight.com/v1
+    description: Production server
+  - url: https://staging-api.mafiainsight.com/v1
+    description: Staging server
+
+paths:
+  # Authentication endpoints
+  /auth/login:
+    post:
+      summary: User login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+
+  # Player endpoints
+  /players:
+    get:
+      summary: Get players list
+      tags: [Players]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: club_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Players list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayersResponse'
+
+  /players/{id}:
+    get:
+      summary: Get player details
+      tags: [Players]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerDetails'
+        '404':
+          description: Player not found
+
+  /players/{id}/analytics:
+    get:
+      summary: Get player analytics
+      tags: [Players, Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [DON, MAFIA, SHERIFF, CITIZEN]
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all_time]
+            default: all_time
+      responses:
+        '200':
+          description: Player analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerAnalytics'
+
+  # Club endpoints
+  /clubs:
+    get:
+      summary: Get clubs list
+      tags: [Clubs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Clubs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClubsResponse'
+
+    post:
+      summary: Create new club
+      tags: [Clubs]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClubRequest'
+      responses:
+        '201':
+          description: Club created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /clubs/{id}:
+    get:
+      summary: Get club details
+      tags: [Clubs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Club details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClubDetails'
+        '404':
+          description: Club not found
+
+  /clubs/{id}/analytics:
+    get:
+      summary: Get club analytics
+      tags: [Clubs, Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all_time]
+            default: all_time
+      responses:
+        '200':
+          description: Club analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClubAnalytics'
+
+  # Tournament endpoints
+  /tournaments:
+    get:
+      summary: Get tournaments list
+      tags: [Tournaments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: Tournaments list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentsResponse'
+
+    post:
+      summary: Create new tournament
+      tags: [Tournaments]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTournamentRequest'
+      responses:
+        '201':
+          description: Tournament created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tournaments/{id}:
+    get:
+      summary: Get tournament details
+      tags: [Tournaments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tournament details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentDetails'
+        '404':
+          description: Tournament not found
+
+  /tournaments/{id}/analytics:
+    get:
+      summary: Get tournament analytics
+      tags: [Tournaments, Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tournament analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentAnalytics'
+
+  # Games endpoints
+  /games:
+    get:
+      summary: Get games list
+      tags: [Games]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: player_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tournament_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Games list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GamesResponse'
+
+  /games/{id}:
+    get:
+      summary: Get game details
+      tags: [Games]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Game details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameDetails'
+        '404':
+          description: Game not found
+
+  # Analytics endpoints
+  /analytics/leaderboard:
+    get:
+      summary: Get leaderboard
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [players, clubs]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [DON, MAFIA, SHERIFF, CITIZEN]
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all_time]
+            default: all_time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+
+  /analytics/trends:
+    get:
+      summary: Get trends data
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: entity_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [player, club, tournament]
+        - name: entity_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: metric
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: daily
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Trends data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendsResponse'
+
+  # Data sync endpoints
+  /sync/gomafia:
+    post:
+      summary: Trigger gomafia.pro data sync
+      tags: [Data Sync]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sync initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Authentication schemas
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    # User schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        subscription_tier:
+          type: string
+          enum: [FREE, PREMIUM, CLUB, ENTERPRISE]
+        created_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+
+    # Player schemas
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        elo_rating:
+          type: integer
+        total_games:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        club_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    PlayerDetails:
+      allOf:
+        - $ref: '#/components/schemas/Player'
+        - type: object
+          properties:
+            club:
+              $ref: '#/components/schemas/Club'
+            role_stats:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlayerRoleStats'
+
+    PlayerRoleStats:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [DON, MAFIA, SHERIFF, CITIZEN]
+        games_played:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        win_rate:
+          type: number
+          format: float
+        average_performance:
+          type: number
+          format: float
+
+    PlayersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Club schemas
+    Club:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+
+    ClubDetails:
+      allOf:
+        - $ref: '#/components/schemas/Club'
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/Player'
+            tournaments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tournament'
+
+    CreateClubRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        logo_url:
+          type: string
+          format: uri
+
+    ClubsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Club'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Tournament schemas
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED]
+        max_participants:
+          type: integer
+        entry_fee:
+          type: number
+          format: decimal
+        prize_pool:
+          type: number
+          format: decimal
+
+    TournamentDetails:
+      allOf:
+        - $ref: '#/components/schemas/Tournament'
+        - type: object
+          properties:
+            games:
+              type: array
+              items:
+                $ref: '#/components/schemas/Game'
+            participants:
+              type: array
+              items:
+                $ref: '#/components/schemas/Player'
+
+    CreateTournamentRequest:
+      type: object
+      required:
+        - name
+        - start_date
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        max_participants:
+          type: integer
+          minimum: 2
+        entry_fee:
+          type: number
+          format: decimal
+          minimum: 0
+        prize_pool:
+          type: number
+          format: decimal
+          minimum: 0
+
+    TournamentsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tournament'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Game schemas
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date-time
+        duration_minutes:
+          type: integer
+        winner_team:
+          type: string
+          enum: [BLACK, RED, DRAW]
+        status:
+          type: string
+          enum: [SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED]
+
+    GameDetails:
+      allOf:
+        - $ref: '#/components/schemas/Game'
+        - type: object
+          properties:
+            participants:
+              type: array
+              items:
+                $ref: '#/components/schemas/GameParticipation'
+            tournament:
+              $ref: '#/components/schemas/Tournament'
+
+    GameParticipation:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        role:
+          type: string
+          enum: [DON, MAFIA, SHERIFF, CITIZEN]
+        team:
+          type: string
+          enum: [BLACK, RED]
+        is_winner:
+          type: boolean
+        performance_score:
+          type: integer
+
+    GamesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Game'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Analytics schemas
+    PlayerAnalytics:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        overall_stats:
+          $ref: '#/components/schemas/PlayerRoleStats'
+        role_stats:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerRoleStats'
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendData'
+        rankings:
+          type: object
+          properties:
+            global_rank:
+              type: integer
+            role_rank:
+              type: object
+              additionalProperties:
+                type: integer
+
+    ClubAnalytics:
+      type: object
+      properties:
+        club:
+          $ref: '#/components/schemas/Club'
+        member_count:
+          type: integer
+        average_elo:
+          type: number
+          format: float
+        total_games:
+          type: integer
+        win_rate:
+          type: number
+          format: float
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendData'
+
+    TournamentAnalytics:
+      type: object
+      properties:
+        tournament:
+          $ref: '#/components/schemas/Tournament'
+        participant_count:
+          type: integer
+        games_played:
+          type: integer
+        average_duration:
+          type: number
+          format: float
+        winner_distribution:
+          type: object
+          properties:
+            black_wins:
+              type: integer
+            red_wins:
+              type: integer
+            draws:
+              type: integer
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+              entity:
+                oneOf:
+                  - $ref: '#/components/schemas/Player'
+                  - $ref: '#/components/schemas/Club'
+              metric_value:
+                type: number
+                format: float
+              change:
+                type: integer
+
+    TrendsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendData'
+
+    TrendData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        value:
+          type: number
+          format: float
+        change:
+          type: number
+          format: float
+
+    # Data sync schemas
+    SyncResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [initiated, in_progress, completed, failed]
+        message:
+          type: string
+        estimated_completion:
+          type: string
+          format: date-time
+
+    # Common schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Players
+    description: Player management and analytics
+  - name: Clubs
+    description: Club management and analytics
+  - name: Tournaments
+    description: Tournament management and analytics
+  - name: Games
+    description: Game data and statistics
+  - name: Analytics
+    description: Analytics and reporting
+  - name: Data Sync
+    description: Data synchronization with external sources

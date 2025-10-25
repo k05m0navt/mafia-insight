@@ -1,0 +1,18 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+    - generic [ref=e2]:
+        - navigation [ref=e3]:
+            - generic [ref=e5]:
+                - link "Mafia Insight" [ref=e7]:
+                    - /url: /
+                - generic [ref=e8]:
+                    - generic [ref=e9]: Analytics
+                    - button "Sign In" [ref=e10] [cursor=pointer]
+        - main [ref=e11]:
+            - generic [ref=e15]:
+                - paragraph [ref=e16]: 'Error: Load failed'
+                - button "Try Again" [ref=e17] [cursor=pointer]
+    - alert [ref=e18]
+```
