@@ -31,10 +31,10 @@ export class GameService {
     if (dateFrom || dateTo) {
       where.date = {};
       if (dateFrom) {
-        where.date.gte = new Date(dateFrom);
+        (where.date as { gte: Date }).gte = new Date(dateFrom);
       }
       if (dateTo) {
-        where.date.lte = new Date(dateTo);
+        (where.date as { lte: Date }).lte = new Date(dateTo);
       }
     }
 
@@ -208,7 +208,12 @@ export class GameService {
   }
 
   private async updatePlayerStats(game: Record<string, unknown>) {
-    const participations = game.participations;
+    const participations = game.participations as Array<{
+      playerId: string;
+      team: string;
+      role: string;
+      isWinner: boolean;
+    }>;
 
     for (const participation of participations) {
       const isWinner = participation.team === game.winnerTeam;
@@ -229,7 +234,7 @@ export class GameService {
         where: {
           playerId_role: {
             playerId: participation.playerId,
-            role: participation.role,
+            role: participation.role as PlayerRole,
           },
         },
         update: {
@@ -240,7 +245,7 @@ export class GameService {
         },
         create: {
           playerId: participation.playerId,
-          role: participation.role,
+          role: participation.role as PlayerRole,
           gamesPlayed: 1,
           wins: isWinner ? 1 : 0,
           losses: !isWinner ? 1 : 0,
