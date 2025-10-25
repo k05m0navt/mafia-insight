@@ -93,7 +93,7 @@ export function DataTable({
       return column.render(value, row);
     }
 
-    return value;
+    return String(value ?? '');
   };
 
   if (loading) {
@@ -209,7 +209,7 @@ export function DataTable({
               </TableHeader>
               <TableBody>
                 {data.map((row, index) => (
-                  <TableRow key={row.id || index}>
+                  <TableRow key={String(row.id) || `row-${index}`}>
                     {columns.map((column) => (
                       <TableCell key={column.key}>
                         {renderCell(column, row)}

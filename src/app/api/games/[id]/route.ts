@@ -9,10 +9,10 @@ const GameParamsSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = GameParamsSchema.parse(params);
+    const { id } = GameParamsSchema.parse(await params);
 
     const game = await db.game.findUnique({
       where: { id },

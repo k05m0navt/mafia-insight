@@ -19,6 +19,11 @@ const RETRY_DELAY = parseInt(process.env.SYNC_RETRY_DELAY || '1000');
 export interface SyncResult {
   success: boolean;
   recordsProcessed: number;
+  validCount: number;
+  invalidCount: number;
+  partialDataCount: number;
+  emptyDataCount: number;
+  retryCount: number;
   errors: string[];
   duration: number;
 }
@@ -32,7 +37,7 @@ export interface SyncOptions {
 // Main sync job orchestrator
 export async function runSync(options: SyncOptions): Promise<SyncResult> {
   const startTime = Date.now();
-  let syncLogId: string;
+  let syncLogId: string | undefined;
   let recordsProcessed = 0;
   const errors: string[] = [];
 
@@ -82,7 +87,7 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
         status: 'COMPLETED',
         endTime: new Date(),
         recordsProcessed,
-        errors: errors.length > 0 ? errors : null,
+        errors: errors.length > 0 ? errors : undefined,
       },
     });
 
@@ -110,6 +115,11 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
     return {
       success: true,
       recordsProcessed,
+      validCount: recordsProcessed,
+      invalidCount: 0,
+      partialDataCount: 0,
+      emptyDataCount: 0,
+      retryCount: 0,
       errors,
       duration,
     };
@@ -153,6 +163,11 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
     return {
       success: false,
       recordsProcessed,
+      validCount: 0,
+      invalidCount: recordsProcessed,
+      partialDataCount: 0,
+      emptyDataCount: 0,
+      retryCount: 0,
       errors: [...errors, errorMessage],
       duration,
     };
@@ -310,7 +325,17 @@ export async function runIncrementalSync(
           }
 
           // Check if data has changed
-          if (!hasPlayerDataChanged(existingPlayer, playerData)) {
+          if (
+            !hasPlayerDataChanged(
+              {
+                ...existingPlayer,
+                lastSyncAt: existingPlayer.lastSyncAt ?? undefined,
+                syncStatus: existingPlayer.syncStatus ?? undefined,
+                clubId: existingPlayer.clubId ?? undefined,
+              },
+              playerData
+            )
+          ) {
             // Update lastSyncAt even if no changes
             await db.player.update({
               where: { id: existingPlayer.id },

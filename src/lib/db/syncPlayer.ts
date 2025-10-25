@@ -62,7 +62,17 @@ export async function syncPlayer(
 
     if (existingPlayer) {
       // Check if data has changed
-      if (!hasPlayerDataChanged(existingPlayer, playerData)) {
+      if (
+        !hasPlayerDataChanged(
+          {
+            ...existingPlayer,
+            lastSyncAt: existingPlayer.lastSyncAt ?? undefined,
+            syncStatus: existingPlayer.syncStatus ?? undefined,
+            clubId: existingPlayer.clubId ?? undefined,
+          },
+          playerData
+        )
+      ) {
         // Update lastSyncAt even if no changes
         await db.player.update({
           where: { id: existingPlayer.id },

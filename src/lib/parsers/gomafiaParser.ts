@@ -65,9 +65,10 @@ async function createPage(): Promise<Page> {
   const page = await browserInstance.newPage();
 
   // Set user agent to avoid detection
-  await page.setUserAgent(
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-  );
+  await page.setExtraHTTPHeaders({
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+  });
 
   // Set viewport
   await page.setViewportSize({ width: 1920, height: 1080 });

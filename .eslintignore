@@ -17,9 +17,9 @@ coverage/
 .nyc_output/
 
 # Cache
-.prettiercache
+.eslintcache
 
-# Config files
+# Config files (except eslint.config.js)
 *.config.mjs
 *.config.ts
 
@@ -40,11 +40,6 @@ Thumbs.db
 # Test results
 playwright-report/
 test-results/
-
-# Lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
 # Temporary files
 *.tmp

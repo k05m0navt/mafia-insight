@@ -41,18 +41,26 @@ export const SyncLogSchema = z
 export type SyncLog = z.infer<typeof SyncLogSchema>;
 
 // Create SyncLog schema (without auto-generated fields)
-export const CreateSyncLogSchema = SyncLogSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const CreateSyncLogSchema = z.object({
+  type: SyncTypeSchema,
+  status: SyncStatusEnumSchema,
+  startTime: z.date(),
+  endTime: z.date().nullable().optional(),
+  recordsProcessed: z.number().int().min(0).nullable().optional(),
+  errors: z.array(ErrorSchema).nullable().optional(),
 });
 
 export type CreateSyncLog = z.infer<typeof CreateSyncLogSchema>;
 
 // Update SyncLog schema (all fields optional except id)
-export const UpdateSyncLogSchema = SyncLogSchema.omit({
-  id: true,
-}).partial();
+export const UpdateSyncLogSchema = z.object({
+  type: SyncTypeSchema.optional(),
+  status: SyncStatusEnumSchema.optional(),
+  startTime: z.date().optional(),
+  endTime: z.date().nullable().optional(),
+  recordsProcessed: z.number().int().min(0).nullable().optional(),
+  errors: z.array(ErrorSchema).nullable().optional(),
+});
 
 export type UpdateSyncLog = z.infer<typeof UpdateSyncLogSchema>;
 
@@ -83,9 +91,13 @@ export const SyncStatusSchema = z
 export type SyncStatus = z.infer<typeof SyncStatusSchema>;
 
 // Update SyncStatus schema
-export const UpdateSyncStatusSchema = SyncStatusSchema.omit({
-  id: true,
-  updatedAt: true,
-}).partial();
+export const UpdateSyncStatusSchema = z.object({
+  lastSyncTime: z.date().nullable().optional(),
+  lastSyncType: SyncTypeSchema.nullable().optional(),
+  isRunning: z.boolean().optional(),
+  progress: z.number().int().min(0).max(100).nullable().optional(),
+  currentOperation: z.string().nullable().optional(),
+  lastError: z.string().nullable().optional(),
+});
 
 export type UpdateSyncStatus = z.infer<typeof UpdateSyncStatusSchema>;

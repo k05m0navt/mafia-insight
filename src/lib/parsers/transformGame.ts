@@ -140,7 +140,7 @@ export function hasGameDataChanged(
     oldData.status !== newData.status ||
     oldData.winnerTeam !== newData.winnerTeam ||
     oldData.durationMinutes !== newData.duration ||
-    (oldDate && Math.abs(oldDate.getTime() - newDate.getTime()) > 1000) // More than 1 second difference
+    (oldDate ? Math.abs(oldDate.getTime() - newDate.getTime()) > 1000 : false) // More than 1 second difference
   );
 }
 

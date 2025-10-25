@@ -35,7 +35,10 @@ export const GameSyncDataSchema = z
     syncStatus: EntitySyncStatusSchema.optional(),
   })
   .refine(
-    (data) => data.durationMinutes === null || data.durationMinutes >= 0,
+    (data) =>
+      data.durationMinutes === null ||
+      data.durationMinutes === undefined ||
+      data.durationMinutes >= 0,
     {
       message: 'Duration must be non-negative',
       path: ['durationMinutes'],
@@ -45,7 +48,16 @@ export const GameSyncDataSchema = z
 export type GameSyncData = z.infer<typeof GameSyncDataSchema>;
 
 // Partial Game sync data (for updates)
-export const GameSyncDataPartialSchema = GameSyncDataSchema.partial();
+export const GameSyncDataPartialSchema = z.object({
+  gomafiaId: z.string().min(1).optional(),
+  tournamentId: z.string().uuid().nullable().optional(),
+  date: z.date().optional(),
+  durationMinutes: z.number().int().positive().nullable().optional(),
+  winnerTeam: z.enum(['BLACK', 'RED', 'DRAW']).nullable().optional(),
+  status: GameStatusSchema.optional(),
+  lastSyncAt: z.date().optional(),
+  syncStatus: EntitySyncStatusSchema.optional(),
+});
 
 export type GameSyncDataPartial = z.infer<typeof GameSyncDataPartialSchema>;
 

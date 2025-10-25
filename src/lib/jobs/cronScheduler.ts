@@ -86,7 +86,7 @@ export function getCronSchedulerStatus(): {
 
   return {
     isRunning: syncCronJob.running,
-    nextRun: syncCronJob.nextDate().toDate(),
+    nextRun: syncCronJob.nextDate().toJSDate(),
     schedule: CRON_SCHEDULE,
   };
 }

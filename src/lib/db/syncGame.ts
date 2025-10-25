@@ -59,7 +59,19 @@ export async function syncGame(
 
     if (existingGame) {
       // Check if data has changed
-      if (!hasGameDataChanged(existingGame, gameData)) {
+      if (
+        !hasGameDataChanged(
+          {
+            ...existingGame,
+            lastSyncAt: existingGame.lastSyncAt ?? undefined,
+            syncStatus: existingGame.syncStatus ?? undefined,
+            durationMinutes: existingGame.durationMinutes ?? undefined,
+            winnerTeam: existingGame.winnerTeam ?? undefined,
+            tournamentId: existingGame.tournamentId ?? undefined,
+          },
+          gameData
+        )
+      ) {
         // Update lastSyncAt even if no changes
         await db.game.update({
           where: { id: existingGame.id },

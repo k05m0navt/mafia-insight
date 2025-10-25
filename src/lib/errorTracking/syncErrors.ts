@@ -1,8 +1,16 @@
-import { ErrorSchema, type Error } from '../validations/syncSchemas';
+import { ErrorSchema } from '../validations/syncSchemas';
+
+export type Error = {
+  message: string;
+  code?: string;
+  timestamp?: string;
+  details?: Record<string, string | number | boolean | null>;
+};
+import { db } from '@/lib/db';
 
 export interface SyncError extends Error {
   code?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, string | number | boolean | null>;
 }
 
 /**
@@ -27,16 +35,33 @@ export function createError(error: unknown): Error {
 /**
  * Log sync error with structured logging
  */
-export function logSyncError(
+export async function logSyncError(
+  operation: string,
   error: unknown,
   context?: Record<string, unknown>
-): void {
+): Promise<void> {
   const errorObject = createError(error);
 
   console.error('[Sync Error]', {
+    operation,
     ...errorObject,
     ...context,
   });
+
+  // Log to database
+  try {
+    await db.syncLog.create({
+      data: {
+        type: 'INCREMENTAL', // Default type
+        status: 'FAILED',
+        startTime: new Date(),
+        endTime: new Date(),
+        errors: [errorObject],
+      },
+    });
+  } catch (dbError) {
+    console.error('[Sync Error] Failed to log to database:', dbError);
+  }
 
   // TODO: Integrate with error tracking service (e.g., Sentry)
   // if (process.env.NODE_ENV === 'production') {
