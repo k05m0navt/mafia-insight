@@ -166,19 +166,47 @@ export default [
   },
   {
     ignores: [
+      // Dependencies
+      'node_modules/**',
+
+      // Production builds
       '.next/**',
       'out/**',
-      'build/**',
-      'next-env.d.ts',
-      'node_modules/**',
-      'playwright-report/**',
-      'test-results/**',
-      'coverage/**',
       'dist/**',
-      '*.config.js',
+      'build/**',
+
+      // Generated files
+      '*.generated.*',
+      '*.d.ts',
+      'next-env.d.ts',
+
+      // Coverage
+      'coverage/**',
+
+      // Cache
+      '.eslintcache',
+
+      // Config files (except eslint.config.js)
       '*.config.mjs',
       '*.config.ts',
+
+      // Public files
+      'public/**',
       'public/sw.js',
+
+      // Prisma
+      'prisma/migrations/**',
+
+      // Logs
+      '*.log',
+
+      // OS files
+      '.DS_Store',
+      'Thumbs.db',
+
+      // Test results
+      'playwright-report/**',
+      'test-results/**',
     ],
   },
 ];
