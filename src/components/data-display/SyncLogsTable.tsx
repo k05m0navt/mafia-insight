@@ -55,18 +55,18 @@ export function SyncLogsTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    status: '',
-    type: '',
+    status: 'all',
+    type: 'all',
   });
 
-  const fetchLogs = async (page = 1, status = '', type = '') => {
+  const fetchLogs = async (page = 1, status = 'all', type = 'all') => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
-        ...(status && { status }),
-        ...(type && { type }),
+        ...(status && status !== 'all' && { status }),
+        ...(type && type !== 'all' && { type }),
       });
 
       const response = await fetch(`/api/gomafia-sync/sync/logs?${params}`);
@@ -180,7 +180,7 @@ export function SyncLogsTable() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="COMPLETED">Completed</SelectItem>
             <SelectItem value="FAILED">Failed</SelectItem>
             <SelectItem value="RUNNING">Running</SelectItem>
@@ -195,7 +195,7 @@ export function SyncLogsTable() {
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="FULL">Full</SelectItem>
             <SelectItem value="INCREMENTAL">Incremental</SelectItem>
           </SelectContent>

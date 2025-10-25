@@ -32,8 +32,8 @@ export function PlayerFilters({
   onClearFilters,
   initialFilters = {
     search: '',
-    syncStatus: '',
-    clubId: '',
+    syncStatus: 'all',
+    clubId: 'all',
     sortBy: 'lastSyncAt',
     sortOrder: 'desc',
   },
@@ -50,8 +50,8 @@ export function PlayerFilters({
   const handleClearFilters = () => {
     const clearedFilters = {
       search: '',
-      syncStatus: '',
-      clubId: '',
+      syncStatus: 'all',
+      clubId: 'all',
       sortBy: 'lastSyncAt',
       sortOrder: 'desc' as const,
     };
@@ -117,7 +117,7 @@ export function PlayerFilters({
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="SYNCED">Synced</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="ERROR">Error</SelectItem>
@@ -136,7 +136,7 @@ export function PlayerFilters({
                   <SelectValue placeholder="All clubs" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All clubs</SelectItem>
+                  <SelectItem value="all">All clubs</SelectItem>
                   {/* This would be populated with actual club data */}
                   <SelectItem value="club1">Club 1</SelectItem>
                   <SelectItem value="club2">Club 2</SelectItem>

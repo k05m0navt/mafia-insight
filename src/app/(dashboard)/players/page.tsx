@@ -226,7 +226,7 @@ export default function PlayersPage() {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="SYNCED">Synced</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="ERROR">Error</SelectItem>

@@ -267,7 +267,7 @@ export default function GamesPage() {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                   <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                   <SelectItem value="SCHEDULED">Scheduled</SelectItem>
@@ -288,7 +288,7 @@ export default function GamesPage() {
                   <SelectValue placeholder="All teams" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All teams</SelectItem>
+                  <SelectItem value="all">All teams</SelectItem>
                   <SelectItem value="BLACK">Black</SelectItem>
                   <SelectItem value="RED">Red</SelectItem>
                   <SelectItem value="DRAW">Draw</SelectItem>
