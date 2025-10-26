@@ -115,7 +115,7 @@ export class PlayersPhase {
               totalGames: player.tournaments, // Using tournaments as proxy for now
               wins: 0, // Will be calculated later
               losses: 0, // Will be calculated later
-              userId: 'import-system', // TODO: Get or create system user
+              userId: 'system-import-user', // System user for imports
               lastSyncAt: new Date(),
               syncStatus: 'SYNCED' as const,
             };

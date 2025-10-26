@@ -107,7 +107,7 @@ export class TournamentsPhase {
           startDate: new Date(tournament.startDate),
           endDate: tournament.endDate ? new Date(tournament.endDate) : null,
           status: tournament.status,
-          createdBy: 'import-system', // TODO: Get or create system user
+          createdBy: 'system-import-user', // System user for imports
           lastSyncAt: new Date(),
           syncStatus: 'SYNCED' as const,
         }));

@@ -110,7 +110,7 @@ export class ClubsPhase {
           name: club.name,
           region: this.normalizeRegion(club.region),
           // presidentId will be set later after players are imported
-          createdBy: 'import-system', // TODO: Get or create system user
+          createdBy: 'system-import-user', // System user for imports
           lastSyncAt: new Date(),
           syncStatus: 'SYNCED' as const,
         }));
