@@ -38,7 +38,7 @@ export class PlayerStatsScraper {
       timeout: 30000,
     });
 
-    for (let year = currentYear; year >= 2020; year--) {
+    for (let year = currentYear; year >= 2022; year--) {
       try {
         const stats = await this.scrapeYearStats(gomafiaId, year);
 
