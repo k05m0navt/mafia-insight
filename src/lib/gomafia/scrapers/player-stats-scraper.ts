@@ -90,24 +90,32 @@ export class PlayerStatsScraper {
       });
     }
 
-    // Click year selector
+    // Click year selector (custom dropdown component)
     try {
-      // The year selector is a span element, not a button
-      await this.page.click(
-        `span.Select_select__selected-span__QTMy5:has-text("${year}")`,
-        { timeout: 5000 }
-      );
-      // Wait for the selection to apply
-      await this.page.waitForTimeout(1000);
+      // Step 1: Click the dropdown trigger to open it
+      await this.page.click(`span.Select_select__selected-span__QTMy5`, {
+        timeout: 5000,
+      });
+
+      // Step 2: Wait for dropdown to appear
+      await this.page.waitForSelector(`text="${year}"`, { timeout: 3000 });
+
+      // Step 3: Click the specific year option
+      await this.page.click(`text="${year}"`, { timeout: 3000 });
+
+      // Step 4: Data refreshes immediately - no waiting needed!
+      // Just a small delay to ensure DOM is stable
+      await this.page.waitForTimeout(500);
     } catch (_error) {
       // Year selector might not exist or year not available
       console.warn(`Year ${year} selector not found for player ${gomafiaId}`);
     }
 
-    // Wait for dynamic content to load
+    // Wait for dynamic content to load after year selection
+    // Data refreshes immediately, so shorter timeout is sufficient
     await Promise.race([
-      this.page.waitForLoadState('networkidle', { timeout: 10000 }),
-      new Promise((resolve) => setTimeout(resolve, 5000)), // Fallback
+      this.page.waitForLoadState('networkidle', { timeout: 5000 }),
+      new Promise((resolve) => setTimeout(resolve, 2000)), // Fallback
     ]);
 
     // Wait for stats element to ensure data is loaded
@@ -130,11 +138,6 @@ export class PlayerStatsScraper {
   async extractYearStats(year: number): Promise<PlayerYearStatsRawData> {
     return await this.retryManager.execute(async () => {
       return await this.page.evaluate((yearParam) => {
-        const getText = (selector: string): string => {
-          const element = document.querySelector(selector);
-          return element?.textContent?.trim() || '0';
-        };
-
         const parseNumber = (text: string): number => {
           if (text === '–' || text === '' || text === '—') return 0;
           const parsed = parseFloat(text.replace(/\s/g, ''));
@@ -147,15 +150,76 @@ export class PlayerStatsScraper {
           return isNaN(parsed) ? null : parsed;
         };
 
+        // Extract role statistics from the correct elements
+        const roleStats = Array.from(
+          document.querySelectorAll(
+            '.ProfileUserCircle_profile-user-circle__num__iog1A'
+          )
+        );
+        const civilianGames =
+          roleStats
+            .find(
+              (el) =>
+                el.parentElement?.textContent?.includes('Игр за мирного') ||
+                el.parentElement?.textContent?.includes('Игры за мирного')
+            )
+            ?.textContent?.trim() || '0';
+        const donGames =
+          roleStats
+            .find(
+              (el) =>
+                el.parentElement?.textContent?.includes('Игр за дона') ||
+                el.parentElement?.textContent?.includes('Игра за дона')
+            )
+            ?.textContent?.trim() || '0';
+        const mafiaGames =
+          roleStats
+            .find(
+              (el) =>
+                el.parentElement?.textContent?.includes('Игр за мафию') ||
+                el.parentElement?.textContent?.includes('Игра за мафию')
+            )
+            ?.textContent?.trim() || '0';
+        const sheriffGames =
+          roleStats
+            .find((el) =>
+              el.parentElement?.textContent?.includes('Игр за шерифа')
+            )
+            ?.textContent?.trim() || '0';
+
+        // Extract total games from the correct element
+        const totalGamesElement = document.querySelector(
+          '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz'
+        );
+        const totalGames = totalGamesElement?.textContent?.trim() || '0';
+
+        // Extract ELO rating - find element containing "Общий ELO" text
+        const allDivs = Array.from(document.querySelectorAll('div'));
+        const eloElement = allDivs.find((div) =>
+          div.textContent?.includes('Общий ELO')
+        );
+        const eloRating =
+          eloElement?.parentElement?.textContent?.match(/(\d+\.\d+)/)?.[1] ||
+          null;
+
+        // Extract extra points - find element containing "в среднем за 10 игр" text
+        const extraPointsElement = allDivs.find((div) =>
+          div.textContent?.includes('в среднем за 10 игр')
+        );
+        const extraPoints =
+          extraPointsElement?.parentElement?.textContent?.match(
+            /(\d+\.\d+)\s*в среднем за 10 игр/
+          )?.[1] || '0';
+
         return {
           year: yearParam,
-          totalGames: parseNumber(getText('.total-games')),
-          donGames: parseNumber(getText('.don-games')),
-          mafiaGames: parseNumber(getText('.mafia-games')),
-          sheriffGames: parseNumber(getText('.sheriff-games')),
-          civilianGames: parseNumber(getText('.civilian-games')),
-          eloRating: parseNullableNumber(getText('.elo-rating')),
-          extraPoints: parseNumber(getText('.extra-points')),
+          totalGames: parseNumber(totalGames),
+          donGames: parseNumber(donGames),
+          mafiaGames: parseNumber(mafiaGames),
+          sheriffGames: parseNumber(sheriffGames),
+          civilianGames: parseNumber(civilianGames),
+          eloRating: eloRating ? parseNullableNumber(eloRating) : null,
+          extraPoints: parseNumber(extraPoints),
         };
       }, year);
     });
