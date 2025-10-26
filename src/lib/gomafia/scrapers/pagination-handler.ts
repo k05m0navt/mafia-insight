@@ -42,6 +42,8 @@ export class PaginationHandler {
     const allData: T[] = [];
     let currentPage = 1;
     const maxPages = config.maxPages || Infinity;
+    let consecutiveEmptyPages = 0;
+    const maxConsecutiveEmptyPages = 3;
 
     while (currentPage <= maxPages) {
       // Build URL with page parameter
@@ -51,34 +53,77 @@ export class PaginationHandler {
         currentPage
       );
 
-      // Navigate to page
-      if (url !== 'about:blank') {
-        // Skip navigation for test pages
-        await this.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+      try {
+        // Navigate to page with increased timeout for high page numbers
+        if (url !== 'about:blank') {
+          // Skip navigation for test pages
+          const timeout = currentPage > 100 ? 60000 : 30000; // 60s for high page numbers
+          await this.page.goto(url, { waitUntil: 'networkidle', timeout });
+        }
+
+        // Apply rate limiting
+        await this.rateLimiter.wait();
+
+        // Extract data from current page
+        const pageData = await config.extractDataFn(this.page);
+
+        // If no data found, increment empty page counter
+        if (pageData.length === 0) {
+          consecutiveEmptyPages++;
+          console.log(
+            `[Pagination] Empty page ${currentPage} (${consecutiveEmptyPages}/${maxConsecutiveEmptyPages} consecutive)`
+          );
+
+          // If we hit too many consecutive empty pages, stop
+          if (consecutiveEmptyPages >= maxConsecutiveEmptyPages) {
+            console.log(
+              `[Pagination] Stopping after ${consecutiveEmptyPages} consecutive empty pages`
+            );
+            break;
+          }
+        } else {
+          // Reset empty page counter when we find data
+          consecutiveEmptyPages = 0;
+          allData.push(...pageData);
+          console.log(
+            `[Pagination] Page ${currentPage}: ${pageData.length} records (total: ${allData.length})`
+          );
+        }
+
+        // Check for next page
+        const hasNext = await this.hasNextPage(config.hasNextSelector);
+        if (!hasNext) {
+          console.log(
+            `[Pagination] No more pages available at page ${currentPage}`
+          );
+          break;
+        }
+
+        currentPage++;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(
+          `[Pagination] Error on page ${currentPage}:`,
+          errorMessage
+        );
+
+        // If it's a timeout error on a high page number, assume we've reached the end
+        if (errorMessage.includes('Timeout') && currentPage > 100) {
+          console.log(
+            `[Pagination] Timeout on high page number ${currentPage}, assuming end of data`
+          );
+          break;
+        }
+
+        // For other errors, throw them
+        throw error;
       }
-
-      // Apply rate limiting
-      await this.rateLimiter.wait();
-
-      // Extract data from current page
-      const pageData = await config.extractDataFn(this.page);
-
-      // If no data found, assume we've reached the end
-      if (pageData.length === 0) {
-        break;
-      }
-
-      allData.push(...pageData);
-
-      // Check for next page
-      const hasNext = await this.hasNextPage(config.hasNextSelector);
-      if (!hasNext) {
-        break;
-      }
-
-      currentPage++;
     }
 
+    console.log(
+      `[Pagination] Scraping complete: ${allData.length} total records from ${currentPage - 1} pages`
+    );
     return allData;
   }
 
@@ -143,6 +188,11 @@ export class PaginationHandler {
           .map((el) => el.textContent?.trim())
           .filter((text) => text && !isNaN(Number(text)) && Number(text) > 0);
 
+        // Safety check: if no page numbers found, assume no more pages
+        if (pageNumbers.length === 0) {
+          return { currentPage: 1, maxPage: 1, hasMore: false };
+        }
+
         const maxPage = Math.max(...pageNumbers.map(Number));
 
         // Get current page from URL
@@ -154,10 +204,13 @@ export class PaginationHandler {
             '1'
         );
 
+        // Safety check: if current page is already very high, be more conservative
+        const hasMore = currentPage < maxPage && currentPage < 1000; // Cap at 1000 pages max
+
         return {
           currentPage,
           maxPage,
-          hasMore: currentPage < maxPage,
+          hasMore,
         };
       }
 
