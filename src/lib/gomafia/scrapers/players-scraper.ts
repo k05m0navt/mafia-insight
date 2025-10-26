@@ -64,43 +64,43 @@ export class PlayersScraper {
    * Extract player data from current page's table.
    * Internal method used by pagination handler.
    * Wrapped with retry logic for resilience against transient failures.
+   *
+   * Table structure: | Rank | Player+Club | Tournaments | GG Points | ELO |
+   * - Player name is in <a href="/stats/ID">
+   * - Club name is in <span> after the player link (optional)
+   * - Region is NOT available in this table (would need individual player page scraping)
    */
   async extractPlayersFromPage(): Promise<PlayerRawData[]> {
     return await this.retryManager.execute(async () => {
       return await this.page.$$eval('table tbody tr', (rows) => {
         return rows.map((row) => {
-          // Extract player link and ID
-          const playerLink = row.querySelector(
-            'a[href*="/player/"]'
+          const cells = row.querySelectorAll('td');
+
+          // Cell 1: Player + Club
+          const playerCell = cells[1];
+          const playerLink = playerCell?.querySelector(
+            'a[href*="/stats/"]'
           ) as HTMLAnchorElement;
           const name = playerLink?.textContent?.trim() || '';
           const gomafiaId = playerLink?.href?.split('/').pop() || '';
 
-          // Extract region (may be empty)
-          const regionText =
-            row.querySelector('.region')?.textContent?.trim() || '';
-          const region =
-            regionText && regionText !== '–' && regionText !== ''
-              ? regionText
-              : null;
+          // Extract club name from span after the player link
+          const clubSpan = playerCell?.querySelector('span.ws-nowrap');
+          const club = clubSpan?.textContent?.trim() || null;
 
-          // Extract club (may be empty or "–")
-          const clubText =
-            row.querySelector('.club')?.textContent?.trim() || '';
-          const club =
-            clubText && clubText !== '–' && clubText !== '' ? clubText : null;
+          // Region is not available in this table listing
+          const region = null;
 
-          // Extract numeric values
-          const tournamentsText =
-            row.querySelector('.tournaments')?.textContent?.trim() || '0';
+          // Cell 2: Tournaments count
+          const tournamentsText = cells[2]?.textContent?.trim() || '0';
           const tournaments = parseInt(tournamentsText);
 
-          const ggPointsText =
-            row.querySelector('.gg-points')?.textContent?.trim() || '0';
+          // Cell 3: GG Points
+          const ggPointsText = cells[3]?.textContent?.trim() || '0';
           const ggPoints = parseInt(ggPointsText);
 
-          const eloText =
-            row.querySelector('.elo')?.textContent?.trim() || '1200';
+          // Cell 4: ELO rating
+          const eloText = cells[4]?.textContent?.trim() || '1200';
           const elo = parseFloat(eloText);
 
           return {

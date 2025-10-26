@@ -51,15 +51,19 @@ export class TournamentsScraper {
   /**
    * Extract tournament data from current page's table.
    * Wrapped with retry logic for resilience against transient failures.
+   *
+   * Table structure: | | Tournament+Location | Dates | Type | Status | |
+   * - Tournament link contains <div><span with stars>RATING<b>NAME</b></span></div>
+   * - Must extract name from <b> tag only to avoid including star rating number
    */
   async extractTournamentsFromPage(): Promise<TournamentRawData[]> {
     return await this.retryManager.execute(async () => {
       return await this.page.$$eval('table tbody tr', (rows) => {
-        const parseStars = (text: string): number | null => {
-          if (!text || text.trim() === '') return null;
-          // Count star emoji characters
-          const starCount = (text.match(/⭐/g) || []).length;
-          return starCount > 0 ? starCount : null;
+        const parseStars = (starText: string): number | null => {
+          if (!starText || starText.trim() === '') return null;
+          // Parse the star rating number (e.g., "3", "4", "5")
+          const rating = parseInt(starText.trim());
+          return !isNaN(rating) && rating > 0 ? rating : null;
         };
 
         const parseStatus = (
@@ -80,51 +84,49 @@ export class TournamentsScraper {
         };
 
         return rows.map((row) => {
-          // Extract tournament link and ID
-          const tournamentLink = row.querySelector(
+          const cells = row.querySelectorAll('td');
+
+          // Cell 1: Tournament name + Location
+          const tournamentCell = cells[1];
+          const tournamentLink = tournamentCell?.querySelector(
             'a[href*="/tournament/"]'
           ) as HTMLAnchorElement;
-          const name = tournamentLink?.textContent?.trim() || '';
           const gomafiaId = tournamentLink?.href?.split('/').pop() || '';
 
-          // Extract stars
-          const starsText =
-            row.querySelector('.stars')?.textContent?.trim() || '';
+          // Extract tournament name from <b> tag only (avoids including star rating)
+          const nameElement = tournamentLink?.querySelector('b');
+          const name = nameElement?.textContent?.trim() || '';
+
+          // Extract star rating from the stars span (the text node before <b>)
+          const starsSpan = tournamentLink?.querySelector(
+            '.TableTournament_tournament-table__stars__zxst4, span'
+          );
+          const starsText = starsSpan?.textContent?.trim() || '';
           const stars = parseStars(starsText);
 
-          // Extract average ELO
-          const avgEloText =
-            row.querySelector('.avg-elo')?.textContent?.trim() || '';
-          const averageElo =
-            avgEloText && avgEloText !== '–' ? parseFloat(avgEloText) : null;
-
-          // Extract FSM rating
-          const fsmText =
-            row
-              .querySelector('.fsm-rated')
-              ?.textContent?.trim()
-              .toLowerCase() || '';
-          const isFsmRated = fsmText.includes('да') || fsmText.includes('yes');
-
-          // Extract dates
-          const startDate =
-            row.querySelector('.start-date')?.textContent?.trim() || '';
-          const endDateText =
-            row.querySelector('.end-date')?.textContent?.trim() || '';
+          // Cell 2: Dates (start and end)
+          const datesCell = cells[2];
+          const dateElements = datesCell?.querySelectorAll('div > div');
+          const startDate = dateElements?.[0]?.textContent?.trim() || '';
+          const endDateText = dateElements?.[1]?.textContent?.trim() || '';
           const endDate =
             endDateText && endDateText !== '–' && endDateText !== ''
               ? endDateText
               : null;
 
-          // Extract status
-          const statusText =
-            row.querySelector('.status')?.textContent?.trim() || '';
+          // Cell 3: Tournament type (Личный/Командный)
+          // Not used in current schema but available if needed
+
+          // Cell 4: Status
+          const statusCell = cells[4];
+          const statusText = statusCell?.textContent?.trim() || '';
           const status = parseStatus(statusText);
 
-          // Extract participants
-          const participantsText =
-            row.querySelector('.participants')?.textContent?.trim() || '0';
-          const participants = parseInt(participantsText);
+          // Note: averageElo, isFsmRated, and participants are not available in this table view
+          // They would need to be scraped from individual tournament pages
+          const averageElo = null;
+          const isFsmRated = false;
+          const participants = 0;
 
           return {
             gomafiaId,
