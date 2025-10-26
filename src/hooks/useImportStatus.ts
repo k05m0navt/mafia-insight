@@ -25,7 +25,13 @@ export interface ImportStatus {
 }
 
 async function fetchImportStatus(): Promise<ImportStatus> {
-  const response = await fetch('/api/gomafia-sync/import');
+  const response = await fetch('/api/gomafia-sync/import', {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
+  });
 
   if (!response.ok) {
     throw new Error('Failed to fetch import status');
@@ -61,10 +67,12 @@ export function useImportStatus() {
     queryFn: fetchImportStatus,
     refetchInterval: (query) => {
       // Poll every 2 seconds (2000ms) when import is running
-      // Disable polling when idle
-      return query.state.data?.isRunning ? 2000 : false;
+      // Poll every 5 seconds when idle to keep data fresh
+      return query.state.data?.isRunning ? 2000 : 5000;
     },
     refetchOnWindowFocus: true,
-    staleTime: 1000, // Consider data stale after 1 second
+    refetchOnMount: true,
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    gcTime: 0, // Don't cache data (formerly cacheTime in v4)
   });
 }

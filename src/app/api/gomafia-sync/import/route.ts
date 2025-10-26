@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
-
-const db = new PrismaClient();
+import { prisma as db } from '@/lib/db';
 
 /**
  * Global AbortController for import cancellation.
@@ -35,7 +33,7 @@ export async function GET(_request: Request) {
         db.tournament.count(),
       ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       isRunning: syncStatus?.isRunning || false,
       progress: syncStatus?.progress || 0,
       currentOperation: syncStatus?.currentOperation || null,
@@ -56,6 +54,16 @@ export async function GET(_request: Request) {
         tournaments: tournamentCount,
       },
     });
+
+    // Prevent caching to ensure fresh data
+    response.headers.set(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate'
+    );
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error: any) {
     console.error('Failed to fetch import status:', error);
     return NextResponse.json(

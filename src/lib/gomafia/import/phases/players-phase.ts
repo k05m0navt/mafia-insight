@@ -150,6 +150,13 @@ export class PlayersPhase {
    */
   async validateData(data: PlayerRawData): Promise<boolean> {
     const result = playerSchema.safeParse(data);
+    if (!result.success) {
+      console.log(`[PlayersPhase] Validation failed for player:`, {
+        gomafiaId: data.gomafiaId,
+        name: data.name,
+        errors: result.error.issues,
+      });
+    }
     return result.success;
   }
 
