@@ -92,7 +92,13 @@ export class PlayerStatsScraper {
 
     // Click year selector
     try {
-      await this.page.click(`button:has-text("${year}")`, { timeout: 5000 });
+      // The year selector is a span element, not a button
+      await this.page.click(
+        `span.Select_select__selected-span__QTMy5:has-text("${year}")`,
+        { timeout: 5000 }
+      );
+      // Wait for the selection to apply
+      await this.page.waitForTimeout(1000);
     } catch (_error) {
       // Year selector might not exist or year not available
       console.warn(`Year ${year} selector not found for player ${gomafiaId}`);
