@@ -1,6 +1,7 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
 import { ClubsScraper } from '../../scrapers/clubs-scraper';
+import { resilientDB } from '@/lib/db-resilient';
 import { clubSchema, ClubRawData } from '../../validators/club-schema';
 import { normalizeRegion } from '../../parsers/region-normalizer';
 
@@ -116,10 +117,12 @@ export class ClubsPhase {
         }));
 
         // Insert batch
-        await this.orchestrator['db'].club.createMany({
-          data: clubsToInsert,
-          skipDuplicates: true,
-        });
+        await resilientDB.execute((db) =>
+          db.club.createMany({
+            data: clubsToInsert,
+            skipDuplicates: true,
+          })
+        );
 
         // Save checkpoint
         const checkpoint = this.createCheckpoint(

@@ -1,5 +1,6 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
+import { resilientDB } from '@/lib/db-resilient';
 
 /**
  * Phase 6: Import games and game participations
@@ -27,9 +28,11 @@ export class GamesPhase {
     console.log('[GamesPhase] Starting games import...');
 
     // Get all tournaments
-    const tournaments = await this.orchestrator['db'].tournament.findMany({
-      select: { id: true, gomafiaId: true, name: true },
-    });
+    const tournaments = await resilientDB.execute((db) =>
+      db.tournament.findMany({
+        select: { id: true, gomafiaId: true, name: true },
+      })
+    );
 
     console.log(
       `[GamesPhase] Found ${tournaments.length} tournaments to process`
@@ -67,10 +70,11 @@ export class GamesPhase {
           
           for (const gameData of games) {
             // Insert game
-            const game = await this.orchestrator['db'].game.create({
-              data: {
-                gomafiaId: gameData.gomafiaId,
-                tournamentId: tournament.id,
+            const game = await resilientDB.execute(
+              (db) => db.game.create({
+                data: {
+                  gomafiaId: gameData.gomafiaId,
+                  tournamentId: tournament.id,
                 date: new Date(gameData.date),
                 durationMinutes: gameData.durationMinutes,
                 winnerTeam: gameData.winnerTeam,
@@ -90,9 +94,11 @@ export class GamesPhase {
               performanceScore: p.performanceScore
             }));
             
-            await this.orchestrator['db'].gameParticipation.createMany({
-              data: participations
-            });
+            await resilientDB.execute(
+              (db) => db.gameParticipation.createMany({
+                data: participations
+              })
+            );
             
             totalGames++;
             totalParticipations += participations.length;

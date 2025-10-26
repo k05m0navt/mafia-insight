@@ -1,5 +1,6 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
+import { resilientDB } from '@/lib/db-resilient';
 import { PlayerRole } from '@prisma/client';
 
 /**
@@ -25,9 +26,11 @@ export class StatisticsPhase {
     console.log('[StatisticsPhase] Starting statistics calculation...');
 
     // Get all players
-    const players = await this.orchestrator['db'].player.findMany({
-      select: { id: true, name: true },
-    });
+    const players = await resilientDB.execute((db) =>
+      db.player.findMany({
+        select: { id: true, name: true },
+      })
+    );
 
     console.log(
       `[StatisticsPhase] Calculating stats for ${players.length} players`
@@ -81,32 +84,34 @@ export class StatisticsPhase {
                 : null;
 
             // Upsert PlayerRoleStats
-            await this.orchestrator['db'].playerRoleStats.upsert({
-              where: {
-                playerId_role: {
-                  playerId: player.id,
-                  role: role,
+            await resilientDB.execute((db) =>
+              db.playerRoleStats.upsert({
+                where: {
+                  playerId_role: {
+                    playerId: player.id,
+                    role: role,
+                  },
                 },
-              },
-              update: {
-                gamesPlayed,
-                wins,
-                losses,
-                winRate,
-                averagePerformance,
-                lastPlayed,
-              },
-              create: {
-                playerId: player.id,
-                role,
-                gamesPlayed,
-                wins,
-                losses,
-                winRate,
-                averagePerformance,
-                lastPlayed,
-              },
-            });
+                update: {
+                  gamesPlayed,
+                  wins,
+                  losses,
+                  winRate,
+                  averagePerformance,
+                  lastPlayed,
+                },
+                create: {
+                  playerId: player.id,
+                  role,
+                  gamesPlayed,
+                  wins,
+                  losses,
+                  winRate,
+                  averagePerformance,
+                  lastPlayed,
+                },
+              })
+            );
 
             statsCreated++;
           }

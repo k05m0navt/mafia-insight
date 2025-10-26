@@ -1,6 +1,7 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
 import { TournamentsScraper } from '../../scrapers/tournaments-scraper';
+import { resilientDB } from '@/lib/db-resilient';
 import {
   tournamentSchema,
   TournamentRawData,
@@ -116,10 +117,12 @@ export class TournamentsPhase {
         }));
 
         // Insert batch
-        await this.orchestrator['db'].tournament.createMany({
-          data: tournamentsToInsert,
-          skipDuplicates: true,
-        });
+        await resilientDB.execute((db) =>
+          db.tournament.createMany({
+            data: tournamentsToInsert,
+            skipDuplicates: true,
+          })
+        );
 
         // Save checkpoint
         const checkpoint = this.createCheckpoint(

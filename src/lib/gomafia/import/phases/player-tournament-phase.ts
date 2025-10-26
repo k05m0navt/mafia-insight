@@ -1,5 +1,6 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
+import { resilientDB } from '@/lib/db-resilient';
 
 /**
  * Phase 5: Import player-tournament participation history
@@ -32,9 +33,11 @@ export class PlayerTournamentPhase {
     );
 
     // Get all players
-    const players = await this.orchestrator['db'].player.findMany({
-      select: { id: true, gomafiaId: true, name: true },
-    });
+    const players = await resilientDB.execute((db) =>
+      db.player.findMany({
+        select: { id: true, gomafiaId: true, name: true },
+      })
+    );
 
     console.log(
       `[PlayerTournamentPhase] Found ${players.length} players to process`
@@ -49,7 +52,14 @@ export class PlayerTournamentPhase {
     await batchProcessor.process(
       players,
       async (batch, batchIndex, totalBatches) => {
-        const linksToInsert = [];
+        const linksToInsert: Array<{
+          playerId: string;
+          tournamentId: string;
+          placement: number | null;
+          ggPointsEarned: number | null;
+          eloChange: number | null;
+          prizeMoney: number | null;
+        }> = [];
 
         for (const player of batch) {
           try {
@@ -91,7 +101,7 @@ export class PlayerTournamentPhase {
                 playerId: player.id,
                 tournamentId: tournamentId,
                 placement: null, // Would come from scraper
-                ggPoints: null, // Would come from scraper
+                ggPointsEarned: null, // Would come from scraper
                 eloChange: null, // Would come from scraper
                 prizeMoney: null, // Would come from scraper
               });
@@ -109,10 +119,12 @@ export class PlayerTournamentPhase {
 
         // Bulk insert links
         if (linksToInsert.length > 0) {
-          await this.orchestrator['db'].playerTournament.createMany({
-            data: linksToInsert,
-            skipDuplicates: true,
-          });
+          await resilientDB.execute((db) =>
+            db.playerTournament.createMany({
+              data: linksToInsert,
+              skipDuplicates: true,
+            })
+          );
         }
 
         // Save checkpoint

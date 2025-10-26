@@ -1,6 +1,7 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
 import { PlayersScraper } from '../../scrapers/players-scraper';
+import { resilientDB } from '@/lib/db-resilient';
 import { playerSchema, PlayerRawData } from '../../validators/player-schema';
 import { normalizeRegion } from '../../parsers/region-normalizer';
 
@@ -100,9 +101,11 @@ export class PlayersPhase {
             // Find club by name if provided
             let clubId: string | undefined;
             if (player.club) {
-              const club = await this.orchestrator['db'].club.findFirst({
-                where: { name: player.club },
-              });
+              const club = (await resilientDB.execute((db) =>
+                db.club.findFirst({
+                  where: { name: player.club },
+                })
+              )) as { id: string } | null;
               clubId = club?.id;
             }
 
@@ -123,10 +126,12 @@ export class PlayersPhase {
         );
 
         // Insert batch
-        await this.orchestrator['db'].player.createMany({
-          data: playersToInsert,
-          skipDuplicates: true,
-        });
+        await resilientDB.execute((db) =>
+          db.player.createMany({
+            data: playersToInsert,
+            skipDuplicates: true,
+          })
+        );
 
         // Save checkpoint
         const checkpoint = this.createCheckpoint(

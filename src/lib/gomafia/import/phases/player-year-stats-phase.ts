@@ -1,6 +1,7 @@
 import { ImportOrchestrator } from '../import-orchestrator';
 import { ImportCheckpoint } from '../checkpoint-manager';
 import { PlayerStatsScraper } from '../../scrapers/player-stats-scraper';
+import { resilientDB } from '@/lib/db-resilient';
 
 /**
  * Phase 3: Import player year-specific statistics
@@ -44,9 +45,11 @@ export class PlayerYearStatsPhase {
     }
 
     // Get all players
-    const players = await this.orchestrator['db'].player.findMany({
-      select: { id: true, gomafiaId: true, name: true },
-    });
+    const players = (await resilientDB.execute((db) =>
+      db.player.findMany({
+        select: { id: true, gomafiaId: true, name: true },
+      })
+    )) as Array<{ id: string; gomafiaId: string; name: string }>;
 
     console.log(
       `[PlayerYearStatsPhase] Found ${players.length} players to process`
@@ -61,7 +64,17 @@ export class PlayerYearStatsPhase {
     await batchProcessor.process(
       players,
       async (batch, batchIndex, totalBatches) => {
-        const statsToInsert = [];
+        const statsToInsert: Array<{
+          playerId: string;
+          year: number;
+          totalGames: number;
+          donGames: number;
+          mafiaGames: number;
+          sheriffGames: number;
+          civilianGames: number;
+          eloRating: number | null;
+          extraPoints: number;
+        }> = [];
 
         for (const player of batch) {
           try {
@@ -97,10 +110,12 @@ export class PlayerYearStatsPhase {
 
         // Bulk insert stats
         if (statsToInsert.length > 0) {
-          await this.orchestrator['db'].playerYearStats.createMany({
-            data: statsToInsert,
-            skipDuplicates: true,
-          });
+          await resilientDB.execute((db) =>
+            db.playerYearStats.createMany({
+              data: statsToInsert,
+              skipDuplicates: true,
+            })
+          );
         }
 
         // Save checkpoint
