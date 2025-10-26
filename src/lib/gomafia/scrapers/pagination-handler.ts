@@ -97,21 +97,74 @@ export class PaginationHandler {
 
   /**
    * Check if there's a next page available.
-   * Returns false if next button doesn't exist or is disabled.
+   * Supports both traditional "next" button and numbered pagination.
    */
   private async hasNextPage(selector: string): Promise<boolean> {
+    // First try to find a traditional "next" button
     const nextButton = await this.page.$(selector);
 
-    if (!nextButton) {
-      return false;
+    if (nextButton) {
+      // Check if button is disabled
+      const isDisabled = await nextButton.evaluate((el) =>
+        el.classList.contains('disabled')
+      );
+      return !isDisabled;
     }
 
-    // Check if button is disabled
-    const isDisabled = await nextButton.evaluate((el) =>
-      el.classList.contains('disabled')
-    );
+    // If no next button found, try numbered pagination
+    // Look for pagination container and check if there are more pages
+    const paginationInfo = await this.page.evaluate(() => {
+      // Look for pagination controls
+      const paginationSelectors = [
+        '.pagination',
+        '[class*="pagination"]',
+        '[class*="Pagination"]',
+      ];
 
-    return !isDisabled;
+      let pagination = null;
+      for (const selector of paginationSelectors) {
+        pagination = document.querySelector(selector);
+        if (pagination) break;
+      }
+
+      if (!pagination) {
+        // Look for any element containing page numbers
+        const allElements = document.querySelectorAll('*');
+        for (const el of allElements) {
+          if (el.textContent?.includes('...') && el.textContent?.match(/\d+/)) {
+            pagination = el;
+            break;
+          }
+        }
+      }
+
+      if (pagination) {
+        const pageNumbers = Array.from(pagination.querySelectorAll('*'))
+          .map((el) => el.textContent?.trim())
+          .filter((text) => text && !isNaN(Number(text)) && Number(text) > 0);
+
+        const maxPage = Math.max(...pageNumbers.map(Number));
+
+        // Get current page from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentPage = parseInt(
+          urlParams.get('pageClubs') ||
+            urlParams.get('pageUsers') ||
+            urlParams.get('page') ||
+            '1'
+        );
+
+        return {
+          currentPage,
+          maxPage,
+          hasMore: currentPage < maxPage,
+        };
+      }
+
+      return { currentPage: 1, maxPage: 1, hasMore: false };
+    });
+
+    return paginationInfo.hasMore;
   }
 
   /**
