@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
 import { prisma as db } from '@/lib/db';
+import { resilientDB } from '@/lib/db-resilient';
 
 /**
  * Global AbortController for import cancellation.
@@ -378,15 +379,17 @@ async function startImportInBackground(
 
       console.log(`[Import] Starting phase ${i + 1}/${phases.length}: ${name}`);
 
-      await db.syncStatus.update({
-        where: { id: 'current' },
-        data: {
-          isRunning: true, // Ensure isRunning stays true during phases
-          progress,
-          currentOperation: `Executing ${name} phase`,
-          updatedAt: new Date(),
-        },
-      });
+      await resilientDB.execute((db) =>
+        db.syncStatus.update({
+          where: { id: 'current' },
+          data: {
+            isRunning: true, // Ensure isRunning stays true during phases
+            progress,
+            currentOperation: `Executing ${name} phase`,
+            updatedAt: new Date(),
+          },
+        })
+      );
 
       // Execute phase (may throw if cancelled during execution)
       try {

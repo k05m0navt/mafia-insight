@@ -11,6 +11,7 @@ import { playerSchema } from '../validators/player-schema';
 import { clubSchema } from '../validators/club-schema';
 import { tournamentSchema } from '../validators/tournament-schema';
 import { gameSchema } from '../validators/game-schema';
+import { resilientDB } from '@/lib/db-resilient';
 
 type ImportPhase =
   | 'CLUBS'
@@ -115,13 +116,15 @@ export class ImportOrchestrator {
    */
   async start(): Promise<string> {
     // Create sync log
-    const syncLog = await this.db.syncLog.create({
-      data: {
-        type: 'FULL',
-        status: 'RUNNING',
-        startTime: new Date(),
-      },
-    });
+    const syncLog = await resilientDB.execute((db) =>
+      db.syncLog.create({
+        data: {
+          type: 'FULL',
+          status: 'RUNNING',
+          startTime: new Date(),
+        },
+      })
+    );
 
     this.currentSyncLogId = syncLog.id;
 
@@ -132,21 +135,23 @@ export class ImportOrchestrator {
     );
 
     // Mark as running
-    await this.db.syncStatus.upsert({
-      where: { id: 'current' },
-      update: {
-        isRunning: true,
-        progress: 0,
-        currentOperation: 'Starting import...',
-        lastError: null,
-      },
-      create: {
-        id: 'current',
-        isRunning: true,
-        progress: 0,
-        currentOperation: 'Starting import...',
-      },
-    });
+    await resilientDB.execute((db) =>
+      db.syncStatus.upsert({
+        where: { id: 'current' },
+        update: {
+          isRunning: true,
+          progress: 0,
+          currentOperation: 'Starting import...',
+          lastError: null,
+        },
+        create: {
+          id: 'current',
+          isRunning: true,
+          progress: 0,
+          currentOperation: 'Starting import...',
+        },
+      })
+    );
 
     return syncLog.id;
   }
@@ -272,26 +277,34 @@ export class ImportOrchestrator {
     try {
       switch (entityType) {
         case 'Player': {
-          const player = await this.db.player.findUnique({
-            where: { gomafiaId },
-          });
+          const player = await resilientDB.execute((db) =>
+            db.player.findUnique({
+              where: { gomafiaId },
+            })
+          );
           return !!player;
         }
 
         case 'Club': {
-          const club = await this.db.club.findUnique({ where: { gomafiaId } });
+          const club = await resilientDB.execute((db) =>
+            db.club.findUnique({ where: { gomafiaId } })
+          );
           return !!club;
         }
 
         case 'Tournament': {
-          const tournament = await this.db.tournament.findUnique({
-            where: { gomafiaId },
-          });
+          const tournament = await resilientDB.execute((db) =>
+            db.tournament.findUnique({
+              where: { gomafiaId },
+            })
+          );
           return !!tournament;
         }
 
         case 'Game': {
-          const game = await this.db.game.findUnique({ where: { gomafiaId } });
+          const game = await resilientDB.execute((db) =>
+            db.game.findUnique({ where: { gomafiaId } })
+          );
           return !!game;
         }
 
@@ -434,35 +447,41 @@ export class ImportOrchestrator {
       };
     }
 
-    await this.db.syncLog.update({
-      where: { id: this.currentSyncLogId },
-      data: {
-        status: success ? 'COMPLETED' : 'FAILED',
-        endTime: new Date(),
-        recordsProcessed: metrics.validRecords,
-        errors: errorData,
-      },
-    });
+    if (this.currentSyncLogId) {
+      await resilientDB.execute((db) =>
+        db.syncLog.update({
+          where: { id: this.currentSyncLogId! },
+          data: {
+            status: success ? 'COMPLETED' : 'FAILED',
+            endTime: new Date(),
+            recordsProcessed: metrics.validRecords,
+            errors: errorData,
+          },
+        })
+      );
+    }
 
-    await this.db.syncStatus.update({
-      where: { id: 'current' },
-      data: {
-        isRunning: false,
-        progress: success ? 100 : this.validationMetrics.totalFetched,
-        currentOperation: null,
-        lastSyncTime: success ? new Date() : undefined,
-        lastSyncType: success ? 'FULL' : undefined,
-        lastError: success
-          ? hasErrors || hasIntegrityIssues
-            ? `Completed with ${errorSummary.criticalErrors} critical errors`
-            : null
-          : 'Import failed',
-        validationRate: validationSummary.validationRate,
-        totalRecordsProcessed: validationSummary.totalRecords,
-        validRecords: validationSummary.validRecords,
-        invalidRecords: validationSummary.invalidRecords,
-      },
-    });
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: false,
+          progress: success ? 100 : this.validationMetrics.totalFetched,
+          currentOperation: null,
+          lastSyncTime: success ? new Date() : undefined,
+          lastSyncType: success ? 'FULL' : undefined,
+          lastError: success
+            ? hasErrors || hasIntegrityIssues
+              ? `Completed with ${errorSummary.criticalErrors} critical errors`
+              : null
+            : 'Import failed',
+          validationRate: validationSummary.validationRate,
+          totalRecordsProcessed: validationSummary.totalRecords,
+          validRecords: validationSummary.validRecords,
+          invalidRecords: validationSummary.invalidRecords,
+        },
+      })
+    );
 
     // Clear checkpoint on success
     if (success) {
@@ -745,24 +764,28 @@ export class ImportOrchestrator {
 
     // Update syncLog to CANCELLED status
     if (this.currentSyncLogId) {
-      await this.db.syncLog.update({
-        where: { id: this.currentSyncLogId },
-        data: {
-          status: 'CANCELLED',
-          endTime: new Date(),
-        },
-      });
+      await resilientDB.execute((db) =>
+        db.syncLog.update({
+          where: { id: this.currentSyncLogId! },
+          data: {
+            status: 'CANCELLED',
+            endTime: new Date(),
+          },
+        })
+      );
     }
 
     // Update syncStatus
-    await this.db.syncStatus.update({
-      where: { id: 'current' },
-      data: {
-        isRunning: false,
-        lastError: 'Import cancelled by user',
-        updatedAt: new Date(),
-      },
-    });
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: false,
+          lastError: 'Import cancelled by user',
+          updatedAt: new Date(),
+        },
+      })
+    );
 
     console.log('Import cancelled gracefully');
   }
