@@ -5,18 +5,19 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /**
- * Prisma Client Configuration with Optimized Connection Pooling
+ * Prisma Client Configuration with Supabase Connection Pooling
  *
- * Connection pool settings optimized for import operations with high-concurrency scraping:
- * - connection_limit: 20 connections (increased from default 10 for parallel scraping)
- * - pool_timeout: 10 seconds (increased from default 8s for long-running import operations)
- * - connect_timeout: 15 seconds (increased from default 10s for stability)
+ * Supabase connection pool settings optimized for import operations:
+ * - pgbouncer=true: Use Supabase's connection pooler
+ * - connection_limit: 5 connections (max recommended for Supabase pooler)
+ * - pool_timeout: 60 seconds (timeout for getting connection from pool)
+ * - connect_timeout: 30 seconds (timeout for establishing new connection)
+ * - sslmode=require: Required for Supabase connections
  *
  * Transaction timeout: 60 seconds for large batch operations during import
  *
- * Note: Adjust these values based on your PostgreSQL server configuration:
- * - PostgreSQL max_connections should be at least 2x connection_limit
- * - For production with multiple instances, reduce connection_limit per instance
+ * Note: Supabase pooler handles connection management, so we use lower limits
+ * to avoid overwhelming the pooler with too many concurrent connections.
  */
 export const prisma =
   globalForPrisma.prisma ??
@@ -32,8 +33,8 @@ export const prisma =
         : ['error'],
     // Configure transaction timeouts for large import batches
     transactionOptions: {
-      maxWait: 5000, // Maximum time to wait for a transaction slot (default: 2000ms)
-      timeout: 60000, // Maximum transaction time: 60 seconds for batch operations (default: 5000ms)
+      maxWait: 10000, // Increased to 10 seconds for Supabase pooler
+      timeout: 60000, // Maximum transaction time: 60 seconds for batch operations
     },
   });
 
