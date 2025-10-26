@@ -373,6 +373,7 @@ async function startImportInBackground(
       await db.syncStatus.update({
         where: { id: 'current' },
         data: {
+          isRunning: true, // Ensure isRunning stays true during phases
           progress,
           currentOperation: `Executing ${name} phase`,
           updatedAt: new Date(),

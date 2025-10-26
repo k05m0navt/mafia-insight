@@ -5,6 +5,7 @@ import {
   tournamentSchema,
   TournamentRawData,
 } from '../../validators/tournament-schema';
+import { parseGomafiaDate } from '../../parsers/date-parser';
 
 /**
  * Phase 4: Import tournaments from gomafia.pro/tournaments
@@ -104,8 +105,10 @@ export class TournamentsPhase {
           stars: tournament.stars,
           averageElo: tournament.averageElo,
           isFsmRated: tournament.isFsmRated,
-          startDate: new Date(tournament.startDate),
-          endDate: tournament.endDate ? new Date(tournament.endDate) : null,
+          startDate: parseGomafiaDate(tournament.startDate),
+          endDate: tournament.endDate
+            ? parseGomafiaDate(tournament.endDate)
+            : null,
           status: tournament.status,
           createdBy: 'system-import-user', // System user for imports
           lastSyncAt: new Date(),
