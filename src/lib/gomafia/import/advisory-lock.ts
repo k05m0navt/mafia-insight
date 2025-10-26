@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { resilientDB } from '@/lib/db-resilient';
 
 // Unique lock ID for gomafia import feature
 const IMPORT_LOCK_ID = 123456789;
@@ -11,9 +12,11 @@ export class AdvisoryLockManager {
    * @returns true if lock was acquired, false if already held by another process
    */
   async acquireLock(): Promise<boolean> {
-    const result = await this.db.$queryRaw<[{ pg_try_advisory_lock: boolean }]>`
-      SELECT pg_try_advisory_lock(${IMPORT_LOCK_ID})
-    `;
+    const result = await resilientDB.execute(
+      (db) => db.$queryRaw<[{ pg_try_advisory_lock: boolean }]>`
+        SELECT pg_try_advisory_lock(${IMPORT_LOCK_ID})
+      `
+    );
     return result[0].pg_try_advisory_lock;
   }
 
@@ -21,9 +24,11 @@ export class AdvisoryLockManager {
    * Release the import advisory lock.
    */
   async releaseLock(): Promise<void> {
-    await this.db.$queryRaw`
-      SELECT pg_advisory_unlock(${IMPORT_LOCK_ID})
-    `;
+    await resilientDB.execute(
+      (db) => db.$queryRaw`
+        SELECT pg_advisory_unlock(${IMPORT_LOCK_ID})
+      `
+    );
   }
 
   /**

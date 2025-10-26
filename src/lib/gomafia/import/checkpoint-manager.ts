@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { resilientDB } from '@/lib/db-resilient';
 
 /**
  * Import checkpoint data structure for resume capability.
@@ -41,35 +42,39 @@ export class CheckpointManager {
    * Updates both importCheckpoint table and syncStatus progress.
    */
   async saveCheckpoint(checkpoint: ImportCheckpoint): Promise<void> {
-    await this.db.importCheckpoint.upsert({
-      where: { id: 'current' },
-      create: {
-        id: 'current',
-        currentPhase: checkpoint.currentPhase,
-        currentBatch: checkpoint.currentBatch,
-        lastProcessedId: checkpoint.lastProcessedId,
-        processedIds: checkpoint.processedIds,
-        progress: checkpoint.progress,
-      },
-      update: {
-        currentPhase: checkpoint.currentPhase,
-        currentBatch: checkpoint.currentBatch,
-        lastProcessedId: checkpoint.lastProcessedId,
-        processedIds: checkpoint.processedIds,
-        progress: checkpoint.progress,
-        lastUpdated: new Date(),
-      },
-    });
+    await resilientDB.execute((db) =>
+      db.importCheckpoint.upsert({
+        where: { id: 'current' },
+        create: {
+          id: 'current',
+          currentPhase: checkpoint.currentPhase,
+          currentBatch: checkpoint.currentBatch,
+          lastProcessedId: checkpoint.lastProcessedId,
+          processedIds: checkpoint.processedIds,
+          progress: checkpoint.progress,
+        },
+        update: {
+          currentPhase: checkpoint.currentPhase,
+          currentBatch: checkpoint.currentBatch,
+          lastProcessedId: checkpoint.lastProcessedId,
+          processedIds: checkpoint.processedIds,
+          progress: checkpoint.progress,
+          lastUpdated: new Date(),
+        },
+      })
+    );
 
     // Also update sync status for UI visibility
-    await this.db.syncStatus.update({
-      where: { id: 'current' },
-      data: {
-        progress: checkpoint.progress,
-        currentOperation: `Processing ${checkpoint.currentPhase} (batch ${checkpoint.currentBatch})`,
-        updatedAt: new Date(),
-      },
-    });
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          progress: checkpoint.progress,
+          currentOperation: `Processing ${checkpoint.currentPhase} (batch ${checkpoint.currentBatch})`,
+          updatedAt: new Date(),
+        },
+      })
+    );
   }
 
   /**
@@ -77,9 +82,11 @@ export class CheckpointManager {
    * Returns null if no checkpoint exists.
    */
   async loadCheckpoint(): Promise<ImportCheckpoint | null> {
-    const checkpoint = await this.db.importCheckpoint.findUnique({
-      where: { id: 'current' },
-    });
+    const checkpoint = await resilientDB.execute((db) =>
+      db.importCheckpoint.findUnique({
+        where: { id: 'current' },
+      })
+    );
 
     if (!checkpoint) {
       return null;
@@ -99,12 +106,14 @@ export class CheckpointManager {
    * Called when import completes successfully.
    */
   async clearCheckpoint(): Promise<void> {
-    await this.db.importCheckpoint
-      .delete({
-        where: { id: 'current' },
-      })
-      .catch(() => {
-        // Ignore errors if checkpoint doesn't exist
-      });
+    await resilientDB.execute((db) =>
+      db.importCheckpoint
+        .delete({
+          where: { id: 'current' },
+        })
+        .catch(() => {
+          // Ignore errors if checkpoint doesn't exist
+        })
+    );
   }
 }

@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { resilientDB } from '@/lib/db-resilient';
 
 export interface IntegrityCheckResult {
   checkName: string;
@@ -46,12 +47,18 @@ export class IntegrityChecker {
    * Check that all GameParticipation records link to valid Players and Games.
    */
   async checkGameParticipationLinks(): Promise<IntegrityCheckResult> {
-    const participations = await this.db.gameParticipation.findMany({
-      select: { id: true, playerId: true, gameId: true },
-    });
+    const participations = await resilientDB.execute((db) =>
+      db.gameParticipation.findMany({
+        select: { id: true, playerId: true, gameId: true },
+      })
+    );
 
     const playerIds = new Set(
-      (await this.db.player.findMany({ select: { id: true } })).map((p) => p.id)
+      (
+        await resilientDB.execute((db) =>
+          db.player.findMany({ select: { id: true } })
+        )
+      ).map((p) => p.id)
     );
 
     const errors: string[] = [];
@@ -76,18 +83,26 @@ export class IntegrityChecker {
    * Check that all PlayerTournament records link to valid Players and Tournaments.
    */
   async checkPlayerTournamentLinks(): Promise<IntegrityCheckResult> {
-    const playerTournaments = await this.db.playerTournament.findMany({
-      select: { id: true, playerId: true, tournamentId: true },
-    });
+    const playerTournaments = await resilientDB.execute((db) =>
+      db.playerTournament.findMany({
+        select: { id: true, playerId: true, tournamentId: true },
+      })
+    );
 
     const playerIds = new Set(
-      (await this.db.player.findMany({ select: { id: true } })).map((p) => p.id)
+      (
+        await resilientDB.execute((db) =>
+          db.player.findMany({ select: { id: true } })
+        )
+      ).map((p) => p.id)
     );
 
     const tournamentIds = new Set(
-      (await this.db.tournament.findMany({ select: { id: true } })).map(
-        (t) => t.id
-      )
+      (
+        await resilientDB.execute((db) =>
+          db.tournament.findMany({ select: { id: true } })
+        )
+      ).map((t) => t.id)
     );
 
     const errors: string[] = [];
@@ -118,39 +133,55 @@ export class IntegrityChecker {
    */
   async checkOrphanedRecords(): Promise<OrphanedRecordsResult> {
     const tournamentIds = new Set(
-      (await this.db.tournament.findMany({ select: { id: true } })).map(
-        (t) => t.id
-      )
+      (
+        await resilientDB.execute((db) =>
+          db.tournament.findMany({ select: { id: true } })
+        )
+      ).map((t) => t.id)
     );
 
     const gameIds = new Set(
-      (await this.db.game.findMany({ select: { id: true } })).map((g) => g.id)
+      (
+        await resilientDB.execute((db) =>
+          db.game.findMany({ select: { id: true } })
+        )
+      ).map((g) => g.id)
     );
 
     const playerIds = new Set(
-      (await this.db.player.findMany({ select: { id: true } })).map((p) => p.id)
+      (
+        await resilientDB.execute((db) =>
+          db.player.findMany({ select: { id: true } })
+        )
+      ).map((p) => p.id)
     );
 
     // Check orphaned games
-    const games = await this.db.game.findMany({
-      select: { id: true, tournamentId: true },
-    });
+    const games = await resilientDB.execute((db) =>
+      db.game.findMany({
+        select: { id: true, tournamentId: true },
+      })
+    );
     const orphanedGames = games.filter(
       (g) => g.tournamentId && !tournamentIds.has(g.tournamentId)
     ).length;
 
     // Check orphaned participations
-    const participations = await this.db.gameParticipation.findMany({
-      select: { id: true, gameId: true, playerId: true },
-    });
+    const participations = await resilientDB.execute((db) =>
+      db.gameParticipation.findMany({
+        select: { id: true, gameId: true, playerId: true },
+      })
+    );
     const orphanedParticipations = participations.filter(
       (p) => !gameIds.has(p.gameId) || !playerIds.has(p.playerId)
     ).length;
 
     // Check orphaned player tournaments
-    const playerTournaments = await this.db.playerTournament.findMany({
-      select: { id: true, playerId: true, tournamentId: true },
-    });
+    const playerTournaments = await resilientDB.execute((db) =>
+      db.playerTournament.findMany({
+        select: { id: true, playerId: true, tournamentId: true },
+      })
+    );
     const orphanedPlayerTournaments = playerTournaments.filter(
       (pt) => !playerIds.has(pt.playerId) || !tournamentIds.has(pt.tournamentId)
     ).length;
