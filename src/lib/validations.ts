@@ -21,7 +21,7 @@ export const themeSchema = z.enum(['light', 'dark', 'system']);
 
 export const themeUpdateSchema = z.object({
   theme: themeSchema,
-  customColors: z.record(z.string()).optional(),
+  customColors: z.record(z.string(), z.string()).optional(),
 });
 
 // Import progress validation
@@ -48,7 +48,7 @@ export const regionSchema = z.object({
 });
 
 // Navigation validation
-export const navigationItemSchema: z.ZodType<any> = z.object({
+export const navigationItemSchema: z.ZodType<unknown> = z.object({
   id: z.string(),
   label: z.string().min(1),
   href: z.string().min(1),
@@ -70,7 +70,7 @@ export const paginationSchema = z.object({
 });
 
 export const searchResponseSchema = z.object({
-  items: z.array(z.any()),
+  items: z.array(z.unknown()),
   pagination: paginationSchema,
   searchTime: z.number().optional(),
 });
@@ -141,7 +141,7 @@ export const errorSchema = z.object({
   error: z.string(),
   message: z.string(),
   code: z.string().optional(),
-  details: z.record(z.any()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Type exports

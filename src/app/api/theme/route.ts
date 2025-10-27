@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 const themeSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
-  customColors: z.record(z.string()).optional(),
+  customColors: z.record(z.string(), z.string()).optional(),
 });
 
 export async function GET(_request: NextRequest) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid theme configuration', details: error.errors },
+        { error: 'Invalid theme configuration', details: error.issues },
         { status: 400 }
       );
     }

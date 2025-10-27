@@ -17,7 +17,7 @@ export const ErrorSchema = z.object({
   message: z.string(),
   code: z.string().optional(),
   timestamp: z.string().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 // SyncLog schema

@@ -120,7 +120,7 @@ export async function GET(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid game ID', details: error.errors },
+        { error: 'Invalid game ID', details: error.issues },
         { status: 400 }
       );
     }
