@@ -129,3 +129,4 @@ workbox-*.js
 
 # Playwright
 .playwright-mcp/
+.playwright-report/

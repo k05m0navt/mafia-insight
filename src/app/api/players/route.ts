@@ -5,12 +5,12 @@ import { autoTriggerImportIfNeeded } from '@/lib/gomafia/import/auto-trigger';
 
 // Query parameters validation schema
 const PlayersQuerySchema = z.object({
-  page: z.string().transform(Number).pipe(z.number().int().min(1)).default('1'),
+  page: z.string().transform(Number).pipe(z.number().int().min(1)).default(1),
   limit: z
     .string()
     .transform(Number)
     .pipe(z.number().int().min(1).max(100))
-    .default('10'),
+    .default(10),
   search: z.string().optional(),
   syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
   clubId: z.string().uuid().optional(),
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.errors },
+        { error: 'Invalid query parameters', details: error.issues },
         { status: 400 }
       );
     }

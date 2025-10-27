@@ -67,7 +67,7 @@ export const PartialPlayerSchema = z.object({
 });
 
 // Validation functions
-export function validatePlayerSyncData(data: any): {
+export function validatePlayerSyncData(data: unknown): {
   valid: boolean;
   errors: string[];
 } {
@@ -78,7 +78,7 @@ export function validatePlayerSyncData(data: any): {
     if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: error.errors.map(
+        errors: error.issues.map(
           (err) => `${err.path.join('.')}: ${err.message}`
         ),
       };
@@ -87,7 +87,7 @@ export function validatePlayerSyncData(data: any): {
   }
 }
 
-export function validateGameSyncData(data: any): {
+export function validateGameSyncData(data: unknown): {
   valid: boolean;
   errors: string[];
 } {
@@ -98,7 +98,7 @@ export function validateGameSyncData(data: any): {
     if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: error.errors.map(
+        errors: error.issues.map(
           (err) => `${err.path.join('.')}: ${err.message}`
         ),
       };
@@ -107,7 +107,7 @@ export function validateGameSyncData(data: any): {
   }
 }
 
-export function validatePartialPlayerData(data: any): {
+export function validatePartialPlayerData(data: unknown): {
   valid: boolean;
   errors: string[];
 } {
@@ -118,7 +118,7 @@ export function validatePartialPlayerData(data: any): {
     if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: error.errors.map(
+        errors: error.issues.map(
           (err) => `${err.path.join('.')}: ${err.message}`
         ),
       };
@@ -128,29 +128,35 @@ export function validatePartialPlayerData(data: any): {
 }
 
 // Check if data is complete
-export function isCompletePlayerData(data: any): boolean {
+export function isCompletePlayerData(data: unknown): boolean {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
   return (
-    data.name &&
-    data.eloRating !== undefined &&
-    data.totalGames !== undefined &&
-    data.wins !== undefined &&
-    data.losses !== undefined
+    Boolean(obj.name) &&
+    obj.eloRating !== undefined &&
+    obj.totalGames !== undefined &&
+    obj.wins !== undefined &&
+    obj.losses !== undefined
   );
 }
 
 // Check if data is partial
-export function isPartialPlayerData(data: any): boolean {
+export function isPartialPlayerData(data: unknown): boolean {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
   return (
-    data.gomafiaId &&
-    data.name &&
-    data.eloRating !== undefined &&
-    (data.totalGames === undefined ||
-      data.wins === undefined ||
-      data.losses === undefined)
+    Boolean(obj.gomafiaId) &&
+    Boolean(obj.name) &&
+    obj.eloRating !== undefined &&
+    (obj.totalGames === undefined ||
+      obj.wins === undefined ||
+      obj.losses === undefined)
   );
 }
 
 // Check if data is empty
-export function isEmptyPlayerData(data: any): boolean {
-  return !data || !data.gomafiaId || !data.name;
+export function isEmptyPlayerData(data: unknown): boolean {
+  if (typeof data !== 'object' || data === null) return true;
+  const obj = data as Record<string, unknown>;
+  return !obj.gomafiaId || !obj.name;
 }

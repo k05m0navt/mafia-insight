@@ -1,0 +1,45 @@
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="36.987769">
+<testsuite name="auth-flow.spec.ts" timestamp="2025-10-27T20:23:30.672Z" hostname="auth-flow" tests="1" failures="1" skipped="0" time="30.657" errors="0">
+<testcase name="Authentication Flow Tests › Login Flow › should show specific error for invalid email format" classname="auth-flow.spec.ts" time="30.657">
+<failure message="auth-flow.spec.ts:104:5 should show specific error for invalid email format" type="FAILURE">
+<![CDATA[  [auth-flow] › auth-flow.spec.ts:104:5 › Authentication Flow Tests › Login Flow › should show specific error for invalid email format 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="email-input"]')
+
+
+      104 |     test('should show specific error for invalid email format', async ({ page }) => {
+      105 |       await page.goto('/');
+    > 106 |       await page.fill('[data-testid="email-input"]', 'invalid-email');
+          |                  ^
+      107 |       await page.fill('[data-testid="password-input"]', 'somepassword');
+      108 |       await page.click('[data-testid="login-button"]');
+      109 |       
+        at /Users/k05m0navt/Programming/PetProjects/Web/mafia-insight/tests/e2e/auth-flow.spec.ts:106:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/video.webm]]
+
+[[ATTACHMENT|test-results/auth-flow-Authentication-F-82f57-or-for-invalid-email-format-auth-flow/error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
