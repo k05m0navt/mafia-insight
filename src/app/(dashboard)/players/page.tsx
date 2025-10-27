@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Input component not used in this implementation
+import { SearchInput } from '@/components/ui/SearchInput';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -20,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface Player {
@@ -83,7 +84,7 @@ export default function PlayersPage() {
       if (syncStatus) params.append('syncStatus', syncStatus);
       if (clubId) params.append('clubId', clubId);
 
-      const response = await fetch(`/api/players?${params}`);
+      const response = await fetch(`/api/search/players?${params}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch players');
@@ -203,15 +204,11 @@ export default function PlayersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search players..."
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput
+                placeholder="Search players..."
+                onSearch={handleSearch}
+                debounceMs={300}
+              />
             </div>
 
             <div className="space-y-2">

@@ -1,0 +1,585 @@
+openapi: 3.0.3
+info:
+  title: Mafia Insight API
+  description: API for Mafia Insight analytics platform with UX/UI improvements
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Team
+    email: support@mafiainsight.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.mafiainsight.com/v1
+    description: Production server
+  - url: https://staging-api.mafiainsight.com/v1
+    description: Staging server
+  - url: http://localhost:3000/api
+    description: Development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # Search and Filtering Endpoints
+  /search/players:
+    get:
+      tags:
+        - Search
+      summary: Search players with debounced input
+      description: Search players with debounced search functionality to prevent page reloads
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Search query (debounced)
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+        - name: region
+          in: query
+          description: Filter by region
+          required: false
+          schema:
+            type: string
+        - name: year
+          in: query
+          description: Filter by year
+          required: false
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2030
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Results per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerSearchResponse'
+        '400':
+          description: Invalid search parameters
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  # Navigation Endpoints
+  /navigation/menu:
+    get:
+      tags:
+        - Navigation
+      summary: Get navigation menu based on user role
+      description: Returns navigation menu items based on user's role and permissions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Navigation menu items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationMenuResponse'
+        '401':
+          description: Unauthorized
+
+  # Import Progress Endpoints
+  /import/progress:
+    get:
+      tags:
+        - Import
+      summary: Get real-time import progress
+      description: Returns current import progress with 5-second update intervals
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Import progress information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportProgressResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (insufficient permissions)
+
+  /import/progress/stream:
+    get:
+      tags:
+        - Import
+      summary: Stream import progress via Server-Sent Events
+      description: Real-time import progress updates via SSE
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: SSE stream of progress updates
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "data: {\"progress\": 45, \"operation\": \"Importing players...\"}\n\n"
+
+  # Player Statistics Endpoints
+  /players/{playerId}/statistics:
+    get:
+      tags:
+        - Players
+      summary: Get enhanced player statistics
+      description: Returns comprehensive player statistics including tournament history and year-based data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          description: Player ID
+          schema:
+            type: string
+            format: uuid
+        - name: year
+          in: query
+          description: Filter statistics by year
+          required: false
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2030
+      responses:
+        '200':
+          description: Player statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStatisticsResponse'
+        '404':
+          description: Player not found
+        '401':
+          description: Unauthorized
+
+  # Region Filtering Endpoints
+  /regions:
+    get:
+      tags:
+        - Regions
+      summary: Get available regions for filtering
+      description: Returns list of regions imported from GoMafia
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Available regions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionListResponse'
+        '401':
+          description: Unauthorized
+
+  # Theme Management Endpoints
+  /theme:
+    get:
+      tags:
+        - Theme
+      summary: Get user theme preference
+      description: Returns user's current theme preference
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Theme preference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeResponse'
+        '401':
+          description: Unauthorized
+
+    put:
+      tags:
+        - Theme
+      summary: Update user theme preference
+      description: Updates user's theme preference with persistence
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeUpdateRequest'
+      responses:
+        '200':
+          description: Theme updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeResponse'
+        '400':
+          description: Invalid theme preference
+        '401':
+          description: Unauthorized
+
+  # Data Import Endpoints (Admin only)
+  /admin/import/start:
+    post:
+      tags:
+        - Admin
+      summary: Start data import with conflict resolution
+      description: Starts data import with timestamp-based conflict resolution
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportStartRequest'
+      responses:
+        '200':
+          description: Import started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportStartResponse'
+        '403':
+          description: Forbidden (admin access required)
+        '409':
+          description: Import already in progress
+
+  /admin/import/stop:
+    post:
+      tags:
+        - Admin
+      summary: Stop running import
+      description: Stops currently running import operation
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Import stopped successfully
+        '404':
+          description: No running import found
+        '403':
+          description: Forbidden (admin access required)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    PlayerSearchResponse:
+      type: object
+      properties:
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        searchTime:
+          type: number
+          description: Search execution time in milliseconds
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        gomafiaId:
+          type: string
+        name:
+          type: string
+        eloRating:
+          type: integer
+        totalGames:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        region:
+          type: string
+        clubId:
+          type: string
+          format: uuid
+        lastSyncAt:
+          type: string
+          format: date-time
+        syncStatus:
+          type: string
+          enum: [SYNCED, PENDING, ERROR]
+
+    NavigationMenuResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NavigationItem'
+
+    NavigationItem:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        href:
+          type: string
+        icon:
+          type: string
+        requiredRole:
+          type: string
+          enum: [GUEST, USER, ADMIN]
+        isVisible:
+          type: boolean
+        order:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/NavigationItem'
+
+    ImportProgressResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        operation:
+          type: string
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        totalRecords:
+          type: integer
+        processedRecords:
+          type: integer
+        errors:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        estimatedCompletion:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED, CANCELLED]
+
+    PlayerStatisticsResponse:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        tournamentHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/TournamentParticipation'
+        yearStats:
+          type: array
+          items:
+            $ref: '#/components/schemas/YearStats'
+        gameDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameParticipation'
+
+    TournamentParticipation:
+      type: object
+      properties:
+        tournamentId:
+          type: string
+          format: uuid
+        tournamentName:
+          type: string
+        placement:
+          type: integer
+        ggPoints:
+          type: integer
+        eloChange:
+          type: integer
+        prizeMoney:
+          type: number
+        date:
+          type: string
+          format: date-time
+
+    YearStats:
+      type: object
+      properties:
+        year:
+          type: integer
+        totalGames:
+          type: integer
+        donGames:
+          type: integer
+        mafiaGames:
+          type: integer
+        sheriffGames:
+          type: integer
+        civilianGames:
+          type: integer
+        eloRating:
+          type: number
+        extraPoints:
+          type: number
+
+    GameParticipation:
+      type: object
+      properties:
+        gameId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+        role:
+          type: string
+          enum: [DON, MAFIA, SHERIFF, CITIZEN]
+        team:
+          type: string
+          enum: [BLACK, RED]
+        isWinner:
+          type: boolean
+        performanceScore:
+          type: integer
+
+    RegionListResponse:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Region'
+
+    Region:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        country:
+          type: string
+        isActive:
+          type: boolean
+        playerCount:
+          type: integer
+
+    ThemeResponse:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [LIGHT, DARK, SYSTEM]
+        customColors:
+          type: object
+          additionalProperties:
+            type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    ThemeUpdateRequest:
+      type: object
+      required:
+        - theme
+      properties:
+        theme:
+          type: string
+          enum: [LIGHT, DARK, SYSTEM]
+        customColors:
+          type: object
+          additionalProperties:
+            type: string
+
+    ImportStartRequest:
+      type: object
+      properties:
+        importType:
+          type: string
+          enum: [FULL, INCREMENTAL]
+        conflictResolution:
+          type: string
+          enum: [TIMESTAMP_BASED, FORCE_UPDATE]
+        validateData:
+          type: boolean
+          default: true
+
+    ImportStartResponse:
+      type: object
+      properties:
+        importId:
+          type: string
+        status:
+          type: string
+          enum: [STARTED, QUEUED]
+        estimatedDuration:
+          type: integer
+          description: Estimated duration in minutes
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+        details:
+          type: object

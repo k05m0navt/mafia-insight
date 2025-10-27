@@ -17,6 +17,8 @@ model User {
   name            String
   avatar          String?
   subscriptionTier SubscriptionTier @default(FREE)
+  role            UserRole  @default(USER)
+  themePreference String?   @default("system")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastLogin       DateTime?
@@ -320,4 +322,47 @@ enum EntitySyncStatus {
   SYNCED
   PENDING
   ERROR
+}
+
+enum UserRole {
+  GUEST
+  USER
+  ADMIN
+}
+
+model Region {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  country     String?
+  isActive    Boolean   @default(true)
+  playerCount Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("regions")
+}
+
+model ImportProgress {
+  id                   String    @id @default(uuid())
+  operation            String
+  progress             Int       @default(0)
+  totalRecords         Int       @default(0)
+  processedRecords     Int       @default(0)
+  errors               Int       @default(0)
+  startTime            DateTime  @default(now())
+  estimatedCompletion  DateTime?
+  status               ImportStatus
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  @@map("import_progress")
+}
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

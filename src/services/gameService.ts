@@ -123,11 +123,21 @@ export class GameService {
   async createGame(data: z.infer<typeof GameSchema>, tournamentId?: string) {
     const validatedData = GameSchema.parse(data);
 
+    const gameData: any = {
+      id: validatedData.id,
+      gomafiaId: validatedData.gomafiaId || validatedData.id,
+      date: validatedData.date,
+      durationMinutes: validatedData.durationMinutes,
+      winnerTeam: validatedData.winnerTeam,
+      status: validatedData.status,
+    };
+
+    if (tournamentId) {
+      gameData.tournamentId = tournamentId;
+    }
+
     const game = await prisma.game.create({
-      data: {
-        ...validatedData,
-        tournamentId,
-      },
+      data: gameData,
       include: {
         tournament: true,
         participations: {
@@ -144,9 +154,14 @@ export class GameService {
   async updateGame(id: string, data: Partial<z.infer<typeof GameSchema>>) {
     const validatedData = GameSchema.partial().parse(data);
 
+    const updateData: any = { ...validatedData };
+    if (validatedData.gomafiaId) {
+      updateData.gomafiaId = validatedData.gomafiaId;
+    }
+
     const game = await prisma.game.update({
       where: { id },
-      data: validatedData,
+      data: updateData,
       include: {
         tournament: true,
         participations: {

@@ -124,9 +124,19 @@ export class TournamentService {
   ) {
     const validatedData = TournamentSchema.parse(data);
 
+    const tournamentData = {
+      id: validatedData.id,
+      gomafiaId: validatedData.gomafiaId || validatedData.id,
+      name: validatedData.name,
+      startDate: validatedData.date,
+      prizePool: validatedData.prizeMoney,
+      maxParticipants: validatedData.maxPlayers,
+      status: validatedData.status,
+    };
+
     const tournament = await prisma.tournament.create({
       data: {
-        ...validatedData,
+        ...tournamentData,
         createdBy: userId,
       },
       include: {

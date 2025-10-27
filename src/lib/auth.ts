@@ -4,6 +4,73 @@ import GoogleProvider from 'next-auth/providers/google';
 import DiscordProvider from 'next-auth/providers/discord';
 import GitHubProvider from 'next-auth/providers/github';
 import { supabase } from './supabase';
+import { UserRole } from '@/types/navigation';
+
+/**
+ * Role hierarchy for access control
+ */
+export const roleHierarchy: Record<UserRole, number> = {
+  GUEST: 0,
+  USER: 1,
+  ADMIN: 2,
+};
+
+/**
+ * Check if user role meets minimum required role
+ */
+export function hasMinimumRole(
+  userRole: UserRole,
+  requiredRole: UserRole
+): boolean {
+  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+}
+
+/**
+ * Check if user is admin
+ */
+export function isAdmin(userRole: UserRole): boolean {
+  return userRole === 'ADMIN';
+}
+
+/**
+ * Check if user is authenticated (not guest)
+ */
+export function isAuthenticated(userRole: UserRole): boolean {
+  return userRole !== 'GUEST';
+}
+
+/**
+ * Get display name for role
+ */
+export function getRoleDisplayName(role: UserRole): string {
+  const displayNames: Record<UserRole, string> = {
+    GUEST: 'Guest',
+    USER: 'User',
+    ADMIN: 'Administrator',
+  };
+  return displayNames[role];
+}
+
+/**
+ * Check if user can perform action based on role
+ */
+export function canPerformAction(
+  userRole: UserRole,
+  action: 'read' | 'write' | 'delete' | 'admin'
+): boolean {
+  switch (action) {
+    case 'read':
+      return userRole !== 'GUEST';
+    case 'write':
+      return userRole === 'USER' || userRole === 'ADMIN';
+    case 'delete':
+      return userRole === 'ADMIN';
+    case 'admin':
+      return userRole === 'ADMIN';
+    default:
+      return false;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter({
