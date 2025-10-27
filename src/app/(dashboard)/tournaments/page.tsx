@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonCard } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { SearchInput } from '@/components/ui/SearchInput';
 
 interface Tournament {
   id: string;
@@ -122,12 +123,10 @@ export default function TournamentsPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="flex-1">
-              <input
-                type="text"
+              <SearchInput
                 placeholder="Search tournaments..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                onSearch={setSearch}
+                debounceMs={300}
               />
             </div>
 

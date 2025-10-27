@@ -113,11 +113,20 @@ export class PlayerService {
   async createPlayer(data: z.infer<typeof PlayerSchema>, userId: string) {
     const validatedData = PlayerSchema.parse(data);
 
+    const playerData = {
+      id: validatedData.id,
+      userId,
+      gomafiaId: validatedData.gomafiaId || validatedData.id,
+      name: validatedData.name,
+      eloRating: validatedData.eloRating,
+      totalGames: validatedData.totalGames,
+      wins: validatedData.wins,
+      losses: validatedData.losses,
+      region: validatedData.region,
+    };
+
     const player = await prisma.player.create({
-      data: {
-        ...validatedData,
-        userId,
-      },
+      data: playerData,
       include: {
         user: {
           select: {
