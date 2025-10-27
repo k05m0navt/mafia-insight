@@ -4,12 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  _Tabs,
-  _TabsContent,
-  _TabsList,
-  _TabsTrigger,
-} from '@/components/ui/tabs';
+// Tabs components not used in this implementation
 import {
   BookOpen,
   Code,

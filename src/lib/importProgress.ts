@@ -1,4 +1,4 @@
-import { ImportProgress, _ImportStatus } from '@/types/importProgress';
+import { ImportProgress } from '@/types/importProgress';
 
 /**
  * Import progress state management utilities

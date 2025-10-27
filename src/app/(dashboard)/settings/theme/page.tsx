@@ -86,31 +86,33 @@ export default function ThemeSettingsPage() {
     });
   };
 
-  const _getThemeIcon = (theme: string) => {
-    switch (theme) {
-      case 'light':
-        return <Sun className="h-5 w-5" />;
-      case 'dark':
-        return <Moon className="h-5 w-5" />;
-      case 'system':
-        return <Monitor className="h-5 w-5" />;
-      default:
-        return <Monitor className="h-5 w-5" />;
-    }
-  };
+  // Theme icon function not used in this implementation
+  // const getThemeIcon = (theme: string) => {
+  //   switch (theme) {
+  //     case 'light':
+  //       return <Sun className="h-5 w-5" />;
+  //     case 'dark':
+  //       return <Moon className="h-5 w-5" />;
+  //     case 'system':
+  //       return <Monitor className="h-5 w-5" />;
+  //     default:
+  //       return <Monitor className="h-5 w-5" />;
+  //   }
+  // };
 
-  const _getThemeDescription = (theme: string) => {
-    switch (theme) {
-      case 'light':
-        return 'Always use light theme regardless of system preference';
-      case 'dark':
-        return 'Always use dark theme regardless of system preference';
-      case 'system':
-        return 'Follow your system theme preference';
-      default:
-        return 'Follow your system theme preference';
-    }
-  };
+  // Theme description function not used in this implementation
+  // const getThemeDescription = (theme: string) => {
+  //   switch (theme) {
+  //     case 'light':
+  //       return 'Always use light theme regardless of system preference';
+  //     case 'dark':
+  //       return 'Always use dark theme regardless of system preference';
+  //     case 'system':
+  //       return 'Follow your system theme preference';
+  //     default:
+  //       return 'Follow your system theme preference';
+  //   }
+  // };
 
   if (loading) {
     return (

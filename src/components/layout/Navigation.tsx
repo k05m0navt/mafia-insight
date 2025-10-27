@@ -14,7 +14,6 @@ import {
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import {
   Menu,
-  _X,
   Home,
   Users,
   Trophy,

@@ -3,17 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { _Progress } from '@/components/ui/progress';
-import {
-  Trophy,
-  _Target,
-  _TrendingUp,
-  _Calendar,
-  _Award,
-  BarChart3,
-  Users,
-  Clock,
-} from 'lucide-react';
+// Progress component not used in this implementation
+import { Trophy, BarChart3, Users, Clock } from 'lucide-react';
 
 interface PlayerStatisticsProps {
   playerId: string;

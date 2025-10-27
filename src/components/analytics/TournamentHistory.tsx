@@ -7,9 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Trophy,
   Calendar,
-  _DollarSign,
   TrendingUp,
-  _Award,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';

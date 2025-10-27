@@ -1,4 +1,4 @@
-import { _NextRequest } from 'next/server';
+// NextRequest not used in this implementation
 
 export interface APIEndpoint {
   path: string;

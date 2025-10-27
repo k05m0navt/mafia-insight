@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { _prisma } from '@/lib/db';
+// Prisma not used in this implementation
 import { z } from 'zod';
 
 const themeSchema = z.object({

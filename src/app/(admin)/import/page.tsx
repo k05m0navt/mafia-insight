@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import {
   Upload,
   Play,
-  _Pause,
   Square,
   RefreshCw,
   CheckCircle,
