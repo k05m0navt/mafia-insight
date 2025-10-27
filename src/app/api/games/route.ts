@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { autoTriggerImportIfNeeded } from '@/lib/gomafia/import/auto-trigger';
 
 // Query parameters validation schema
 const GamesQuerySchema = z.object({
@@ -25,6 +26,9 @@ const GamesQuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    // Auto-trigger import if database is empty
+    await autoTriggerImportIfNeeded();
+
     const { searchParams } = new URL(request.url);
     const query = GamesQuerySchema.parse(Object.fromEntries(searchParams));
 

@@ -107,8 +107,7 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Prisma
-prisma/migrations/
+# Prisma (keep migrations tracked for version control)
 
 # Redis
 dump.rdb

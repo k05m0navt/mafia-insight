@@ -1,0 +1,412 @@
+openapi: 3.0.3
+info:
+  title: GoMafia Initial Data Import API
+  description: API endpoints for triggering and monitoring initial data imports from gomafia.pro
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Development Team
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://mafia-insight.vercel.app/api
+    description: Production
+
+tags:
+  - name: Import
+    description: Initial data import operations
+  - name: Sync Status
+    description: Import/sync status monitoring (existing from feature 002)
+
+paths:
+  /gomafia-sync/import:
+    post:
+      summary: Trigger initial data import
+      description: |
+        Manually trigger the initial import of all historical data from gomafia.pro.
+        This endpoint checks if an import is already running and returns an error if so.
+        The import runs asynchronously in the background.
+      operationId: triggerInitialImport
+      tags:
+        - Import
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                forceRestart:
+                  type: boolean
+                  description: If true, restart import from beginning (clear checkpoint)
+                  default: false
+                  example: false
+      responses:
+        '202':
+          description: Import triggered successfully (asynchronous operation)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Initial import started successfully'
+                  syncLogId:
+                    type: string
+                    format: uuid
+                    description: ID of the SyncLog record for tracking
+                    example: '550e8400-e29b-41d4-a716-446655440000'
+                  estimatedDuration:
+                    type: string
+                    description: Estimated import duration
+                    example: '3-4 hours'
+        '409':
+          description: Import already running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Import operation already in progress'
+                code: 'IMPORT_RUNNING'
+                details:
+                  progress: 45
+                  currentOperation: 'Importing games: batch 23/50'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Cancel running import
+      description: |
+        Cancel the currently running import operation. The import will stop
+        after completing the current batch, ensuring data integrity.
+      operationId: cancelImport
+      tags:
+        - Import
+      responses:
+        '200':
+          description: Cancellation signal sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Import cancellation requested. Will stop after current batch.'
+        '404':
+          description: No import currently running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'No import operation is currently running'
+                code: 'NO_IMPORT_RUNNING'
+
+  /gomafia-sync/import/check-empty:
+    get:
+      summary: Check if database is empty
+      description: |
+        Check if the database is empty (no players or games). Used for
+        auto-triggering initial import on first deployment.
+      operationId: checkEmptyDatabase
+      tags:
+        - Import
+      responses:
+        '200':
+          description: Database status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isEmpty:
+                    type: boolean
+                    description: True if database has no players or games
+                    example: true
+                  playerCount:
+                    type: integer
+                    description: Current player count
+                    example: 0
+                  gameCount:
+                    type: integer
+                    description: Current game count
+                    example: 0
+                  shouldAutoImport:
+                    type: boolean
+                    description: Recommendation to trigger auto-import
+                    example: true
+
+  /gomafia-sync/sync/status:
+    get:
+      summary: Get current sync/import status
+      description: |
+        Get the current status of any running or recently completed sync/import
+        operation. Includes progress, current operation description, and metrics.
+        This endpoint should be polled every 2 seconds during active imports.
+      operationId: getSyncStatus
+      tags:
+        - Sync Status
+      responses:
+        '200':
+          description: Sync status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStatus'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /gomafia-sync/sync/logs:
+    get:
+      summary: Get sync/import logs
+      description: |
+        Retrieve historical sync and import logs with pagination and filtering.
+      operationId: getSyncLogs
+      tags:
+        - Sync Status
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Records per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: type
+          in: query
+          description: Filter by sync type
+          schema:
+            type: string
+            enum: [FULL, INCREMENTAL]
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [RUNNING, COMPLETED, FAILED]
+      responses:
+        '200':
+          description: Logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncLog'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+components:
+  schemas:
+    SyncStatus:
+      type: object
+      description: Current sync/import operation status
+      properties:
+        isRunning:
+          type: boolean
+          description: Whether import/sync is currently running
+          example: true
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Completion percentage (0-100)
+          example: 45
+          nullable: true
+        currentOperation:
+          type: string
+          description: Human-readable description of current operation
+          example: 'Importing games: batch 23/50'
+          nullable: true
+        checkpoint:
+          type: object
+          description: Parsed checkpoint data (if available)
+          properties:
+            phase:
+              type: string
+              enum: [PLAYERS, GAMES, PARTICIPATIONS]
+              example: 'GAMES'
+            lastBatchIndex:
+              type: integer
+              example: 22
+            totalBatches:
+              type: integer
+              example: 50
+            processedIds:
+              type: array
+              items:
+                type: string
+              example: ['game-123', 'game-456']
+          nullable: true
+        lastSyncTime:
+          type: string
+          format: date-time
+          description: Timestamp of last completed sync
+          example: '2025-10-25T14:30:00Z'
+          nullable: true
+        lastSyncType:
+          type: string
+          enum: [FULL, INCREMENTAL]
+          description: Type of last completed sync
+          example: 'FULL'
+          nullable: true
+        lastError:
+          type: string
+          description: Last error message (if any)
+          example: null
+          nullable: true
+        metrics:
+          type: object
+          description: Aggregate sync metrics
+          properties:
+            totalSyncs:
+              type: integer
+              example: 5
+            successfulSyncs:
+              type: integer
+              example: 4
+            failedSyncs:
+              type: integer
+              example: 1
+            averageDuration:
+              type: number
+              format: float
+              description: Average sync duration in seconds
+              example: 3600.5
+            errorRate:
+              type: number
+              format: float
+              description: Percentage of failed syncs
+              example: 20.0
+
+    SyncLog:
+      type: object
+      description: Historical sync/import log record
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        type:
+          type: string
+          enum: [FULL, INCREMENTAL]
+          example: 'FULL'
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED]
+          example: 'COMPLETED'
+        startTime:
+          type: string
+          format: date-time
+          example: '2025-10-25T10:00:00Z'
+        endTime:
+          type: string
+          format: date-time
+          example: '2025-10-25T14:00:00Z'
+          nullable: true
+        recordsProcessed:
+          type: integer
+          description: Number of records imported
+          example: 5234
+          nullable: true
+        errors:
+          type: array
+          description: List of errors encountered (if any)
+          items:
+            type: string
+          example: ['Failed to parse player ID player-999: invalid format']
+          nullable: true
+        duration:
+          type: number
+          format: float
+          description: Duration in seconds
+          example: 14400
+          nullable: true
+        validationRate:
+          type: number
+          format: float
+          description: Percentage of records that passed validation
+          example: 98.5
+          nullable: true
+
+    Pagination:
+      type: object
+      description: Pagination metadata
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          description: Total number of records
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      description: Error response
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: 'Import operation already in progress'
+        code:
+          type: string
+          description: Machine-readable error code
+          example: 'IMPORT_RUNNING'
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+          nullable: true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -3,6 +3,10 @@
 Auto-generated from all feature plans. Last updated: 2025-10-25
 
 ## Active Technologies
+- TypeScript 5.0 (Next.js 16.0) (003-gomafia-data-import)
+- PostgreSQL via Prisma ORM (models: Player, Game, GameParticipation, SyncLog, SyncStatus) (003-gomafia-data-import)
+- TypeScript 5.0+ (Next.js 16.0 App Router) + Next.js, Prisma ORM, Playwright (browser automation), Zod (validation), React Query (data fetching), shadcn UI (components) (003-gomafia-data-import)
+- PostgreSQL via Supabase (Prisma ORM for schema management, advisory locks for concurrency) (003-gomafia-data-import)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -22,6 +26,8 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 003-gomafia-data-import: Added TypeScript 5.0+ (Next.js 16.0 App Router) + Next.js, Prisma ORM, Playwright (browser automation), Zod (validation), React Query (data fetching), shadcn UI (components)
+- 003-gomafia-data-import: Added TypeScript 5.0 (Next.js 16.0)
 
 - 001-mafia-analytics: Added TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky
 

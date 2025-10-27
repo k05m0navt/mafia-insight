@@ -25,6 +25,17 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 - **Participant Tracking**: Monitor player performance in tournaments
 - **Prize Pool Management**: Track tournament rewards and payouts
 
+### Data Import & Synchronization
+
+- **GoMafia.pro Integration**: Comprehensive historical data import from gomafia.pro
+- **Auto-Trigger Import**: Automatically populates empty database on first visit
+- **Progress Tracking**: Real-time import progress with percentage complete and current operation
+- **Validation & Quality**: Data validation with ≥98% quality threshold
+- **Integrity Checks**: Referential integrity verification for all imported relationships
+- **Error Recovery**: Automatic retry with exponential backoff, resume capability, and manual retry UI
+- **Checkpoint System**: Resume interrupted imports from last completed batch
+- **Advisory Locks**: Prevents concurrent imports across horizontally scaled instances
+
 ### Progressive Web App (PWA)
 
 - **Offline Support**: Access analytics even without internet connection
@@ -46,8 +57,10 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 ### Backend
 
 - **Supabase** - Backend-as-a-Service
-- **PostgreSQL** - Primary database
-- **Prisma ORM** - Database toolkit
+- **PostgreSQL** - Primary database with advisory locks
+- **Prisma ORM** - Database toolkit with migrations
+- **Playwright** - Browser automation for web scraping
+- **Zod** - Schema validation for imported data
 - **NextAuth.js** - Authentication
 - **Redis** - Caching and sessions
 
@@ -175,6 +188,71 @@ The project enforces high code quality standards:
 - **Husky** git hooks for pre-commit checks
 - **TypeScript** for type safety
 - **Testing** with Jest and Playwright
+
+## 📦 GoMafia.pro Data Import
+
+### Overview
+
+The platform includes a comprehensive data import feature that automatically populates the database with historical data from gomafia.pro. This enables immediate access to thousands of players, games, tournaments, and statistics without manual data entry.
+
+### Auto-Trigger Import
+
+On first visit to the `/players` or `/games` page, the system automatically:
+
+1. Detects an empty database
+2. Triggers a comprehensive import process
+3. Scrapes data from gomafia.pro including:
+   - Players with regional information
+   - Clubs with presidents and members
+   - Tournaments with metadata (stars, ELO, FSM rating)
+   - Games with full participation details
+   - Year-specific player statistics
+   - Tournament participation history with prize money
+
+### Manual Import Management
+
+Visit `/import` to access the import management interface where you can:
+
+- **View Import Progress**: Real-time progress updates every 2 seconds
+- **Monitor Validation**: See data quality metrics (target ≥98% validation rate)
+- **Check Integrity**: View referential integrity check results
+- **Cancel Import**: Gracefully stop import with checkpoint preservation
+- **Resume Import**: Continue interrupted imports from last checkpoint
+- **Retry Failed Imports**: Manual retry with error guidance
+
+### Import Features
+
+- **Rate Limiting**: Respects gomafia.pro with 2-second delays between requests (30 req/min)
+- **Batch Processing**: Processes 100 records per batch for memory optimization
+- **Checkpoints**: Automatic checkpoint saving for resume capability
+- **Advisory Locks**: Prevents concurrent imports in horizontally scaled deployments
+- **Timeout Protection**: 12-hour maximum duration with automatic timeout
+- **Error Recovery**: Exponential backoff retry (1s, 2s, 4s) for transient failures
+- **Data Validation**: Zod schema validation for all imported entities
+- **Integrity Checks**: Post-import verification of all foreign key relationships
+
+### Import Duration
+
+Expected import times:
+
+- 1,000 players: ~10-15 minutes
+- 5,000 games: ~20-30 minutes
+- Full historical import: 3-4 hours (estimated for 10,000 players + 50,000 games)
+- Maximum timeout: 12 hours
+
+### Troubleshooting
+
+If import fails or shows errors, the system provides:
+
+- **Error codes** (EC-001 through EC-008) with guidance
+- **Retry suggestions** based on error type
+- **Checkpoint information** for resume capability
+- **Validation metrics** showing data quality issues
+- **Integrity warnings** for referential integrity failures
+
+For detailed information, see [specs/003-gomafia-data-import/spec.md](./specs/003-gomafia-data-import/spec.md).
+
+---
 
 ### Database Schema
 
