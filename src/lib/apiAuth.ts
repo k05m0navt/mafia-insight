@@ -20,7 +20,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
   }
 
   return {
-    user: token as User | null,
+    user: token as unknown as User | null,
     role: (token as { role?: string })?.role || 'USER',
   };
 }

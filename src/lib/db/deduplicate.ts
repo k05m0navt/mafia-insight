@@ -139,9 +139,8 @@ export async function deduplicateGames(): Promise<DeduplicationResult> {
       groupedGames.get(game.gomafiaId)!.push({
         id: game.id,
         gomafiaId: game.gomafiaId,
-        date: game.date,
         createdAt: game.createdAt,
-        lastSyncAt: game.lastSyncAt || undefined,
+        lastSyncAt: game.lastSyncAt || null,
       });
     }
 

@@ -224,7 +224,7 @@ function getConsecutiveFailures(logs: unknown[]): number {
   let consecutiveFailures = 0;
 
   for (const log of logs) {
-    if (log.status === 'FAILED') {
+    if ((log as Record<string, unknown>).status === 'FAILED') {
       consecutiveFailures++;
     } else {
       break;

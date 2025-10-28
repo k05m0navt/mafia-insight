@@ -44,7 +44,7 @@ export class StatisticsPhase {
     await batchProcessor.process(
       players,
       async (batch, batchIndex, totalBatches) => {
-        for (const player of batch) {
+        for (const player of batch as Array<{ id: string }>) {
           // Calculate stats for each role
           const roles: PlayerRole[] = ['DON', 'MAFIA', 'SHERIFF', 'CITIZEN'];
 
@@ -121,7 +121,7 @@ export class StatisticsPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((p) => p.id)
+          (batch as Array<{ id: string }>).map((p: { id: string }) => p.id)
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

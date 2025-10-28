@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 
 export class TeamAnalytics {
-  async calculateClubPerformance(clubId: string, period: string = 'all_time') {
+  async calculateClubPerformance(clubId: string, _period: string = 'all_time') {
     const club = await prisma.club.findUnique({
       where: { id: clubId },
       include: {
@@ -58,7 +58,7 @@ export class TeamAnalytics {
     );
 
     // Calculate trends over time
-    const trends = await this.calculateTrends(clubId, period);
+    const trends = await this.calculateTrends();
 
     // Calculate member performance rankings
     const memberRankings = club.players

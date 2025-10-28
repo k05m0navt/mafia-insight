@@ -32,7 +32,7 @@ interface SyncStatus {
 export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const fetchStatus = async () => {
     try {
@@ -57,14 +57,14 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
 
   // Auto-refresh when sync is running
   useEffect(() => {
-    if (!syncStatus?.status.isRunning) return;
+    if (syncStatus?.status !== 'RUNNING') return;
 
     const interval = setInterval(() => {
       fetchStatus();
     }, 2000); // Refresh every 2 seconds when running
 
     return () => clearInterval(interval);
-  }, [syncStatus?.status.isRunning]);
+  }, [syncStatus?.status]);
 
   if (!syncStatus) {
     return (
@@ -81,7 +81,13 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
     );
   }
 
-  const { status, metrics, health } = syncStatus;
+  const {
+    status,
+    progress,
+    currentPhase,
+    endTime,
+    error: syncError,
+  } = syncStatus;
 
   return (
     <Card className={className}>
@@ -90,7 +96,7 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
           <div>
             <CardTitle className="flex items-center space-x-2">
               <span>Live Sync Status</span>
-              {status.isRunning && (
+              {status === 'RUNNING' && (
                 <Badge variant="secondary" className="animate-pulse">
                   <Clock className="h-3 w-3 mr-1" />
                   Running
@@ -120,7 +126,7 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Status</span>
             <div className="flex items-center space-x-2">
-              {status.isRunning ? (
+              {status === 'RUNNING' ? (
                 <Badge
                   variant="secondary"
                   className="bg-blue-100 text-blue-800"
@@ -128,7 +134,7 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
                   <Clock className="h-3 w-3 mr-1" />
                   Running
                 </Badge>
-              ) : status.lastError ? (
+              ) : syncError ? (
                 <Badge variant="destructive">
                   <XCircle className="h-3 w-3 mr-1" />
                   Error
@@ -145,98 +151,74 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
             </div>
           </div>
 
-          {status.isRunning && (
+          {status === 'RUNNING' && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Progress</span>
-                <span>{status.progress}%</span>
+                <span>{progress}%</span>
               </div>
-              <Progress value={status.progress} className="w-full" />
-              {status.currentOperation && (
-                <p className="text-sm text-muted-foreground">
-                  {status.currentOperation}
-                </p>
+              <Progress value={progress} className="w-full" />
+              {currentPhase && (
+                <p className="text-sm text-muted-foreground">{currentPhase}</p>
               )}
             </div>
           )}
         </div>
 
         {/* Last Sync Info */}
-        {status.lastSyncTime && (
+        {endTime && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Last Sync</span>
-              <Badge variant="outline">{status.lastSyncType}</Badge>
+              <Badge variant="outline">Completed</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {new Date(status.lastSyncTime).toLocaleString()}
+              {new Date(endTime).toLocaleString()}
             </p>
           </div>
         )}
 
         {/* Error Display */}
-        {status.lastError && (
+        {syncError && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Last Error:</strong> {status.lastError}
+              <strong>Last Error:</strong> {syncError}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Health Status */}
-        {health && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">System Health</span>
-              <Badge
-                variant={
-                  health.status === 'HEALTHY'
-                    ? 'default'
-                    : health.status === 'WARNING'
-                      ? 'secondary'
-                      : 'destructive'
-                }
-              >
-                {health.status}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{health.message}</p>
-            {health.recommendations.length > 0 && (
-              <div className="mt-2">
-                <h4 className="text-xs font-medium mb-1">Recommendations:</h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  {health.recommendations.map((rec: string, index: number) => (
-                    <li key={index}>• {rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        {/* Status Information */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Status</span>
+            <Badge
+              variant={
+                status === 'COMPLETED'
+                  ? 'default'
+                  : status === 'RUNNING'
+                    ? 'secondary'
+                    : 'destructive'
+              }
+            >
+              {status}
+            </Badge>
           </div>
-        )}
-
-        {/* Quick Stats */}
-        {metrics && (
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-            <div className="text-center">
-              <div className="text-lg font-semibold">{metrics.totalSyncs}</div>
-              <div className="text-xs text-muted-foreground">Total Syncs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">
-                {metrics.errorRate.toFixed(1)}%
-              </div>
-              <div className="text-xs text-muted-foreground">Error Rate</div>
-            </div>
-          </div>
-        )}
+          <p className="text-sm text-muted-foreground">
+            {status === 'RUNNING'
+              ? 'Sync in progress'
+              : status === 'COMPLETED'
+                ? 'Sync completed successfully'
+                : 'Sync failed'}
+          </p>
+        </div>
 
         {/* Error Display */}
-        {error && (
+        {syncError && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to fetch sync status: {error}
+              Failed to fetch sync status: {syncError}
             </AlertDescription>
           </Alert>
         )}

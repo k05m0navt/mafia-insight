@@ -71,11 +71,11 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
 
     // Run the appropriate sync type
     if (options.type === 'FULL') {
-      const result = await runFullSync(options);
+      const result = await runFullSync();
       recordsProcessed = result.recordsProcessed;
       errors.push(...result.errors);
     } else {
-      const result = await runIncrementalSync(options);
+      const result = await runIncrementalSync();
       recordsProcessed = result.recordsProcessed;
       errors.push(...result.errors);
     }

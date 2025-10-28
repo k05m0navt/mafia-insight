@@ -60,7 +60,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     // Save theme preference for authenticated users
     if (user) {
-      themeService.saveThemePreference(user.id);
+      themeService.saveThemePreference();
     }
   };
 
@@ -72,7 +72,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     // Save theme preference for authenticated users
     if (user) {
-      themeService.saveThemePreference(user.id);
+      themeService.saveThemePreference();
     }
   };
 

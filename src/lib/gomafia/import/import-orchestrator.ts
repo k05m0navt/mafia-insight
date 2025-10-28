@@ -455,7 +455,7 @@ export class ImportOrchestrator {
             status: success ? 'COMPLETED' : 'FAILED',
             endTime: new Date(),
             recordsProcessed: metrics.validRecords,
-            errors: errorData,
+            errors: errorData as any,
           },
         })
       );
@@ -678,7 +678,7 @@ export class ImportOrchestrator {
     try {
       return await operation();
     } catch (error: unknown) {
-      this.logError(error, errorCode, context, false);
+      this.logError(error as Error, errorCode, context, false);
       return null;
     }
   }

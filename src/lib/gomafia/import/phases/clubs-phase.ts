@@ -106,15 +106,17 @@ export class ClubsPhase {
       validClubs,
       async (batch, batchIndex, totalBatches) => {
         // Transform to Prisma format
-        const clubsToInsert = batch.map((club) => ({
-          gomafiaId: club.gomafiaId,
-          name: club.name,
-          region: this.normalizeRegion(club.region),
-          // presidentId will be set later after players are imported
-          createdBy: 'system-import-user', // System user for imports
-          lastSyncAt: new Date(),
-          syncStatus: 'SYNCED' as const,
-        }));
+        const clubsToInsert = (batch as ClubRawData[]).map(
+          (club: ClubRawData) => ({
+            gomafiaId: club.gomafiaId,
+            name: club.name,
+            region: this.normalizeRegion(club.region),
+            // presidentId will be set later after players are imported
+            createdBy: 'system-import-user', // System user for imports
+            lastSyncAt: new Date(),
+            syncStatus: 'SYNCED' as const,
+          })
+        );
 
         // Insert batch
         await resilientDB.execute((db) =>
@@ -128,7 +130,7 @@ export class ClubsPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((c) => c.gomafiaId)
+          (batch as ClubRawData[]).map((c: ClubRawData) => c.gomafiaId)
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

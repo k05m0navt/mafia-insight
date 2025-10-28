@@ -61,7 +61,11 @@ export class PlayerTournamentPhase {
           prizeMoney: number | null;
         }> = [];
 
-        for (const player of batch) {
+        for (const player of batch as Array<{
+          id: string;
+          name: string;
+          gomafiaId: string;
+        }>) {
           try {
             // TODO: Implement scraper for /stats/{id}?tab=history
             // For now, we'll create links based on games the player participated in
@@ -127,7 +131,9 @@ export class PlayerTournamentPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((p) => p.gomafiaId)
+          (batch as Array<{ gomafiaId: string }>).map(
+            (p: { gomafiaId: string }) => p.gomafiaId
+          )
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

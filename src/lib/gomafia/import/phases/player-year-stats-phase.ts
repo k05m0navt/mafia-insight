@@ -76,7 +76,11 @@ export class PlayerYearStatsPhase {
           extraPoints: number;
         }> = [];
 
-        for (const player of batch) {
+        for (const player of batch as Array<{
+          id: string;
+          name: string;
+          gomafiaId: string;
+        }>) {
           try {
             // Scrape year stats for this player
             const yearStats = await this.playerStatsScraper!.scrapeAllYears(
@@ -122,7 +126,9 @@ export class PlayerYearStatsPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((p) => p.gomafiaId)
+          (batch as Array<{ gomafiaId: string }>).map(
+            (p: { gomafiaId: string }) => p.gomafiaId
+          )
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

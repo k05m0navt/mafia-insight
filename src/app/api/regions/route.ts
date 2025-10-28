@@ -25,6 +25,20 @@ export async function GET(request: NextRequest) {
         contains: string;
         mode: 'insensitive';
       };
+      country?: {
+        contains: string;
+        mode: 'insensitive';
+      };
+      OR?: Array<{
+        name?: {
+          contains: string;
+          mode: 'insensitive';
+        };
+        country?: {
+          contains: string;
+          mode: 'insensitive';
+        };
+      }>;
     } = {};
 
     if (active !== undefined) {

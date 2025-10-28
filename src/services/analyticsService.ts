@@ -5,7 +5,7 @@ export class AnalyticsService {
   async getPlayerAnalytics(
     playerId: string,
     role?: string,
-    period: string = 'all_time'
+    _period: string = 'all_time'
   ) {
     const player = await prisma.player.findUnique({
       where: { id: playerId },
@@ -37,7 +37,7 @@ export class AnalyticsService {
     }
 
     // Calculate trends data
-    const trends = await this.calculatePlayerTrends(playerId, period);
+    const trends = await this.calculatePlayerTrends();
 
     // Calculate rankings
     const rankings = await this.calculatePlayerRankings(playerId, role);
@@ -58,7 +58,7 @@ export class AnalyticsService {
     };
   }
 
-  async getClubAnalytics(clubId: string, period: string = 'all_time') {
+  async getClubAnalytics(clubId: string, _period: string = 'all_time') {
     const club = await prisma.club.findUnique({
       where: { id: clubId },
       include: {
@@ -99,7 +99,7 @@ export class AnalyticsService {
           club.players.length
         : 0;
 
-    const trends = await this.calculateClubTrends(clubId, period);
+    const trends = await this.calculateClubTrends();
 
     return {
       club,
@@ -167,13 +167,13 @@ export class AnalyticsService {
   async getLeaderboard(
     type: 'players' | 'clubs',
     role?: string,
-    period: string = 'all_time',
+    _period: string = 'all_time',
     limit: number = 50
   ) {
     if (type === 'players') {
-      return this.getPlayerLeaderboard(role, period, limit);
+      return this.getPlayerLeaderboard(role, limit);
     } else {
-      return this.getClubLeaderboard(period, limit);
+      return this.getClubLeaderboard(limit);
     }
   }
 

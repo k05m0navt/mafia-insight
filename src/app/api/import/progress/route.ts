@@ -140,9 +140,7 @@ export async function DELETE(request: NextRequest) {
         progress = importProgressManager.completeImport();
         break;
       case 'fail':
-        progress = importProgressManager.failImport(
-          'Import failed by user request'
-        );
+        progress = importProgressManager.failImport();
         break;
       case 'cancel':
         progress = importProgressManager.cancelImport();

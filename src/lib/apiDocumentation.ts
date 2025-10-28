@@ -1,5 +1,5 @@
 // NextRequest not used in this implementation
-import { OpenAPISpec } from '@/types/api';
+import { OpenAPISpec, OpenAPIPathItem } from '@/types/api';
 
 export interface APIEndpoint {
   path: string;
@@ -117,24 +117,8 @@ export class APIDocumentationGenerator {
               hasPrev: { type: 'boolean' },
             },
           },
-          example: {
-            items: [
-              {
-                id: 'player_1',
-                name: 'John Doe',
-                eloRating: 1200,
-                totalGames: 50,
-                wins: 30,
-                losses: 20,
-              },
-            ],
-            total: 1,
-            page: 1,
-            limit: 10,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
+          example:
+            '{"items":[{"id":"player_1","name":"John Doe","eloRating":1200,"totalGames":50,"wins":30,"losses":20}],"total":1,"page":1,"limit":10,"totalPages":1,"hasNext":false,"hasPrev":false}',
         },
         {
           status: 500,
@@ -502,8 +486,8 @@ export class APIDocumentationGenerator {
     };
   }
 
-  private generatePaths(): Record<string, Record<string, unknown>> {
-    const paths: Record<string, Record<string, unknown>> = {};
+  private generatePaths(): Record<string, OpenAPIPathItem> {
+    const paths: Record<string, OpenAPIPathItem> = {};
 
     this.endpoints.forEach((endpoint) => {
       if (!paths[endpoint.path]) {
@@ -553,7 +537,9 @@ export class APIDocumentationGenerator {
       };
 
       if (endpoint.security) {
-        pathItem[endpoint.method.toLowerCase()].security = [
+        (
+          pathItem[endpoint.method.toLowerCase()] as Record<string, unknown>
+        ).security = [
           {
             ApiKeyAuth: [],
           },

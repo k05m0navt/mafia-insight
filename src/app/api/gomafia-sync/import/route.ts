@@ -464,7 +464,7 @@ async function startImportInBackground(
         endTime: new Date(),
         errors: {
           message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error.stack,
+          stack: error instanceof Error ? error.stack : undefined,
         },
       },
     });

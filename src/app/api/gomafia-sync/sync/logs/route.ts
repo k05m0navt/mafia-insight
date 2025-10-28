@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: {
-      status?: string;
-      type?: string;
+      status?: 'RUNNING' | 'COMPLETED' | 'FAILED';
+      type?: 'FULL' | 'INCREMENTAL';
       startTime?: {
         gte?: Date;
         lte?: Date;
@@ -61,11 +61,11 @@ export async function GET(request: NextRequest) {
     } = {};
 
     if (status && ['RUNNING', 'COMPLETED', 'FAILED'].includes(status)) {
-      where.status = status;
+      where.status = status as 'RUNNING' | 'COMPLETED' | 'FAILED';
     }
 
     if (type && ['FULL', 'INCREMENTAL'].includes(type)) {
-      where.type = type;
+      where.type = type as 'FULL' | 'INCREMENTAL';
     }
 
     if (startDateFilter || endDateFilter) {

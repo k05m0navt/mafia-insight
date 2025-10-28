@@ -132,12 +132,8 @@ export class GameService {
       status: validatedData.status,
     };
 
-    if (tournamentId) {
-      gameData.tournamentId = tournamentId;
-    }
-
     const game = await prisma.game.create({
-      data: gameData,
+      data: (tournamentId ? { ...gameData, tournamentId } : gameData) as any,
       include: {
         tournament: true,
         participations: {

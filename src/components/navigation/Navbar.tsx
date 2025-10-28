@@ -138,7 +138,6 @@ export function Navbar({ className = '' }: NavbarProps) {
                 return (
                   <NavItem
                     key={item.id}
-                    id={item.id}
                     label={item.label}
                     path={item.path}
                     icon={item.icon}
@@ -209,7 +208,6 @@ export function Navbar({ className = '' }: NavbarProps) {
                       return (
                         <NavItem
                           key={item.id}
-                          id={item.id}
                           label={item.label}
                           path={item.path}
                           icon={item.icon}

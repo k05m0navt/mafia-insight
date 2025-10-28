@@ -71,10 +71,10 @@ export class RetryManager {
 
         return result;
       } catch (error: unknown) {
-        lastError = error;
+        lastError = error as Error;
 
         // Don't retry permanent errors
-        if (!this.isTransientError(error)) {
+        if (!this.isTransientError(error as Error)) {
           this.failedOperations++;
           throw error;
         }

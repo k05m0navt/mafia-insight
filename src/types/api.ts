@@ -72,5 +72,7 @@ export interface OpenAPISpec {
   };
   components?: {
     schemas?: Record<string, unknown>;
+    securitySchemes?: Record<string, unknown>;
   };
+  tags?: Array<{ name: string; description: string }>;
 }

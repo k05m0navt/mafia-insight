@@ -122,11 +122,11 @@ export function PlayerStatistics({ playerId, year }: PlayerStatisticsProps) {
       yearStats.find((y) => y.year === currentYear) || yearStats[0];
 
     return {
-      don: yearData.donGames,
-      mafia: yearData.mafiaGames,
-      sheriff: yearData.sheriffGames,
-      civilian: yearData.civilianGames,
-      total: yearData.totalGames,
+      don: (yearData.donGames as number) || 0,
+      mafia: (yearData.mafiaGames as number) || 0,
+      sheriff: (yearData.sheriffGames as number) || 0,
+      civilian: (yearData.civilianGames as number) || 0,
+      total: (yearData.totalGames as number) || 0,
     };
   };
 

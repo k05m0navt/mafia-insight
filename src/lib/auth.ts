@@ -4,6 +4,10 @@ import {
   SignupCredentials,
   AuthResponse,
 } from '@/types/auth';
+import { NextAuthOptions } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
+import { Session, User as NextAuthUser } from 'next-auth';
+import { AdapterUser } from 'next-auth/adapters';
 import { AuthenticationError } from './errors';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/auth';
@@ -132,7 +136,7 @@ export class AuthService {
 export const authService = AuthService.getInstance();
 
 // NextAuth configuration
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     // Add your authentication providers here
     // For now, we'll use a simple credentials provider
@@ -142,34 +146,27 @@ export const authOptions = {
       token,
       user,
     }: {
-      token: Record<string, unknown>;
-      user: Record<string, unknown>;
+      token: JWT;
+      user: NextAuthUser | AdapterUser;
     }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        token.role = user.role;
+        token.role = (user as any).role || 'user';
       }
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: Record<string, unknown>;
-      token: Record<string, unknown>;
-    }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.role = token.role;
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (token && session.user) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).email = token.email as string;
+        (session.user as any).role = token.role as string;
       }
       return session;
     },
   },
   pages: {
     signIn: '/login',
-    signUp: '/signup',
   },
   session: {
     strategy: 'jwt' as const,
