@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - PostgreSQL via Supabase, Redis for session managemen (005-auth-ux)
 - TypeScript 5.x, Next.js 14.x, React 18.x + Playwright, Next.js, React, Tailwind CSS, Prisma, Supabase (006-browser-testing-auth)
 - PostgreSQL (via Prisma), Supabase Auth, localStorage (theme preferences) (006-browser-testing-auth)
+- TypeScript 5.x, JavaScript ES2022, Node.js 18+ + Playwright, Jest, Vitest, Cypress, Artillery, Lighthouse, OWASP ZAP (007-comprehensive-testing)
+- PostgreSQL (test database), Redis (test cache), Local storage (PWA testing) (007-comprehensive-testing)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -32,9 +34,9 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 007-comprehensive-testing: Added TypeScript 5.x, JavaScript ES2022, Node.js 18+ + Playwright, Jest, Vitest, Cypress, Artillery, Lighthouse, OWASP ZAP
 - 006-browser-testing-auth: Added TypeScript 5.x, Next.js 14.x, React 18.x + Playwright, Next.js, React, Tailwind CSS, Prisma, Supabase
 - 005-auth-ux: Added TypeScript 5.x, Next.js 14, React 18 + Supabase Auth, NextAuth.js, Tailwind CSS, shadcn/ui
-- 004-ux-data-improvements: Added TypeScript 5.x, React 18.x, Next.js 14.x + Next.js, React, Prisma, NextAuth.js, ShadCN/UI, Tailwind CSS
 
 
 <!-- MANUAL ADDITIONS START -->
