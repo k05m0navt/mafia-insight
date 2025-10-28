@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface Game {
   id: string;
@@ -219,24 +220,23 @@ export default function GamesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading games...</span>
-      </div>
+      <PageLoading
+        title="Games"
+        showSearch={true}
+        showFilters={true}
+        layout="table"
+        tableRows={8}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Error: {error}</p>
-          <Button onClick={fetchGames} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
+      <PageError
+        title="Error Loading Games"
+        message={error}
+        onRetry={fetchGames}
+      />
     );
   }
 

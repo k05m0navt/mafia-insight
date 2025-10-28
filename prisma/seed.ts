@@ -23,6 +23,7 @@ async function main() {
       email: 'admin@example.com',
       name: 'Admin User',
       subscriptionTier: 'PREMIUM',
+      role: 'admin',
     },
   });
 

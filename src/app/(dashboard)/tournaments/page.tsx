@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { TournamentCard } from '@/components/analytics/TournamentCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonCard } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface Tournament {
   id: string;
@@ -74,44 +74,22 @@ export default function TournamentsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Tournaments</h1>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
-            </div>
-            <div className="flex gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"
-                ></div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      </div>
+      <PageLoading
+        title="Tournaments"
+        showSearch={true}
+        showFilters={true}
+        cardCount={6}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">Error: {error}</p>
-              <Button onClick={fetchTournaments}>Try Again</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageError
+        title="Error Loading Tournaments"
+        message={error}
+        onRetry={fetchTournaments}
+      />
     );
   }
 

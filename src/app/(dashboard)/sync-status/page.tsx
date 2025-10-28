@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SyncStatusIndicator } from '@/components/data-display/SyncStatusIndicator';
 import { SyncTriggerButton } from '@/components/data-display/SyncTriggerButton';
 import { SyncLogsTable } from '@/components/data-display/SyncLogsTable';
 import { LiveSyncStatus } from '@/components/data-display/LiveSyncStatus';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -101,22 +101,22 @@ export default function SyncStatusPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading sync status...</p>
-        </div>
-      </div>
+      <PageLoading
+        title="Loading sync status..."
+        layout="fullscreen"
+        showSearch={false}
+        showFilters={false}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
+      <PageError
+        title="Error Loading Sync Status"
+        message={error}
+        onRetry={fetchSyncStatus}
+      />
     );
   }
 

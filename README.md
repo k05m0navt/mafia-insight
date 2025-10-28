@@ -117,7 +117,27 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
    yarn db:seed
    ```
 
-5. **Start Development Server**
+5. **Create First Admin User**
+
+   After setting up the database, you need to create the first administrator account. You have two options:
+
+   **Option A: Using the Web Interface**
+
+   ```bash
+   # Start the development server
+   yarn dev
+   ```
+
+   Then visit [http://localhost:3000/admin/bootstrap](http://localhost:3000/admin/bootstrap) to create your first admin user through the web interface.
+
+   **Option B: Using the Command Line Script**
+
+   ```bash
+   # Create admin user via script
+   node scripts/create-first-admin.js admin@example.com "Admin User"
+   ```
+
+6. **Start Development Server**
    ```bash
    yarn dev
    ```

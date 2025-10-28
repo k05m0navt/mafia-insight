@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { roleColors, featureColors } from '@/lib/constants/colors';
 
 export default function Home() {
   return (
@@ -37,7 +38,9 @@ export default function Home() {
           <Card className="text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2">
-                <Badge className="bg-purple-500 text-white">Player</Badge>
+                <Badge className={`${featureColors.PLAYER.primary} text-white`}>
+                  Player
+                </Badge>
                 Player Analytics
               </CardTitle>
             </CardHeader>
@@ -52,7 +55,9 @@ export default function Home() {
           <Card className="text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2">
-                <Badge className="bg-blue-500 text-white">TEAM</Badge>
+                <Badge className={`${featureColors.TEAM.primary} text-white`}>
+                  Team
+                </Badge>
                 Team Analytics
               </CardTitle>
             </CardHeader>
@@ -67,7 +72,11 @@ export default function Home() {
           <Card className="text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2">
-                <Badge className="bg-green-500 text-white">TOURNAMENT</Badge>
+                <Badge
+                  className={`${featureColors.TOURNAMENT.primary} text-white`}
+                >
+                  Tournament
+                </Badge>
                 Tournament Analytics
               </CardTitle>
             </CardHeader>
@@ -88,7 +97,9 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             <Card className="p-4">
               <div className="text-center">
-                <Badge className="bg-purple-500 text-white mb-2">DON</Badge>
+                <Badge className={`${roleColors.DON.primary} text-white mb-2`}>
+                  DON
+                </Badge>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Lead the mafia team to victory
                 </p>
@@ -96,7 +107,11 @@ export default function Home() {
             </Card>
             <Card className="p-4">
               <div className="text-center">
-                <Badge className="bg-black text-white mb-2">MAFIA</Badge>
+                <Badge
+                  className={`${roleColors.MAFIA.primary} text-white mb-2`}
+                >
+                  MAFIA
+                </Badge>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Execute strategic eliminations
                 </p>
@@ -104,7 +119,11 @@ export default function Home() {
             </Card>
             <Card className="p-4">
               <div className="text-center">
-                <Badge className="bg-yellow-400 text-black mb-2">SHERIFF</Badge>
+                <Badge
+                  className={`${roleColors.SHERIFF.primary} text-black mb-2`}
+                >
+                  SHERIFF
+                </Badge>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Investigate and protect the town
                 </p>
@@ -112,7 +131,11 @@ export default function Home() {
             </Card>
             <Card className="p-4">
               <div className="text-center">
-                <Badge className="bg-red-500 text-white mb-2">CITIZEN</Badge>
+                <Badge
+                  className={`${roleColors.CITIZEN.primary} text-white mb-2`}
+                >
+                  CITIZEN
+                </Badge>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Vote wisely to survive
                 </p>

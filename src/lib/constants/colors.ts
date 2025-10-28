@@ -1,9 +1,15 @@
 export const roleColors = {
   DON: {
-    primary: 'bg-purple-500',
+    primary: 'bg-purple-600',
     secondary: 'bg-purple-100',
     text: 'text-purple-900',
     border: 'border-purple-300',
+  },
+  PLAYER: {
+    primary: 'bg-blue-600',
+    secondary: 'bg-blue-100',
+    text: 'text-blue-900',
+    border: 'border-blue-300',
   },
   MAFIA: {
     primary: 'bg-black',
@@ -22,6 +28,27 @@ export const roleColors = {
     secondary: 'bg-red-100',
     text: 'text-red-900',
     border: 'border-red-300',
+  },
+} as const;
+
+export const featureColors = {
+  PLAYER: {
+    primary: 'bg-blue-600',
+    secondary: 'bg-blue-100',
+    text: 'text-blue-900',
+    border: 'border-blue-300',
+  },
+  TEAM: {
+    primary: 'bg-orange-500',
+    secondary: 'bg-orange-100',
+    text: 'text-orange-900',
+    border: 'border-orange-300',
+  },
+  TOURNAMENT: {
+    primary: 'bg-green-500',
+    secondary: 'bg-green-100',
+    text: 'text-green-900',
+    border: 'border-green-300',
   },
 } as const;
 
