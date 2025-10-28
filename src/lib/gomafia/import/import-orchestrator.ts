@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { Browser } from 'playwright';
 import { CheckpointManager, ImportCheckpoint } from './checkpoint-manager';
 import { AdvisoryLockManager } from './advisory-lock';
@@ -455,7 +455,7 @@ export class ImportOrchestrator {
             status: success ? 'COMPLETED' : 'FAILED',
             endTime: new Date(),
             recordsProcessed: metrics.validRecords,
-            errors: errorData as any,
+            errors: errorData as Prisma.InputJsonValue,
           },
         })
       );

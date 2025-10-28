@@ -95,38 +95,38 @@ export default function TournamentsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Tournaments</h1>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Tournaments</h1>
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <SearchInput
-                placeholder="Search tournaments..."
-                onSearch={setSearch}
-                debounceMs={300}
-              />
-            </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search tournaments..."
+              onSearch={setSearch}
+              debounceMs={300}
+            />
+          </div>
 
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant={selectedStatus === null ? 'default' : 'outline'}
+              onClick={() => setSelectedStatus(null)}
+            >
+              All Status
+            </Button>
+            {statuses.map((status) => (
               <Button
-                variant={selectedStatus === null ? 'default' : 'outline'}
-                onClick={() => setSelectedStatus(null)}
+                key={status}
+                variant={selectedStatus === status ? 'default' : 'outline'}
+                onClick={() =>
+                  setSelectedStatus(selectedStatus === status ? null : status)
+                }
               >
-                All Status
+                {status.replace('_', ' ')}
               </Button>
-              {statuses.map((status) => (
-                <Button
-                  key={status}
-                  variant={selectedStatus === status ? 'default' : 'outline'}
-                  onClick={() =>
-                    setSelectedStatus(selectedStatus === status ? null : status)
-                  }
-                >
-                  {status.replace('_', ' ')}
-                </Button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 

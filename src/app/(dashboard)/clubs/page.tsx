@@ -87,18 +87,18 @@ export default function ClubsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Clubs</h1>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Clubs</h1>
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <SearchInput
-                placeholder="Search clubs..."
-                onSearch={setSearch}
-                debounceMs={300}
-              />
-            </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search clubs..."
+              onSearch={setSearch}
+              debounceMs={300}
+            />
           </div>
         </div>
 

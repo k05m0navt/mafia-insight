@@ -3,12 +3,37 @@ import {
   LoginCredentials,
   SignupCredentials,
   AuthResponse,
+  UserRole,
 } from '@/types/auth';
 import { NextAuthOptions } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import { Session, User as NextAuthUser } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
 import { AuthenticationError } from './errors';
+
+// Extend NextAuth types to include role
+declare module 'next-auth' {
+  interface User {
+    role?: UserRole;
+  }
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name?: string | null;
+      image?: string | null;
+      role?: UserRole;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string;
+    email?: string;
+    role?: UserRole;
+  }
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/auth';
 
@@ -151,16 +176,16 @@ export const authOptions: NextAuthOptions = {
     }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.role = (user as any).role || 'user';
+        token.email = user.email || undefined;
+        token.role = user.role || 'user';
       }
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).email = token.email as string;
-        (session.user as any).role = token.role as string;
+        session.user.id = token.id as string;
+        session.user.email = token.email || '';
+        session.user.role = token.role;
       }
       return session;
     },

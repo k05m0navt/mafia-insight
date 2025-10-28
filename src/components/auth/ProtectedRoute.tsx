@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
   requiredPermission,
   fallback,
-  redirectTo = '/unauthorized',
+  redirectTo = '/auth/unauthorized',
   className = '',
 }) => {
   const { authState } = useAuth();

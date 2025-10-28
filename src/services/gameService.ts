@@ -123,7 +123,7 @@ export class GameService {
   async createGame(data: z.infer<typeof GameSchema>, tournamentId?: string) {
     const validatedData = GameSchema.parse(data);
 
-    const gameData: Record<string, unknown> = {
+    const gameData = {
       id: validatedData.id,
       gomafiaId: validatedData.gomafiaId || validatedData.id,
       date: validatedData.date,
@@ -133,7 +133,7 @@ export class GameService {
     };
 
     const game = await prisma.game.create({
-      data: (tournamentId ? { ...gameData, tournamentId } : gameData) as any,
+      data: tournamentId ? { ...gameData, tournamentId } : gameData,
       include: {
         tournament: true,
         participations: {

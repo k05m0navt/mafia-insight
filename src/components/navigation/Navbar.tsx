@@ -16,6 +16,13 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import {
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu';
 import { Menu } from 'lucide-react';
 
 interface NavbarProps {
@@ -110,7 +117,7 @@ export function Navbar({ className = '' }: NavbarProps) {
       aria-label="Main navigation"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link
@@ -127,35 +134,48 @@ export function Navbar({ className = '' }: NavbarProps) {
             </Link>
           </div>
 
-          {/* Navigation Items */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-1">
-              {visibleItems.map((item) => {
-                if (!item.path) {
-                  console.error('Navigation item has undefined path:', item);
-                  return null;
-                }
-                return (
-                  <NavItem
-                    key={item.id}
-                    label={item.label}
-                    path={item.path}
-                    icon={item.icon}
-                    data-testid={`nav-${item.id}`}
-                  />
-                );
-              })}
-            </div>
+          {/* Navigation Items - Centered */}
+          <div className="hidden md:flex flex-1 justify-center">
+            <NavigationMenu>
+              <NavigationMenuList>
+                {visibleItems.map((item) => {
+                  if (!item.path) {
+                    console.error('Navigation item has undefined path:', item);
+                    return null;
+                  }
+                  return (
+                    <NavigationMenuItem key={item.id}>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href={item.path}
+                          className={navigationMenuTriggerStyle()}
+                          data-testid={`nav-${item.id}`}
+                        >
+                          <span className="flex items-center">
+                            {item.icon && (
+                              <span className="mr-2 text-lg" aria-hidden="true">
+                                {item.icon}
+                              </span>
+                            )}
+                            <span className="font-medium">{item.label}</span>
+                          </span>
+                        </Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  );
+                })}
+              </NavigationMenuList>
+            </NavigationMenu>
           </div>
 
           {/* Right side controls - Desktop */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-2 ml-auto">
             <ThemeToggle />
             <AuthControls />
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden ml-auto">
             <Sheet
               open={isMobileMenuOpen}
               onOpenChange={(open) =>

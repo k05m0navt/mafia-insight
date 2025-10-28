@@ -12,13 +12,21 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Eye, Filter } from 'lucide-react';
+import { Eye, Filter } from 'lucide-react';
 
 interface SyncLog {
   id: string;
@@ -261,33 +269,76 @@ export function SyncLogsTable() {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div
-            className="text-sm text-muted-foreground"
-            data-testid="pagination-info"
-          >
-            Page {pagination.page} of {pagination.totalPages}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPreviousPage}
-              data-testid="previous-page"
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className="text-sm text-muted-foreground"
+              data-testid="pagination-info"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage}
-              data-testid="next-page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              Page {pagination.page} of {pagination.totalPages}
+            </div>
           </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (pagination.hasPreviousPage) {
+                      handlePageChange(pagination.page - 1);
+                    }
+                  }}
+                  className={
+                    !pagination.hasPreviousPage
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                  data-testid="previous-page"
+                />
+              </PaginationItem>
+
+              {Array.from(
+                { length: Math.min(5, pagination.totalPages) },
+                (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(page);
+                        }}
+                        isActive={page === pagination.page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (pagination.hasNextPage) {
+                      handlePageChange(pagination.page + 1);
+                    }
+                  }}
+                  className={
+                    !pagination.hasNextPage
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                  data-testid="next-page"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
     </div>

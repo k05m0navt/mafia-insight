@@ -60,29 +60,30 @@ export function PageLoading({
   }
 
   return (
-    <div className={`container mx-auto p-6 ${className}`}>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">{title}</h1>
-        {(showSearch || showFilters) && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {showSearch && (
-              <div className="flex-1">
-                <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
-              </div>
-            )}
-            {showFilters && (
-              <div className="flex gap-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"
-                  ></div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+    <div className={`space-y-6 ${className}`}>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">{title}</h1>
       </div>
+
+      {(showSearch || showFilters) && (
+        <div className="flex flex-col sm:flex-row gap-4">
+          {showSearch && (
+            <div className="flex-1">
+              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+            </div>
+          )}
+          {showFilters && (
+            <div className="flex gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"
+                ></div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {layout === 'table' ? (
         <SkeletonTable rows={tableRows} />
@@ -95,7 +96,7 @@ export function PageLoading({
       )}
 
       {showRetry && onRetry && (
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center">
           <Button onClick={onRetry} variant="outline">
             Try Again
           </Button>
@@ -119,7 +120,11 @@ export function PageError({
   onRetry,
 }: PageErrorProps) {
   return (
-    <div className="container mx-auto p-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">{title}</h1>
+      </div>
+
       <Card>
         <CardContent className="pt-6">
           <div className="text-center">

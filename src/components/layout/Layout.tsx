@@ -14,7 +14,9 @@ export function Layout({ children, className = '' }: LayoutProps) {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <div className={`min-h-screen bg-background ${className}`}>
+        <div
+          className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 ${className}`}
+        >
           <Navbar />
           <main className="flex-1">{children}</main>
         </div>
