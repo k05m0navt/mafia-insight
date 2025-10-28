@@ -97,7 +97,7 @@ export class DataImportStrategy {
 
   public async executeImport(
     strategyName: string,
-    data: any[]
+    data: unknown[]
   ): Promise<string> {
     const strategy = this.getStrategy(strategyName);
     if (!strategy) {
@@ -125,7 +125,7 @@ export class DataImportStrategy {
   private async processData(
     importId: string,
     strategy: ImportStrategy,
-    data: any[]
+    data: unknown[]
   ): Promise<void> {
     const batches = this.createBatches(data, strategy.batchSize);
     let processedRecords = 0;
@@ -160,7 +160,7 @@ export class DataImportStrategy {
 
   private async processBatch(
     strategyName: string,
-    batch: any[]
+    batch: unknown[]
   ): Promise<void> {
     switch (strategyName) {
       case 'players':
@@ -192,7 +192,7 @@ export class DataImportStrategy {
   private async retryBatch(
     importId: string,
     strategy: ImportStrategy,
-    batch: any[],
+    batch: unknown[],
     processedRecords: number,
     errors: number
   ): Promise<void> {
@@ -222,8 +222,8 @@ export class DataImportStrategy {
     }
   }
 
-  private createBatches(data: any[], batchSize: number): any[][] {
-    const batches: any[][] = [];
+  private createBatches(data: unknown[], batchSize: number): unknown[][] {
+    const batches: unknown[][] = [];
     for (let i = 0; i < data.length; i += batchSize) {
       batches.push(data.slice(i, i + batchSize));
     }
@@ -231,7 +231,7 @@ export class DataImportStrategy {
   }
 
   // Import methods for different data types
-  private async importPlayers(players: any[]): Promise<void> {
+  private async importPlayers(players: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -254,7 +254,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importTournaments(tournaments: any[]): Promise<void> {
+  private async importTournaments(tournaments: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -275,7 +275,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importGames(games: any[]): Promise<void> {
+  private async importGames(games: unknown[]): Promise<void> {
     await prisma.game.createMany({
       data: games.map((game) => ({
         id: game.id,
@@ -288,7 +288,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importClubs(clubs: any[]): Promise<void> {
+  private async importClubs(clubs: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -306,7 +306,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importPlayerStats(stats: any[]): Promise<void> {
+  private async importPlayerStats(stats: unknown[]): Promise<void> {
     await prisma.playerYearStats.createMany({
       data: stats.map((stat) => ({
         playerId: stat.playerId,
@@ -323,7 +323,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importTournamentResults(results: any[]): Promise<void> {
+  private async importTournamentResults(results: unknown[]): Promise<void> {
     await prisma.playerTournament.createMany({
       data: results.map((result) => ({
         playerId: result.playerId,
@@ -336,7 +336,7 @@ export class DataImportStrategy {
     });
   }
 
-  private async importHistoricalData(data: any[]): Promise<void> {
+  private async importHistoricalData(data: unknown[]): Promise<void> {
     // Placeholder for historical data import
     console.log(`Importing ${data.length} historical records`);
   }

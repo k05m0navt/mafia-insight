@@ -5,27 +5,30 @@ import type { UserRole } from '@/types/navigation';
  * Lower number = less privileges, higher number = more privileges
  */
 export const roleHierarchy: Record<UserRole, number> = {
-  GUEST: 0,
-  USER: 1,
-  ADMIN: 2,
+  guest: 0,
+  user: 1,
+  moderator: 1.5,
+  admin: 2,
 };
 
 /**
  * Role display names
  */
 export const roleDisplayNames: Record<UserRole, string> = {
-  GUEST: 'Guest',
-  USER: 'User',
-  ADMIN: 'Administrator',
+  guest: 'Guest',
+  user: 'User',
+  moderator: 'Moderator',
+  admin: 'Administrator',
 };
 
 /**
  * Role descriptions
  */
 export const roleDescriptions: Record<UserRole, string> = {
-  GUEST: 'Can view public content only',
-  USER: 'Can access protected features and manage own data',
-  ADMIN: 'Can manage users and access all features',
+  guest: 'Can view public content only',
+  user: 'Can access protected features and manage own data',
+  moderator: 'Can moderate content and users',
+  admin: 'Can manage users and access all features',
 };
 
 /**
@@ -42,21 +45,21 @@ export function hasMinimumRole(
  * Check if user is admin
  */
 export function isAdmin(userRole: UserRole): boolean {
-  return userRole === 'ADMIN';
+  return userRole === 'admin';
 }
 
 /**
  * Check if user is authenticated (not guest)
  */
 export function isAuthenticatedRole(userRole: UserRole): boolean {
-  return userRole !== 'GUEST';
+  return userRole !== 'guest';
 }
 
 /**
  * Check if user is regular user or admin
  */
 export function isUser(userRole: UserRole): boolean {
-  return userRole === 'USER' || userRole === 'ADMIN';
+  return userRole === 'user' || userRole === 'admin';
 }
 
 /**

@@ -202,7 +202,7 @@ export class ClubService {
     return player;
   }
 
-  async getClubAnalytics(clubId: string, _period: string = 'all_time') {
+  async getClubAnalytics(clubId: string) {
     const club = await this.getClubById(clubId);
 
     if (!club) {

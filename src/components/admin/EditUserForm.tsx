@@ -41,7 +41,7 @@ const editUserSchema = z.object({
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be less than 100 characters'),
-  role: z.enum(['GUEST', 'USER', 'ADMIN'], {
+  role: z.enum(['guest', 'user', 'admin', 'moderator'], {
     message: 'Please select a role',
   }),
 });

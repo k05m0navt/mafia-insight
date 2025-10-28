@@ -51,7 +51,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const where: any = {};
+    const where: {
+      status?: string;
+      type?: string;
+      startTime?: {
+        gte?: Date;
+        lte?: Date;
+      };
+    } = {};
 
     if (status && ['RUNNING', 'COMPLETED', 'FAILED'].includes(status)) {
       where.status = status;

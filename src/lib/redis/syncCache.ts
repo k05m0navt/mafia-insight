@@ -58,7 +58,7 @@ export async function setSyncStatusInCache(
 /**
  * Get sync metrics from cache
  */
-export async function getSyncMetricsFromCache(): Promise<any | null> {
+export async function getSyncMetricsFromCache(): Promise<unknown | null> {
   try {
     const cached = await redis.get(`${CACHE_PREFIX}metrics`);
     if (!cached) return null;
@@ -74,7 +74,7 @@ export async function getSyncMetricsFromCache(): Promise<any | null> {
  * Set sync metrics in cache
  */
 export async function setSyncMetricsInCache(
-  metrics: any,
+  metrics: unknown,
   ttl: number = DEFAULT_TTL
 ): Promise<void> {
   try {
@@ -90,7 +90,7 @@ export async function setSyncMetricsInCache(
 export async function getSyncLogsFromCache(
   page: number,
   limit: number
-): Promise<any | null> {
+): Promise<unknown | null> {
   try {
     const cached = await redis.get(`${CACHE_PREFIX}logs:${page}:${limit}`);
     if (!cached) return null;
@@ -108,7 +108,7 @@ export async function getSyncLogsFromCache(
 export async function setSyncLogsInCache(
   page: number,
   limit: number,
-  data: any,
+  data: unknown,
   ttl: number = 60
 ): Promise<void> {
   try {

@@ -54,9 +54,7 @@ export function PlayerStatistics({ playerId, year }: PlayerStatisticsProps) {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedYear, _setSelectedYear] = useState<number | null>(
-    year || null
-  );
+  const [selectedYear] = useState<number | null>(year || null);
 
   useEffect(() => {
     fetchPlayerStats();
@@ -114,12 +112,14 @@ export function PlayerStatistics({ playerId, year }: PlayerStatisticsProps) {
     return total > 0 ? Math.round((wins / total) * 100) : 0;
   };
 
-  const getRoleStats = (yearStats: any) => {
+  const getRoleStats = (
+    yearStats: Array<{ year: number; [key: string]: unknown }>
+  ) => {
     if (!yearStats || yearStats.length === 0) return null;
 
     const currentYear = selectedYear || new Date().getFullYear();
     const yearData =
-      yearStats.find((y: any) => y.year === currentYear) || yearStats[0];
+      yearStats.find((y) => y.year === currentYear) || yearStats[0];
 
     return {
       don: yearData.donGames,

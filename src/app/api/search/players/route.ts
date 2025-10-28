@@ -25,7 +25,17 @@ export async function GET(request: NextRequest) {
     const validatedQuery = searchQuerySchema.parse(query);
 
     // Build where clause for Prisma
-    const where: any = {};
+    const where: {
+      name?: {
+        contains: string;
+        mode: 'insensitive';
+      };
+      region?: string;
+      eloRating?: {
+        gte?: number;
+        lte?: number;
+      };
+    } = {};
 
     // Text search
     if (validatedQuery.q) {

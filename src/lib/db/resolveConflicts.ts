@@ -3,8 +3,8 @@ import { db } from '@/lib/db';
 export interface DataConflict {
   id: string;
   field: string;
-  currentValue: any;
-  newValue: any;
+  currentValue: unknown;
+  newValue: unknown;
   conflictType: 'UPDATE_CONFLICT' | 'DELETE_CONFLICT' | 'CREATE_CONFLICT';
   timestamp: Date;
 }
@@ -284,7 +284,7 @@ export async function getConflictStatistics(): Promise<{
       resolvedConflicts: resolvedPlayers,
       pendingConflicts: pendingPlayers,
     };
-  } catch (_error) {
+  } catch {
     return {
       totalConflicts: 0,
       playerConflicts: 0,

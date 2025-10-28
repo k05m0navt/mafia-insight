@@ -70,7 +70,7 @@ export class RetryManager {
         }
 
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
 
         // Don't retry permanent errors

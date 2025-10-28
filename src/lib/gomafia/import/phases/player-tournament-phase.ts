@@ -76,7 +76,7 @@ export class PlayerTournamentPhase {
             });
 
             // Group by tournament
-            const tournamentMap = new Map<string, any[]>();
+            const tournamentMap = new Map<string, unknown[]>();
             for (const participation of games) {
               if (participation.game.tournamentId) {
                 if (!tournamentMap.has(participation.game.tournamentId)) {
@@ -89,13 +89,9 @@ export class PlayerTournamentPhase {
             }
 
             // Create PlayerTournament records
-            for (const [
-              tournamentId,
-              participations,
-            ] of tournamentMap.entries()) {
+            for (const [tournamentId] of tournamentMap.entries()) {
               // Calculate aggregate stats for this tournament
-              const _wins = participations.filter((p) => p.isWinner).length;
-              const _totalGames = participations.length;
+              // Note: wins and totalGames could be calculated here if needed
 
               linksToInsert.push({
                 playerId: player.id,

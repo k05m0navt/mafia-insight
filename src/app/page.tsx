@@ -2,13 +2,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Navigation } from '@/components/layout/Navigation';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Navigation */}
-      <Navigation userRole="GUEST" />
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <main className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
@@ -40,7 +37,7 @@ export default function Home() {
           <Card className="text-center">
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2">
-                <Badge className="bg-purple-500 text-white">DON</Badge>
+                <Badge className="bg-purple-500 text-white">Player</Badge>
                 Player Analytics
               </CardTitle>
             </CardHeader>

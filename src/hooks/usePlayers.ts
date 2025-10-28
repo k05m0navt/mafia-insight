@@ -110,37 +110,37 @@ export function usePlayers(options: UsePlayersOptions = {}): UsePlayersReturn {
     }
   }, [fetchPlayers, autoFetch]);
 
-  const setPage = useCallback((_newPage: number) => {
+  const setPage = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the page state
   }, []);
 
-  const setLimit = useCallback((_newLimit: number) => {
+  const setLimit = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the limit state
   }, []);
 
-  const setSearch = useCallback((_newSearch: string) => {
+  const setSearch = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the search state
   }, []);
 
-  const setSyncStatus = useCallback((_newStatus: string) => {
+  const setSyncStatus = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the sync status state
   }, []);
 
-  const setClubId = useCallback((_newClubId: string) => {
+  const setClubId = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the club ID state
   }, []);
 
-  const setSortBy = useCallback((_newSortBy: string) => {
+  const setSortBy = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the sort by state
   }, []);
 
-  const setSortOrder = useCallback((_newOrder: 'asc' | 'desc') => {
+  const setSortOrder = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the sort order state
   }, []);

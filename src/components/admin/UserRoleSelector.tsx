@@ -20,23 +20,29 @@ interface UserRoleSelectorProps {
 }
 
 const roleConfig = {
-  GUEST: {
+  guest: {
     label: 'Guest',
     description: 'Can view public content only',
     icon: User,
     variant: 'secondary' as const,
   },
-  USER: {
+  user: {
     label: 'User',
     description: 'Can access protected features and manage own data',
     icon: UserCheck,
     variant: 'default' as const,
   },
-  ADMIN: {
+  admin: {
     label: 'Administrator',
     description: 'Can manage users and access all features',
     icon: Shield,
     variant: 'destructive' as const,
+  },
+  moderator: {
+    label: 'Moderator',
+    description: 'Can moderate content and users',
+    icon: Shield,
+    variant: 'outline' as const,
   },
 };
 

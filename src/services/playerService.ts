@@ -170,11 +170,7 @@ export class PlayerService {
     });
   }
 
-  async getPlayerAnalytics(
-    playerId: string,
-    _role?: string,
-    _period: string = 'all_time'
-  ) {
+  async getPlayerAnalytics(playerId: string) {
     const player = await this.getPlayerById(playerId);
 
     if (!player) {

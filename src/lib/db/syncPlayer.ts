@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { z } from 'zod';
 import { PlayerData } from '@/lib/parsers/gomafiaParser';
 import {
   transformPlayerData,
@@ -7,33 +6,31 @@ import {
   hasPlayerDataChanged,
 } from '@/lib/parsers/transformPlayer';
 
-// Player sync operations schema
-const _PlayerSyncCreateSchema = z.object({
-  gomafiaId: z.string().min(1),
-  name: z.string().min(2).max(50),
-  eloRating: z.number().int().min(0).max(3000),
-  totalGames: z.number().int().min(0),
-  wins: z.number().int().min(0),
-  losses: z.number().int().min(0),
-  clubId: z.string().uuid().optional(),
-  lastSyncAt: z.date().optional(),
-  syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
-  userId: z.string().uuid().optional(),
-});
+// Player sync operations types
+export type PlayerSyncCreate = {
+  gomafiaId: string;
+  name: string;
+  eloRating: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  clubId?: string;
+  lastSyncAt?: Date;
+  syncStatus?: 'SYNCED' | 'PENDING' | 'ERROR';
+  userId?: string;
+};
 
-const _PlayerSyncUpdateSchema = z.object({
-  name: z.string().min(2).max(50).optional(),
-  eloRating: z.number().int().min(0).max(3000).optional(),
-  totalGames: z.number().int().min(0).optional(),
-  wins: z.number().int().min(0).optional(),
-  losses: z.number().int().min(0).optional(),
-  clubId: z.string().uuid().optional(),
-  lastSyncAt: z.date().optional(),
-  syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
-});
-
-export type PlayerSyncCreate = z.infer<typeof _PlayerSyncCreateSchema>;
-export type PlayerSyncUpdate = z.infer<typeof _PlayerSyncUpdateSchema>;
+export type PlayerSyncUpdate = {
+  name?: string;
+  eloRating?: number;
+  totalGames?: number;
+  wins?: number;
+  losses?: number;
+  clubId?: string;
+  lastSyncAt?: Date;
+  syncStatus?: 'SYNCED' | 'PENDING' | 'ERROR';
+  userId?: string;
+};
 
 // Sync a single player from gomafia.pro data
 export async function syncPlayer(
@@ -175,8 +172,7 @@ export async function getPlayersNeedingSync(limit: number = 100) {
 // Mark player sync status
 export async function markPlayerSyncStatus(
   gomafiaId: string,
-  status: 'SYNCED' | 'PENDING' | 'ERROR',
-  _error?: string
+  status: 'SYNCED' | 'PENDING' | 'ERROR'
 ) {
   return await db.player.update({
     where: { gomafiaId },

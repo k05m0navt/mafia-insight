@@ -70,7 +70,7 @@ export class ImportOrchestrator {
   private checkpointManager: CheckpointManager;
   private lockManager: AdvisoryLockManager;
   private rateLimiter: RateLimiter;
-  private batchProcessor: BatchProcessor<any>;
+  private batchProcessor: BatchProcessor<unknown>;
   private timeoutManager: TimeoutManager;
   private validationMetrics: ValidationMetrics;
   private validationTracker: ValidationMetricsTracker;
@@ -238,7 +238,7 @@ export class ImportOrchestrator {
   /**
    * Validate player data with Zod schema.
    */
-  async validatePlayerData(data: any): Promise<boolean> {
+  async validatePlayerData(data: unknown): Promise<boolean> {
     const result = playerSchema.safeParse(data);
     return result.success;
   }
@@ -246,7 +246,7 @@ export class ImportOrchestrator {
   /**
    * Validate club data with Zod schema.
    */
-  async validateClubData(data: any): Promise<boolean> {
+  async validateClubData(data: unknown): Promise<boolean> {
     const result = clubSchema.safeParse(data);
     return result.success;
   }
@@ -254,7 +254,7 @@ export class ImportOrchestrator {
   /**
    * Validate tournament data with Zod schema.
    */
-  async validateTournamentData(data: any): Promise<boolean> {
+  async validateTournamentData(data: unknown): Promise<boolean> {
     const result = tournamentSchema.safeParse(data);
     return result.success;
   }
@@ -262,7 +262,7 @@ export class ImportOrchestrator {
   /**
    * Validate game data with Zod schema.
    */
-  async validateGameData(data: any): Promise<boolean> {
+  async validateGameData(data: unknown): Promise<boolean> {
     const result = gameSchema.safeParse(data);
     return result.success;
   }
@@ -362,7 +362,7 @@ export class ImportOrchestrator {
   recordInvalidRecord(
     entity: string,
     message: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): void {
     this.validationMetrics.invalidRecords++;
     this.validationMetrics.totalFetched++;
@@ -431,7 +431,7 @@ export class ImportOrchestrator {
     const hasIntegrityIssues =
       integrityResults && integrityResults.status === 'FAIL';
 
-    let errorData: any = undefined;
+    let errorData: unknown = undefined;
     if (!success) {
       errorData = {
         message: 'Import failed',
@@ -506,7 +506,7 @@ export class ImportOrchestrator {
   /**
    * Get batch processor.
    */
-  getBatchProcessor(): BatchProcessor<any> {
+  getBatchProcessor(): BatchProcessor<unknown> {
     return this.batchProcessor;
   }
 
@@ -677,7 +677,7 @@ export class ImportOrchestrator {
   ): Promise<T | null> {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logError(error, errorCode, context, false);
       return null;
     }

@@ -109,7 +109,7 @@ export class ImportOrchestrator {
     this.activeImports.delete(importId);
   }
 
-  public async failImport(importId: string, _error: string): Promise<void> {
+  public async failImport(importId: string): Promise<void> {
     const importProgress = this.activeImports.get(importId);
     if (!importProgress) {
       throw new Error(`Import ${importId} not found`);

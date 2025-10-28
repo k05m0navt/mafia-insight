@@ -183,7 +183,7 @@ export default function APIDocumentationPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredEndpoints.map((endpoint, _index) => (
+            {filteredEndpoints.map((endpoint) => (
               <div
                 key={`${endpoint.path}-${endpoint.method}`}
                 className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"

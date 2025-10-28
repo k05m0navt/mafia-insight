@@ -8,7 +8,7 @@
 export interface ValidationError {
   entity: string;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -56,7 +56,7 @@ export class ValidationMetricsTracker {
   recordInvalid(
     entity: string,
     message: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): void {
     this.invalidRecords++;
     this.errorsByEntity.set(entity, (this.errorsByEntity.get(entity) || 0) + 1);

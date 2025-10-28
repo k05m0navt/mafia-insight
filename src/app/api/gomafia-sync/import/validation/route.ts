@@ -8,7 +8,7 @@ const db = new PrismaClient();
  * GET /api/gomafia-sync/import/validation
  * Get validation metrics and data integrity status
  */
-export async function GET(_request: Request) {
+export async function GET() {
   try {
     const syncStatus = await db.syncStatus.findUnique({
       where: { id: 'current' },
@@ -51,13 +51,15 @@ export async function GET(_request: Request) {
           }
         : null,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch validation metrics:', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch validation metrics',
         code: 'INTERNAL_ERROR',
-        details: { message: error.message },
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );

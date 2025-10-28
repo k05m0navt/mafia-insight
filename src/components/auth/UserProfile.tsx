@@ -38,7 +38,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   showActions = true,
   className = '',
 }) => {
-  const { user, loading } = useAuth();
+  const { authState } = useAuth();
+  const { user, isLoading: loading } = authState;
   const { description, isAdmin, isAuthenticated } = useRole();
   const { session, isSessionValid, getTimeUntilExpiry } = useSession();
 

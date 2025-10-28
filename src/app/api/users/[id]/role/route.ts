@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 // Update role request body schema
 const UpdateRoleSchema = z.object({
-  role: z.enum(['GUEST', 'USER', 'ADMIN']),
+  role: z.enum(['guest', 'user', 'admin']),
 });
 
 /**

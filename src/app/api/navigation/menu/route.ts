@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNavigationMenu } from '@/lib/navigation';
+import { UserRole } from '@/types/navigation';
 import { withAuth } from '@/lib/apiAuth';
 import { formatErrorResponse } from '@/lib/errors';
 
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     const { role } = await withAuth('GUEST')(request);
 
     // Get navigation menu based on user role
-    const menuItems = getNavigationMenu(role as any);
+    const menuItems = getNavigationMenu(role as UserRole);
 
     return NextResponse.json({
       items: menuItems,

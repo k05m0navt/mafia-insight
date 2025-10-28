@@ -36,7 +36,7 @@ class ErrorTrackingService {
    */
   async trackError(
     error: BaseError,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<void> {
     if (!this.config.enabled) {
       return;
@@ -62,7 +62,7 @@ class ErrorTrackingService {
    */
   private async logAuthenticationError(
     error: AuthError,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<void> {
     try {
       const { error: dbError } = await this.supabase

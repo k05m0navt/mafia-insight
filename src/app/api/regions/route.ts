@@ -19,7 +19,13 @@ export async function GET(request: NextRequest) {
     );
 
     // Build where clause
-    const where: any = {};
+    const where: {
+      isActive?: boolean;
+      name?: {
+        contains: string;
+        mode: 'insensitive';
+      };
+    } = {};
 
     if (active !== undefined) {
       where.isActive = active;

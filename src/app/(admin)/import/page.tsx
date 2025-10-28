@@ -32,7 +32,6 @@ export default function ImportManagementPage() {
   const [imports, setImports] = useState<ImportProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [_selectedStrategy, _setSelectedStrategy] = useState<string>('');
 
   const strategies = [
     { id: 'players', name: 'Players', description: 'Import player data' },

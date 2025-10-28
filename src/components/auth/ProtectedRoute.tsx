@@ -38,9 +38,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/unauthorized',
   className = '',
 }) => {
-  const { user, loading } = useAuth();
+  const { authState } = useAuth();
+  const { user, isLoading: loading } = authState;
   const { currentRole, hasMinimumRole } = useRole();
-  const { canPerformAction } = usePermissions();
+  const { canAccessResource } = usePermissions();
 
   if (loading) {
     return (
@@ -124,7 +125,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check permission requirement
   if (
     requiredPermission &&
-    !canPerformAction(requiredPermission.resource, requiredPermission.action)
+    !canAccessResource(requiredPermission.resource, requiredPermission.action)
   ) {
     return (
       <div className={className}>

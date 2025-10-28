@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Update user request body schema
 const UpdateUserSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  role: z.enum(['GUEST', 'USER', 'ADMIN']).optional(),
+  role: z.enum(['guest', 'user', 'admin']).optional(),
 });
 
 /**
@@ -48,7 +48,6 @@ export async function PATCH(
     const data = UpdateUserSchema.parse(body);
 
     // TODO: Get current user from session for audit trail
-    const _updatedBy = '00000000-0000-0000-0000-000000000000';
 
     const user = await userService.updateUser(id, {
       name: data.name,

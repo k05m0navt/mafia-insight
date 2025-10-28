@@ -67,7 +67,7 @@ export class UserService {
       throw new Error('Inviter not found');
     }
 
-    if (inviter.role !== 'ADMIN') {
+    if (inviter.role !== 'admin') {
       throw new Error('Only admins can create users');
     }
 
@@ -103,7 +103,7 @@ export class UserService {
       where: { id: input.invitedBy },
     });
 
-    if (!inviter || inviter.role !== 'ADMIN') {
+    if (!inviter || inviter.role !== 'admin') {
       throw new Error('Only admins can create invitations');
     }
 
@@ -160,7 +160,7 @@ export class UserService {
       where: { id: updatedBy },
     });
 
-    if (!updater || updater.role !== 'ADMIN') {
+    if (!updater || updater.role !== 'admin') {
       throw new Error('Only admins can update user roles');
     }
 
@@ -183,7 +183,7 @@ export class UserService {
     const limit = filters.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (filters.search) {
       where.OR = [
@@ -241,7 +241,7 @@ export class UserService {
       where: { id: deletedBy },
     });
 
-    if (!deleter || deleter.role !== 'ADMIN') {
+    if (!deleter || deleter.role !== 'admin') {
       throw new Error('Only admins can delete users');
     }
 

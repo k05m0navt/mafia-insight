@@ -28,7 +28,8 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
   showActions = true,
   className = '',
 }) => {
-  const { user, loading, error, logout } = useAuth();
+  const { authState, logout } = useAuth();
+  const { user, isLoading: loading, error } = authState;
   const { session, isSessionValid, getTimeUntilExpiry } = useSession();
   const { description, isAdmin, isAuthenticated } = useRole();
 

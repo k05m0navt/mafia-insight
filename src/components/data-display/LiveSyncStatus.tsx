@@ -18,8 +18,19 @@ interface LiveSyncStatusProps {
   className?: string;
 }
 
+interface SyncStatus {
+  status: string;
+  progress: number;
+  currentPhase: string;
+  recordsProcessed: number;
+  totalRecords: number;
+  startTime: string;
+  endTime?: string;
+  error?: string;
+}
+
 export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
-  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

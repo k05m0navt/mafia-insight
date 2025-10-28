@@ -79,7 +79,7 @@ export function TournamentHistory({
 
   const sortTournaments = (tournaments: TournamentParticipation[]) => {
     return [...tournaments].sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: number | string, bValue: number | string;
 
       switch (sortBy) {
         case 'date':

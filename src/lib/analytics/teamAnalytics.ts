@@ -87,7 +87,7 @@ export class TeamAnalytics {
     };
   }
 
-  async calculateTrends(_clubId: string, _period: string) {
+  async calculateTrends() {
     // This would calculate performance trends over time
     // For now, return empty array as placeholder
     return [];

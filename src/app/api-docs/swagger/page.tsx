@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { apiDocumentation } from '@/lib/apiDocumentation';
+import { OpenAPISpec } from '@/types/api';
 
 export default function SwaggerUIPage() {
-  const [openApiSpec, setOpenApiSpec] = useState<any>(null);
+  const [openApiSpec, setOpenApiSpec] = useState<OpenAPISpec | null>(null);
 
   useEffect(() => {
     const spec = apiDocumentation.generateOpenAPISpec();

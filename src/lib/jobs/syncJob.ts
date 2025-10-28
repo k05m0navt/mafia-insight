@@ -178,9 +178,10 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
 }
 
 // Full sync implementation
-export async function runFullSync(
-  _options: SyncOptions
-): Promise<{ recordsProcessed: number; errors: string[] }> {
+export async function runFullSync(): Promise<{
+  recordsProcessed: number;
+  errors: string[];
+}> {
   let recordsProcessed = 0;
   const errors: string[] = [];
 
@@ -271,9 +272,10 @@ export async function runFullSync(
 }
 
 // Incremental sync implementation
-export async function runIncrementalSync(
-  _options: SyncOptions
-): Promise<{ recordsProcessed: number; errors: string[] }> {
+export async function runIncrementalSync(): Promise<{
+  recordsProcessed: number;
+  errors: string[];
+}> {
   let recordsProcessed = 0;
   const errors: string[] = [];
 

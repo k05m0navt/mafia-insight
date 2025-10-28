@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Sun, Moon, Monitor, Palette, Save, RotateCcw } from 'lucide-react';
+import { Theme } from '@/types/theme';
 
 interface ThemeConfiguration {
   theme: 'light' | 'dark' | 'system';
@@ -147,7 +148,7 @@ export default function ThemeSettingsPage() {
           <RadioGroup
             value={config.theme}
             onValueChange={(value) =>
-              setConfig((prev) => ({ ...prev, theme: value as any }))
+              setConfig((prev) => ({ ...prev, theme: value as Theme }))
             }
             className="space-y-4"
           >

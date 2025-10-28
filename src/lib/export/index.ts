@@ -43,18 +43,15 @@ export class DataExporter {
       // Process data based on format
       let processedData: unknown;
       let mimeType: string;
-      let _filename: string;
 
       switch (options.format) {
         case 'json':
           processedData = this.exportToJSON(data, options);
           mimeType = 'application/json';
-          _filename = `player-${playerId}-${Date.now()}.json`;
           break;
         case 'csv':
-          processedData = this.exportToCSV(data, options);
+          processedData = this.exportToCSV(data);
           mimeType = 'text/csv';
-          _filename = `player-${playerId}-${Date.now()}.csv`;
           break;
         case 'xlsx':
           processedData = await this.exportToXLSX(data, options);
@@ -96,18 +93,15 @@ export class DataExporter {
 
       let processedData: unknown;
       let mimeType: string;
-      let _filename: string;
 
       switch (options.format) {
         case 'json':
           processedData = this.exportToJSON(data, options);
           mimeType = 'application/json';
-          _filename = `analytics-${entityType}-${entityId}-${Date.now()}.json`;
           break;
         case 'csv':
-          processedData = this.exportToCSV(data, options);
+          processedData = this.exportToCSV(data);
           mimeType = 'text/csv';
-          _filename = `analytics-${entityType}-${entityId}-${Date.now()}.csv`;
           break;
         case 'xlsx':
           processedData = await this.exportToXLSX(data, options);
@@ -145,7 +139,7 @@ export class DataExporter {
   }
 
   // Export to CSV
-  private exportToCSV(data: unknown, _options: ExportOptions): string {
+  private exportToCSV(data: unknown): string {
     if (Array.isArray(data)) {
       return this.arrayToCSV(data);
     }

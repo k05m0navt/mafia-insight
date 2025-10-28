@@ -41,7 +41,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateSampleData(strategy: string): any[] {
+interface SamplePlayer {
+  id: string;
+  name: string;
+  eloRating: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  region: string;
+}
+
+interface SampleTournament {
+  id: string;
+  name: string;
+  date: Date;
+  prizeMoney: number;
+  maxPlayers: number;
+  region: string;
+}
+
+interface SampleGame {
+  id: string;
+  date: Date;
+  durationMinutes: number;
+  winner: string;
+  region: string;
+}
+
+type SampleData = SamplePlayer | SampleTournament | SampleGame;
+
+function generateSampleData(strategy: string): SampleData[] {
   switch (strategy) {
     case 'players':
       return Array.from({ length: 100 }, (_, i) => ({

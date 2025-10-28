@@ -38,7 +38,9 @@ export class GamesPhase {
       `[GamesPhase] Found ${tournaments.length} tournaments to process`
     );
 
+    // eslint-disable-next-line prefer-const
     let totalGames = 0;
+    // eslint-disable-next-line prefer-const
     let totalParticipations = 0;
     let errorCount = 0;
 

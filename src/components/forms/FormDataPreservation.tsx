@@ -23,19 +23,17 @@ import { formPreservationService } from '@/lib/forms/preservation';
 interface FormDataPreservationProps {
   formKey: string;
   onDataRestored?: (data: Record<string, unknown>) => void;
-  onDataSaved?: (data: Record<string, unknown>) => void;
   className?: string;
 }
 
 export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
   formKey,
   onDataRestored,
-  onDataSaved,
   className = '',
 }) => {
   const [hasStoredData, setHasStoredData] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isAutoSaving] = useState(false);
 
   // Check for stored data on mount
   useEffect(() => {
@@ -45,37 +43,6 @@ export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
       onDataRestored?.(storedData);
     }
   }, [formKey, onDataRestored]);
-
-  // Auto-save form data
-  const _autoSave = (data: Record<string, unknown>) => {
-    if (Object.keys(data).length === 0) return;
-
-    setIsAutoSaving(true);
-    try {
-      formPreservationService.saveFormData(formKey, data);
-      setHasStoredData(true);
-      setLastSaved(new Date());
-      onDataSaved?.(data);
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsAutoSaving(false);
-    }
-  };
-
-  // Manual save
-  const _handleSave = (data: Record<string, unknown>) => {
-    if (Object.keys(data).length === 0) return;
-
-    try {
-      formPreservationService.saveFormData(formKey, data);
-      setHasStoredData(true);
-      setLastSaved(new Date());
-      onDataSaved?.(data);
-    } catch (error) {
-      console.error('Manual save failed:', error);
-    }
-  };
 
   // Restore data
   const handleRestore = () => {

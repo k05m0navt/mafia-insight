@@ -56,7 +56,7 @@ export async function deduplicatePlayers(): Promise<DeduplicationResult> {
     }
 
     // Process each group
-    for (const [_gomafiaId, playerGroup] of groupedPlayers) {
+    for (const [, playerGroup] of groupedPlayers) {
       if (playerGroup.length > 1) {
         result.duplicatesFound += playerGroup.length - 1;
 
@@ -67,7 +67,6 @@ export async function deduplicatePlayers(): Promise<DeduplicationResult> {
           return bTime.getTime() - aTime.getTime();
         });
 
-        const _keepPlayer = sortedPlayers[0];
         const duplicatePlayers = sortedPlayers.slice(1);
 
         // Remove duplicates
@@ -123,7 +122,15 @@ export async function deduplicateGames(): Promise<DeduplicationResult> {
     });
 
     // Group by gomafiaId
-    const groupedGames = new Map<string, any[]>();
+    const groupedGames = new Map<
+      string,
+      Array<{
+        id: string;
+        gomafiaId: string;
+        createdAt: Date;
+        lastSyncAt: Date | null;
+      }>
+    >();
 
     for (const game of games) {
       if (!groupedGames.has(game.gomafiaId)) {
@@ -139,7 +146,7 @@ export async function deduplicateGames(): Promise<DeduplicationResult> {
     }
 
     // Process each group
-    for (const [_gomafiaId, gameGroup] of groupedGames) {
+    for (const [, gameGroup] of groupedGames) {
       if (gameGroup.length > 1) {
         result.duplicatesFound += gameGroup.length - 1;
 
@@ -150,7 +157,6 @@ export async function deduplicateGames(): Promise<DeduplicationResult> {
           return bTime.getTime() - aTime.getTime();
         });
 
-        const _keepGame = sortedGames[0];
         const duplicateGames = sortedGames.slice(1);
 
         // Remove duplicates

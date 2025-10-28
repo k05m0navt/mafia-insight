@@ -179,14 +179,14 @@ export function generateGameSummary(gameData: GameData): string {
 }
 
 // Extract tournament information from game data
-export function extractTournamentInfo(_gameData: GameData): string | undefined {
+export function extractTournamentInfo(): string | undefined {
   // This would need to be implemented based on how tournaments are identified
   // in the gomafia.pro data structure
   return undefined;
 }
 
 // Check if game is part of a tournament
-export function isTournamentGame(_gameData: GameData): boolean {
+export function isTournamentGame(): boolean {
   // This would need to be implemented based on how tournaments are identified
   // in the gomafia.pro data structure
   return false;

@@ -56,7 +56,7 @@ export class PlayersScraper {
       pageParam: 'pageUsers',
       hasNextSelector: '.pagination .next',
       maxPages: options.maxPages,
-      extractDataFn: async (_page) => this.extractPlayersFromPage(),
+      extractDataFn: async () => this.extractPlayersFromPage(),
     });
   }
 
