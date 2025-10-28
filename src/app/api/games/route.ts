@@ -48,12 +48,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (query.startDate || query.endDate) {
-      where.date = {};
+      where.date = {} as { gte?: Date; lte?: Date };
       if (query.startDate) {
-        (where.date as any).gte = new Date(query.startDate);
+        (where.date as { gte: Date }).gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        (where.date as any).lte = new Date(query.endDate);
+        (where.date as { lte: Date }).lte = new Date(query.endDate);
       }
     }
 

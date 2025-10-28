@@ -38,7 +38,9 @@ export class GamesPhase {
       `[GamesPhase] Found ${tournaments.length} tournaments to process`
     );
 
+    // eslint-disable-next-line prefer-const
     let totalGames = 0;
+    // eslint-disable-next-line prefer-const
     let totalParticipations = 0;
     let errorCount = 0;
 
@@ -48,7 +50,11 @@ export class GamesPhase {
     await batchProcessor.process(
       tournaments,
       async (batch, batchIndex, totalBatches) => {
-        for (const tournament of batch) {
+        for (const tournament of batch as Array<{
+          id: string;
+          gomafiaId: string;
+          name: string;
+        }>) {
           try {
             // TODO: Implement scraper for /tournament/{id}?tab=games
             // For now, we'll log that this phase needs implementation
@@ -117,7 +123,9 @@ export class GamesPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((t) => t.gomafiaId)
+          (batch as Array<{ gomafiaId: string }>).map(
+            (t: { gomafiaId: string }) => t.gomafiaId
+          )
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

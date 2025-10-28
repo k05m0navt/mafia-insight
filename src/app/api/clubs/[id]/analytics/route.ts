@@ -9,10 +9,10 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || 'all_time';
+    const _period = searchParams.get('period') || 'all_time';
     const { id } = await params;
 
-    const analytics = await clubService.getClubAnalytics(id, period);
+    const analytics = await clubService.getClubAnalytics(id);
 
     return NextResponse.json(analytics);
   } catch (error) {

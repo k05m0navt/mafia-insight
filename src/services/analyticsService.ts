@@ -5,7 +5,7 @@ export class AnalyticsService {
   async getPlayerAnalytics(
     playerId: string,
     role?: string,
-    period: string = 'all_time'
+    _period: string = 'all_time'
   ) {
     const player = await prisma.player.findUnique({
       where: { id: playerId },
@@ -37,7 +37,7 @@ export class AnalyticsService {
     }
 
     // Calculate trends data
-    const trends = await this.calculatePlayerTrends(playerId, period);
+    const trends = await this.calculatePlayerTrends();
 
     // Calculate rankings
     const rankings = await this.calculatePlayerRankings(playerId, role);
@@ -58,7 +58,7 @@ export class AnalyticsService {
     };
   }
 
-  async getClubAnalytics(clubId: string, period: string = 'all_time') {
+  async getClubAnalytics(clubId: string, _period: string = 'all_time') {
     const club = await prisma.club.findUnique({
       where: { id: clubId },
       include: {
@@ -99,7 +99,7 @@ export class AnalyticsService {
           club.players.length
         : 0;
 
-    const trends = await this.calculateClubTrends(clubId, period);
+    const trends = await this.calculateClubTrends();
 
     return {
       club,
@@ -167,21 +167,17 @@ export class AnalyticsService {
   async getLeaderboard(
     type: 'players' | 'clubs',
     role?: string,
-    period: string = 'all_time',
-    limit: number = 50
-  ) {
-    if (type === 'players') {
-      return this.getPlayerLeaderboard(role, period, limit);
-    } else {
-      return this.getClubLeaderboard(period, limit);
-    }
-  }
-
-  private async getPlayerLeaderboard(
-    role?: string,
     _period: string = 'all_time',
     limit: number = 50
   ) {
+    if (type === 'players') {
+      return this.getPlayerLeaderboard(role, limit);
+    } else {
+      return this.getClubLeaderboard(limit);
+    }
+  }
+
+  private async getPlayerLeaderboard(role?: string, limit: number = 50) {
     const players = await prisma.player.findMany({
       include: {
         roleStats: role ? { where: { role: role as PlayerRole } } : true,
@@ -206,10 +202,7 @@ export class AnalyticsService {
     }));
   }
 
-  private async getClubLeaderboard(
-    _period: string = 'all_time',
-    limit: number = 50
-  ) {
+  private async getClubLeaderboard(limit: number = 50) {
     const clubs = await prisma.club.findMany({
       include: {
         players: {
@@ -255,13 +248,13 @@ export class AnalyticsService {
       }));
   }
 
-  private async calculatePlayerTrends(_playerId: string, _period: string) {
+  private async calculatePlayerTrends() {
     // TODO: Implement trend calculation based on period
     // This would involve querying historical data and calculating metrics over time
     return [];
   }
 
-  private async calculateClubTrends(_clubId: string, _period: string) {
+  private async calculateClubTrends() {
     // TODO: Implement club trend calculation
     return [];
   }

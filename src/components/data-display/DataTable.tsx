@@ -63,7 +63,6 @@ export function DataTable({
   onPageChange,
   onSearch,
   onSort,
-  onFilter: _onFilter,
   onRefresh,
   searchPlaceholder = 'Search...',
   filters,

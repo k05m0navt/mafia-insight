@@ -53,7 +53,7 @@ export default function UsersManagementPage() {
 
   // Filters
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 20;
 
@@ -71,7 +71,7 @@ export default function UsersManagementPage() {
         params.append('search', search);
       }
 
-      if (roleFilter) {
+      if (roleFilter && roleFilter !== 'all') {
         params.append('role', roleFilter);
       }
 
@@ -163,7 +163,7 @@ export default function UsersManagementPage() {
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="GUEST">Guest</SelectItem>
                 <SelectItem value="USER">User</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>

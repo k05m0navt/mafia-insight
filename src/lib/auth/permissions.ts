@@ -33,7 +33,7 @@ export interface Permission {
  * Defines what actions each role can perform on each resource
  */
 const permissionMatrix: Record<UserRole, Record<Resource, Action[]>> = {
-  GUEST: {
+  guest: {
     users: [],
     players: ['read'],
     clubs: ['read'],
@@ -42,7 +42,7 @@ const permissionMatrix: Record<UserRole, Record<Resource, Action[]>> = {
     analytics: [],
     admin: [],
   },
-  USER: {
+  user: {
     users: ['read'],
     players: ['read'],
     clubs: ['read'],
@@ -51,7 +51,16 @@ const permissionMatrix: Record<UserRole, Record<Resource, Action[]>> = {
     analytics: ['read'],
     admin: [],
   },
-  ADMIN: {
+  moderator: {
+    users: ['read', 'write'],
+    players: ['read', 'write'],
+    clubs: ['read', 'write'],
+    tournaments: ['read', 'write'],
+    games: ['read', 'write'],
+    analytics: ['read'],
+    admin: [],
+  },
+  admin: {
     users: ['read', 'write', 'delete', 'admin'],
     players: ['read', 'write', 'delete', 'admin'],
     clubs: ['read', 'write', 'delete', 'admin'],
@@ -119,7 +128,7 @@ export function getAllowedActions(
  * Check if a user role can access admin features
  */
 export function canAccessAdmin(userRole: UserRole): boolean {
-  return userRole === 'ADMIN';
+  return userRole === 'admin';
 }
 
 /**
@@ -186,8 +195,8 @@ export function canManageUser(
   }
 
   // Admin can manage anyone
-  if (managerRole === 'ADMIN') {
-    return targetRole !== 'ADMIN';
+  if (managerRole === 'admin') {
+    return targetRole !== 'admin';
   }
 
   // Users and guests cannot manage others

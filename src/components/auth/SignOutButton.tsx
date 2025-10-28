@@ -18,7 +18,8 @@ export const SignOutButton: React.FC<SignOutButtonProps> = ({
   className = '',
   onSignOut,
 }) => {
-  const { logout, loading } = useAuth();
+  const { logout, authState } = useAuth();
+  const { isLoading: loading } = authState;
 
   const handleSignOut = async () => {
     try {

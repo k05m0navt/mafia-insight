@@ -89,7 +89,7 @@ export const useSession = () => {
             error: null,
           });
         }
-      } catch (_error) {
+      } catch {
         if (mounted) {
           setState({
             session: null,

@@ -1,4 +1,5 @@
 // NextRequest not used in this implementation
+import { OpenAPISpec, OpenAPIPathItem } from '@/types/api';
 
 export interface APIEndpoint {
   path: string;
@@ -17,21 +18,21 @@ export interface APIParameter {
   required: boolean;
   type: string;
   description: string;
-  example?: any;
+  example?: string | number | boolean;
 }
 
 export interface APIRequestBody {
   type: string;
   required: boolean;
-  schema: any;
-  example?: any;
+  schema: Record<string, unknown>;
+  example?: string | number | boolean;
 }
 
 export interface APIResponse {
   status: number;
   description: string;
-  schema: any;
-  example?: any;
+  schema: Record<string, unknown>;
+  example?: string | number | boolean;
 }
 
 export interface APISecurity {
@@ -116,24 +117,8 @@ export class APIDocumentationGenerator {
               hasPrev: { type: 'boolean' },
             },
           },
-          example: {
-            items: [
-              {
-                id: 'player_1',
-                name: 'John Doe',
-                eloRating: 1200,
-                totalGames: 50,
-                wins: 30,
-                losses: 20,
-              },
-            ],
-            total: 1,
-            page: 1,
-            limit: 10,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
+          example:
+            '{"items":[{"id":"player_1","name":"John Doe","eloRating":1200,"totalGames":50,"wins":30,"losses":20}],"total":1,"page":1,"limit":10,"totalPages":1,"hasNext":false,"hasPrev":false}',
         },
         {
           status: 500,
@@ -453,7 +438,7 @@ export class APIDocumentationGenerator {
     });
   }
 
-  public generateOpenAPISpec(): any {
+  public generateOpenAPISpec(): OpenAPISpec {
     return {
       openapi: '3.0.0',
       info: {
@@ -501,15 +486,15 @@ export class APIDocumentationGenerator {
     };
   }
 
-  private generatePaths(): any {
-    const paths: any = {};
+  private generatePaths(): Record<string, OpenAPIPathItem> {
+    const paths: Record<string, OpenAPIPathItem> = {};
 
     this.endpoints.forEach((endpoint) => {
       if (!paths[endpoint.path]) {
         paths[endpoint.path] = {};
       }
 
-      const pathItem: any = {
+      const pathItem: Record<string, unknown> = {
         [endpoint.method.toLowerCase()]: {
           summary: endpoint.description,
           description: endpoint.description,
@@ -533,23 +518,28 @@ export class APIDocumentationGenerator {
                 },
               }
             : undefined,
-          responses: endpoint.responses.reduce((acc, response) => {
-            acc[response.status] = {
-              description: response.description,
-              content: {
-                'application/json': {
-                  schema: response.schema,
-                  example: response.example,
+          responses: endpoint.responses.reduce(
+            (acc, response) => {
+              acc[response.status] = {
+                description: response.description,
+                content: {
+                  'application/json': {
+                    schema: response.schema,
+                    example: response.example,
+                  },
                 },
-              },
-            };
-            return acc;
-          }, {} as any),
+              };
+              return acc;
+            },
+            {} as Record<string, unknown>
+          ),
         },
       };
 
       if (endpoint.security) {
-        pathItem[endpoint.method.toLowerCase()].security = [
+        (
+          pathItem[endpoint.method.toLowerCase()] as Record<string, unknown>
+        ).security = [
           {
             ApiKeyAuth: [],
           },
@@ -562,7 +552,7 @@ export class APIDocumentationGenerator {
     return paths;
   }
 
-  private generateSchemas(): any {
+  private generateSchemas(): Record<string, Record<string, unknown>> {
     return {
       Player: {
         type: 'object',

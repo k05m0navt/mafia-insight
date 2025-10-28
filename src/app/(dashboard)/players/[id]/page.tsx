@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { ArrowLeft, RefreshCw, Trophy, Target, Users } from 'lucide-react';
 import Link from 'next/link';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface Player {
   id: string;
@@ -144,24 +145,19 @@ export default function PlayerDetailsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading player...</span>
-      </div>
+      <PageLoading
+        title="Player Details"
+        showSearch={false}
+        showFilters={false}
+        cardCount={4}
+        layout="cards"
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Error: {error}</p>
-          <Button onClick={fetchPlayer} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
+      <PageError title="Player Details" message={error} onRetry={fetchPlayer} />
     );
   }
 

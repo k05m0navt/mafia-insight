@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import {
   getSyncMetrics,
   getSyncHealthStatus,
 } from '@/lib/monitoring/syncMonitor';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Get current sync status
     const syncStatus = await db.syncStatus.findUnique({

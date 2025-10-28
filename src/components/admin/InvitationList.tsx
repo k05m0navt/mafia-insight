@@ -157,9 +157,10 @@ export const InvitationList: React.FC<InvitationListProps> = ({
 
   const getRoleBadge = (role: UserRole) => {
     const variants = {
-      GUEST: 'secondary',
-      USER: 'default',
-      ADMIN: 'destructive',
+      guest: 'secondary',
+      user: 'default',
+      admin: 'destructive',
+      moderator: 'outline',
     } as const;
 
     return <Badge variant={variants[role]}>{role}</Badge>;

@@ -97,7 +97,7 @@ export class DataImportStrategy {
 
   public async executeImport(
     strategyName: string,
-    data: any[]
+    data: unknown[]
   ): Promise<string> {
     const strategy = this.getStrategy(strategyName);
     if (!strategy) {
@@ -114,10 +114,7 @@ export class DataImportStrategy {
       await importOrchestrator.completeImport(importId);
       return importId;
     } catch (error) {
-      await importOrchestrator.failImport(
-        importId,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+      await importOrchestrator.failImport(importId);
       throw error;
     }
   }
@@ -125,7 +122,7 @@ export class DataImportStrategy {
   private async processData(
     importId: string,
     strategy: ImportStrategy,
-    data: any[]
+    data: unknown[]
   ): Promise<void> {
     const batches = this.createBatches(data, strategy.batchSize);
     let processedRecords = 0;
@@ -160,7 +157,7 @@ export class DataImportStrategy {
 
   private async processBatch(
     strategyName: string,
-    batch: any[]
+    batch: unknown[]
   ): Promise<void> {
     switch (strategyName) {
       case 'players':
@@ -192,7 +189,7 @@ export class DataImportStrategy {
   private async retryBatch(
     importId: string,
     strategy: ImportStrategy,
-    batch: any[],
+    batch: unknown[],
     processedRecords: number,
     errors: number
   ): Promise<void> {
@@ -222,8 +219,8 @@ export class DataImportStrategy {
     }
   }
 
-  private createBatches(data: any[], batchSize: number): any[][] {
-    const batches: any[][] = [];
+  private createBatches(data: unknown[], batchSize: number): unknown[][] {
+    const batches: unknown[][] = [];
     for (let i = 0; i < data.length; i += batchSize) {
       batches.push(data.slice(i, i + batchSize));
     }
@@ -231,7 +228,7 @@ export class DataImportStrategy {
   }
 
   // Import methods for different data types
-  private async importPlayers(players: any[]): Promise<void> {
+  private async importPlayers(players: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -239,22 +236,24 @@ export class DataImportStrategy {
     }
 
     await prisma.player.createMany({
-      data: players.map((player) => ({
-        id: player.id,
-        userId: defaultUser.id,
-        gomafiaId: player.gomafiaId || player.id,
-        name: player.name,
-        eloRating: player.eloRating || 1000,
-        totalGames: player.totalGames || 0,
-        wins: player.wins || 0,
-        losses: player.losses || 0,
-        region: player.region || 'US',
-      })),
+      data: (players as Record<string, unknown>[]).map(
+        (player: Record<string, unknown>) => ({
+          id: player.id as string,
+          userId: defaultUser.id,
+          gomafiaId: (player.gomafiaId || player.id) as string,
+          name: player.name as string,
+          eloRating: (player.eloRating || 1000) as number,
+          totalGames: (player.totalGames || 0) as number,
+          wins: (player.wins || 0) as number,
+          losses: (player.losses || 0) as number,
+          region: (player.region || 'US') as string,
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importTournaments(tournaments: any[]): Promise<void> {
+  private async importTournaments(tournaments: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -262,33 +261,37 @@ export class DataImportStrategy {
     }
 
     await prisma.tournament.createMany({
-      data: tournaments.map((tournament) => ({
-        id: tournament.id,
-        gomafiaId: tournament.gomafiaId || tournament.id,
-        name: tournament.name,
-        startDate: new Date(tournament.date),
-        prizePool: tournament.prizeMoney || 0,
-        maxParticipants: tournament.maxPlayers || 0,
-        createdBy: defaultUser.id,
-      })),
+      data: (tournaments as Record<string, unknown>[]).map(
+        (tournament: Record<string, unknown>) => ({
+          id: tournament.id as string,
+          gomafiaId: (tournament.gomafiaId || tournament.id) as string,
+          name: tournament.name as string,
+          startDate: new Date(tournament.date as string | number | Date),
+          prizePool: (tournament.prizeMoney || 0) as number,
+          maxParticipants: (tournament.maxPlayers || 0) as number,
+          createdBy: defaultUser.id,
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importGames(games: any[]): Promise<void> {
+  private async importGames(games: unknown[]): Promise<void> {
     await prisma.game.createMany({
-      data: games.map((game) => ({
-        id: game.id,
-        gomafiaId: game.gomafiaId || game.id,
-        date: new Date(game.date),
-        durationMinutes: game.durationMinutes || 0,
-        winnerTeam: game.winner || 'UNKNOWN',
-      })),
+      data: (games as Record<string, unknown>[]).map(
+        (game: Record<string, unknown>) => ({
+          id: game.id as string,
+          gomafiaId: (game.gomafiaId || game.id) as string,
+          date: new Date(game.date as string | number | Date),
+          durationMinutes: (game.durationMinutes || 0) as number,
+          winnerTeam: (game.winner || 'UNKNOWN') as 'BLACK' | 'RED' | 'DRAW',
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importClubs(clubs: any[]): Promise<void> {
+  private async importClubs(clubs: unknown[]): Promise<void> {
     // For demo purposes, we'll create a default user and use that
     const defaultUser = await prisma.user.findFirst();
     if (!defaultUser) {
@@ -296,47 +299,53 @@ export class DataImportStrategy {
     }
 
     await prisma.club.createMany({
-      data: clubs.map((club) => ({
-        id: club.id,
-        name: club.name,
-        description: club.description || '',
-        createdBy: defaultUser.id,
-      })),
+      data: (clubs as Record<string, unknown>[]).map(
+        (club: Record<string, unknown>) => ({
+          id: club.id as string,
+          name: club.name as string,
+          description: (club.description || '') as string,
+          createdBy: defaultUser.id,
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importPlayerStats(stats: any[]): Promise<void> {
+  private async importPlayerStats(stats: unknown[]): Promise<void> {
     await prisma.playerYearStats.createMany({
-      data: stats.map((stat) => ({
-        playerId: stat.playerId,
-        year: stat.year,
-        totalGames: stat.totalGames || 0,
-        donGames: stat.donGames || 0,
-        mafiaGames: stat.mafiaGames || 0,
-        sheriffGames: stat.sheriffGames || 0,
-        civilianGames: stat.civilianGames || 0,
-        eloRating: stat.eloRating || 1000,
-        extraPoints: stat.extraPoints || 0,
-      })),
+      data: (stats as Record<string, unknown>[]).map(
+        (stat: Record<string, unknown>) => ({
+          playerId: stat.playerId as string,
+          year: stat.year as number,
+          totalGames: (stat.totalGames || 0) as number,
+          donGames: (stat.donGames || 0) as number,
+          mafiaGames: (stat.mafiaGames || 0) as number,
+          sheriffGames: (stat.sheriffGames || 0) as number,
+          civilianGames: (stat.civilianGames || 0) as number,
+          eloRating: (stat.eloRating || 1000) as number,
+          extraPoints: (stat.extraPoints || 0) as number,
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importTournamentResults(results: any[]): Promise<void> {
+  private async importTournamentResults(results: unknown[]): Promise<void> {
     await prisma.playerTournament.createMany({
-      data: results.map((result) => ({
-        playerId: result.playerId,
-        tournamentId: result.tournamentId,
-        placement: result.placement || 0,
-        ggPoints: result.ggPoints || 0,
-        eloChange: result.eloChange || 0,
-      })),
+      data: (results as Record<string, unknown>[]).map(
+        (result: Record<string, unknown>) => ({
+          playerId: result.playerId as string,
+          tournamentId: result.tournamentId as string,
+          placement: (result.placement || 0) as number,
+          ggPoints: (result.ggPoints || 0) as number,
+          eloChange: (result.eloChange || 0) as number,
+        })
+      ),
       skipDuplicates: true,
     });
   }
 
-  private async importHistoricalData(data: any[]): Promise<void> {
+  private async importHistoricalData(data: unknown[]): Promise<void> {
     // Placeholder for historical data import
     console.log(`Importing ${data.length} historical records`);
   }

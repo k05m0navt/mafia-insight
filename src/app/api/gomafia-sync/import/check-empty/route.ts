@@ -7,7 +7,7 @@ const db = new PrismaClient();
  * GET /api/gomafia-sync/import/check-empty
  * Check if database is empty and should trigger auto-import
  */
-export async function GET(_request: Request) {
+export async function GET() {
   try {
     // Count players and games
     const [playerCount, gameCount] = await Promise.all([
@@ -27,13 +27,15 @@ export async function GET(_request: Request) {
         ? 'Database is empty. Consider triggering initial import.'
         : `Database contains ${playerCount} players and ${gameCount} games.`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Check empty failed:', error);
     return NextResponse.json(
       {
         error: 'Failed to check database status',
         code: 'INTERNAL_ERROR',
-        details: { message: error.message },
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );

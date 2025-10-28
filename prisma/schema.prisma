@@ -17,7 +17,7 @@ model User {
   name            String
   avatar          String?
   subscriptionTier SubscriptionTier @default(FREE)
-  role            UserRole  @default(USER)
+  role            UserRole  @default(user)
   themePreference String?   @default("system")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -325,9 +325,10 @@ enum EntitySyncStatus {
 }
 
 enum UserRole {
-  GUEST
-  USER
-  ADMIN
+  guest
+  user
+  moderator
+  admin
 }
 
 model Region {

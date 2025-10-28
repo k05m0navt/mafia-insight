@@ -97,13 +97,13 @@ export class PlayersPhase {
       async (batch, batchIndex, totalBatches) => {
         // Transform to Prisma format
         const playersToInsert = await Promise.all(
-          batch.map(async (player) => {
+          (batch as PlayerRawData[]).map(async (player) => {
             // Find club by name if provided
             let clubId: string | undefined;
             if (player.club) {
               const club = (await resilientDB.execute((db) =>
                 db.club.findFirst({
-                  where: { name: player.club },
+                  where: { name: player.club || undefined },
                 })
               )) as { id: string } | null;
               clubId = club?.id;
@@ -137,7 +137,7 @@ export class PlayersPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((p) => p.gomafiaId)
+          (batch as PlayerRawData[]).map((p: PlayerRawData) => p.gomafiaId)
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

@@ -37,7 +37,8 @@ export const RetryAuthentication: React.FC<RetryAuthenticationProps> = ({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { refreshSession } = useSession();
-  const { user, loading } = useAuth();
+  const { authState } = useAuth();
+  const { user, isLoading: loading } = authState;
 
   const handleRetry = async () => {
     setIsRetrying(true);

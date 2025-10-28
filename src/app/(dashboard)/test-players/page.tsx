@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface Player {
   id: string;
@@ -89,25 +89,18 @@ export default function TestPlayersPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div
-          className="flex justify-center items-center h-64"
-          data-testid="loading-spinner"
-        >
-          <LoadingSpinner />
-        </div>
-      </div>
+      <PageLoading
+        title="Test Players"
+        showSearch={true}
+        showFilters={true}
+        cardCount={6}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600">{error}</p>
-        </div>
-      </div>
+      <PageError title="Test Players" message={error} onRetry={fetchPlayers} />
     );
   }
 

@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { TeamStats } from '@/components/analytics/TeamStats';
 import { MemberList } from '@/components/analytics/MemberList';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface ClubAnalytics {
   club: {
@@ -89,50 +88,33 @@ export default function ClubAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mb-4"></div>
-          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse w-1/3"></div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"
-            ></div>
-          ))}
-        </div>
-        <div className="h-96 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
-      </div>
+      <PageLoading
+        title="Club Analytics"
+        showSearch={false}
+        showFilters={false}
+        cardCount={3}
+        layout="cards"
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">Error: {error}</p>
-              <Button onClick={fetchClubAnalytics}>Try Again</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageError
+        title="Club Analytics"
+        message={error}
+        onRetry={fetchClubAnalytics}
+      />
     );
   }
 
   if (!analytics) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground">Club not found</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageError
+        title="Club Analytics"
+        message="Club not found"
+        showRetry={false}
+      />
     );
   }
 

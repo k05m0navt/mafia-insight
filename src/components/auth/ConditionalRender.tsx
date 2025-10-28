@@ -59,10 +59,11 @@ export const ConditionalRender: React.FC<ConditionalRenderProps> = ({
   requireAllFeatures,
   condition,
 }) => {
-  const { user } = useAuth();
+  const { authState } = useAuth();
+  const { user } = authState;
   const isAuthenticated = !!user;
   const { currentRole, hasMinimumRole, canAccessFeature } = useRole();
-  const { canPerformAction } = usePermissions();
+  const { canAccessResource } = usePermissions();
 
   const shouldRender = () => {
     // Custom condition takes precedence
@@ -96,21 +97,21 @@ export const ConditionalRender: React.FC<ConditionalRenderProps> = ({
     // Permission conditions
     if (
       requirePermission &&
-      !canPerformAction(requirePermission.resource, requirePermission.action)
+      !canAccessResource(requirePermission.resource, requirePermission.action)
     ) {
       return false;
     }
 
     if (requireAnyPermission && requireAnyPermission.length > 0) {
       const hasAnyPermission = requireAnyPermission.some((perm) =>
-        canPerformAction(perm.resource, perm.action)
+        canAccessResource(perm.resource, perm.action)
       );
       if (!hasAnyPermission) return false;
     }
 
     if (requireAllPermissions && requireAllPermissions.length > 0) {
       const hasAllPermissions = requireAllPermissions.every((perm) =>
-        canPerformAction(perm.resource, perm.action)
+        canAccessResource(perm.resource, perm.action)
       );
       if (!hasAllPermissions) return false;
     }

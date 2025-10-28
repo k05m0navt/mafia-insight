@@ -41,7 +41,7 @@ export class PlayerTournamentHistoryScraper {
           timeout: 10000,
         }
       );
-    } catch (_error) {
+    } catch {
       // No history available
       console.log(`No tournament history found for player ${gomafiaId}`);
       return [];

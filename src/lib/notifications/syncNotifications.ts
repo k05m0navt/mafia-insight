@@ -20,7 +20,7 @@ export interface Notification {
   message: string;
   timestamp: Date;
   resolved: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -220,11 +220,11 @@ export async function checkSyncHealthAndNotify(
 /**
  * Get number of consecutive failures from recent logs
  */
-function getConsecutiveFailures(logs: any[]): number {
+function getConsecutiveFailures(logs: unknown[]): number {
   let consecutiveFailures = 0;
 
   for (const log of logs) {
-    if (log.status === 'FAILED') {
+    if ((log as Record<string, unknown>).status === 'FAILED') {
       consecutiveFailures++;
     } else {
       break;
@@ -287,9 +287,7 @@ export async function notifySyncStart(
 /**
  * Get notification history
  */
-export async function getNotificationHistory(
-  _limit: number = 50
-): Promise<Notification[]> {
+export async function getNotificationHistory(): Promise<Notification[]> {
   // This would query a notifications table
   // For now, return empty array
   return [];

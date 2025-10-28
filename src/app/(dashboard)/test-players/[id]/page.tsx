@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface PlayerAnalytics {
   player: {
@@ -76,46 +76,33 @@ export default function TestPlayerAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <LoadingSpinner />
-        </div>
-      </div>
+      <PageLoading
+        title="Player Analytics"
+        showSearch={false}
+        showFilters={false}
+        cardCount={4}
+        layout="cards"
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={() => (window.location.href = '/test-players')}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Back to Players
-          </button>
-        </div>
-      </div>
+      <PageError
+        title="Player Analytics"
+        message={error}
+        onRetry={fetchAnalytics}
+      />
     );
   }
 
   if (!analytics) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-600 mb-4">
-            Player not found
-          </h2>
-          <button
-            onClick={() => (window.location.href = '/test-players')}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Back to Players
-          </button>
-        </div>
-      </div>
+      <PageError
+        title="Player Analytics"
+        message="Player not found"
+        showRetry={false}
+      />
     );
   }
 

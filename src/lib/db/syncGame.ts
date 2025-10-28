@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { z } from 'zod';
 import { GameData } from '@/lib/parsers/gomafiaParser';
 import {
   transformGameData,
@@ -7,31 +6,26 @@ import {
   hasGameDataChanged,
 } from '@/lib/parsers/transformGame';
 
-// Game sync operations schema
-const _GameSyncCreateSchema = z.object({
-  gomafiaId: z.string().min(1),
-  tournamentId: z.string().uuid().optional(),
-  date: z.date(),
-  durationMinutes: z.number().int().positive().optional(),
-  winnerTeam: z.enum(['BLACK', 'RED', 'DRAW']).optional(),
-  status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
-  lastSyncAt: z.date().optional(),
-  syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
-});
+// Game sync operations types
+export type GameSyncCreate = {
+  gomafiaId: string;
+  tournamentId?: string;
+  date: Date;
+  durationMinutes?: number;
+  winnerTeam?: 'BLACK' | 'RED' | 'DRAW';
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  lastSyncAt?: Date;
+  syncStatus?: 'SYNCED' | 'PENDING' | 'ERROR';
+};
 
-const _GameSyncUpdateSchema = z.object({
-  date: z.date().optional(),
-  durationMinutes: z.number().int().positive().optional(),
-  winnerTeam: z.enum(['BLACK', 'RED', 'DRAW']).optional(),
-  status: z
-    .enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
-    .optional(),
-  lastSyncAt: z.date().optional(),
-  syncStatus: z.enum(['SYNCED', 'PENDING', 'ERROR']).optional(),
-});
-
-export type GameSyncCreate = z.infer<typeof _GameSyncCreateSchema>;
-export type GameSyncUpdate = z.infer<typeof _GameSyncUpdateSchema>;
+export type GameSyncUpdate = {
+  date?: Date;
+  durationMinutes?: number;
+  winnerTeam?: 'BLACK' | 'RED' | 'DRAW';
+  status?: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  lastSyncAt?: Date;
+  syncStatus?: 'SYNCED' | 'PENDING' | 'ERROR';
+};
 
 // Sync a single game from gomafia.pro data
 export async function syncGame(
@@ -169,8 +163,7 @@ export async function getGamesNeedingSync(limit: number = 100) {
 // Mark game sync status
 export async function markGameSyncStatus(
   gomafiaId: string,
-  status: 'SYNCED' | 'PENDING' | 'ERROR',
-  _error?: string
+  status: 'SYNCED' | 'PENDING' | 'ERROR'
 ) {
   return await db.game.update({
     where: { gomafiaId },

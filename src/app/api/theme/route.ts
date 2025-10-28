@@ -7,7 +7,7 @@ const themeSchema = z.object({
   customColors: z.record(z.string(), z.string()).optional(),
 });
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // For now, return default theme configuration
     // In a real implementation, this would fetch from the database based on user session

@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { apiDocumentation } from '@/lib/apiDocumentation';
+import { OpenAPISpec } from '@/types/api';
 
 export default function SwaggerUIPage() {
-  const [openApiSpec, setOpenApiSpec] = useState<any>(null);
+  const [openApiSpec, setOpenApiSpec] = useState<OpenAPISpec | null>(null);
 
   useEffect(() => {
     const spec = apiDocumentation.generateOpenAPISpec();
@@ -21,7 +22,9 @@ export default function SwaggerUIPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div id="swagger-ui" className="swagger-ui"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="swagger-ui" className="swagger-ui"></div>
+      </div>
       <script
         dangerouslySetInnerHTML={{
           __html: `

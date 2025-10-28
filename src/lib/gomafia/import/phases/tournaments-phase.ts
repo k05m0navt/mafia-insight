@@ -100,21 +100,23 @@ export class TournamentsPhase {
       validTournaments,
       async (batch, batchIndex, totalBatches) => {
         // Transform to Prisma format
-        const tournamentsToInsert = batch.map((tournament) => ({
-          gomafiaId: tournament.gomafiaId,
-          name: tournament.name,
-          stars: tournament.stars,
-          averageElo: tournament.averageElo,
-          isFsmRated: tournament.isFsmRated,
-          startDate: parseGomafiaDate(tournament.startDate),
-          endDate: tournament.endDate
-            ? parseGomafiaDate(tournament.endDate)
-            : null,
-          status: tournament.status,
-          createdBy: 'system-import-user', // System user for imports
-          lastSyncAt: new Date(),
-          syncStatus: 'SYNCED' as const,
-        }));
+        const tournamentsToInsert = (batch as TournamentRawData[]).map(
+          (tournament: TournamentRawData) => ({
+            gomafiaId: tournament.gomafiaId,
+            name: tournament.name,
+            stars: tournament.stars,
+            averageElo: tournament.averageElo,
+            isFsmRated: tournament.isFsmRated,
+            startDate: parseGomafiaDate(tournament.startDate),
+            endDate: tournament.endDate
+              ? parseGomafiaDate(tournament.endDate)
+              : null,
+            status: tournament.status,
+            createdBy: 'system-import-user', // System user for imports
+            lastSyncAt: new Date(),
+            syncStatus: 'SYNCED' as const,
+          })
+        );
 
         // Insert batch
         await resilientDB.execute((db) =>
@@ -128,7 +130,9 @@ export class TournamentsPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((t) => t.gomafiaId)
+          (batch as TournamentRawData[]).map(
+            (t: TournamentRawData) => t.gomafiaId
+          )
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

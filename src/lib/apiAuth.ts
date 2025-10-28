@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { AuthenticationError, AuthorizationError } from './errors';
+import { User } from '@/types/auth';
 
 /**
  * API authentication middleware
  */
 export async function authenticateRequest(request: NextRequest): Promise<{
-  user: any;
+  user: User | null;
   role: string;
 }> {
   const token = await getToken({
@@ -19,8 +20,8 @@ export async function authenticateRequest(request: NextRequest): Promise<{
   }
 
   return {
-    user: token,
-    role: (token as any).role || 'USER',
+    user: token as unknown as User | null,
+    role: (token as { role?: string })?.role || 'USER',
   };
 }
 

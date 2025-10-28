@@ -137,47 +137,47 @@ export function useGames(options: UseGamesOptions = {}): UseGamesReturn {
     }
   }, [fetchGames, autoFetch]);
 
-  const setPage = useCallback((_newPage: number) => {
+  const setPage = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the page state
   }, []);
 
-  const setLimit = useCallback((_newLimit: number) => {
+  const setLimit = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the limit state
   }, []);
 
-  const setStatus = useCallback((_newStatus: string) => {
+  const setStatus = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the status state
   }, []);
 
-  const setWinnerTeam = useCallback((_newWinnerTeam: string) => {
+  const setWinnerTeam = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the winner team state
   }, []);
 
-  const setTournamentId = useCallback((_newTournamentId: string) => {
+  const setTournamentId = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the tournament ID state
   }, []);
 
-  const setStartDate = useCallback((_newStartDate: string) => {
+  const setStartDate = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the start date state
   }, []);
 
-  const setEndDate = useCallback((_newEndDate: string) => {
+  const setEndDate = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the end date state
   }, []);
 
-  const setSortBy = useCallback((_newSortBy: string) => {
+  const setSortBy = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the sort by state
   }, []);
 
-  const setSortOrder = useCallback((_newOrder: 'asc' | 'desc') => {
+  const setSortOrder = useCallback(() => {
     // This would typically be handled by the parent component
     // that manages the sort order state
   }, []);

@@ -33,7 +33,7 @@ const iconMap = {
 };
 
 export function MobileNavigation({
-  userRole = 'GUEST',
+  userRole = 'guest',
 }: MobileNavigationProps) {
   const pathname = usePathname();
   const menuItems = getNavigationMenu(userRole);
@@ -78,10 +78,10 @@ export function MobileNavigation({
                 {menuItems.map((item) => (
                   <Link
                     key={item.id}
-                    href={item.href}
+                    href={item.path}
                     className={cn(
                       'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors',
-                      isActive(item.href)
+                      isActive(item.path)
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                     )}

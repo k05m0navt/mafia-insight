@@ -83,11 +83,6 @@ export function RegionFilter({
     return region ? `${region.name}, ${region.country}` : code;
   };
 
-  const _getRegionPlayerCount = (code: string) => {
-    const region = regions.find((r) => r.code === code);
-    return region?.playerCount || 0;
-  };
-
   if (loading) {
     return (
       <div className={`space-y-2 ${className}`}>

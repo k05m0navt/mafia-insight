@@ -5,14 +5,14 @@ import { z } from 'zod';
 // Create invitation request body schema
 const CreateInvitationSchema = z.object({
   email: z.string().email(),
-  role: z.enum(['GUEST', 'USER', 'ADMIN']),
+  role: z.enum(['guest', 'user', 'admin']),
 });
 
 /**
  * GET /api/users/invitations
  * List all user invitations
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // TODO: Get current user from session and check admin permissions
     // For now, return empty array as invitations are not yet implemented in the database

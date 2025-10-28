@@ -14,10 +14,14 @@ next-env.d.ts
 
 # Coverage
 coverage/
-.nyc_output/
 
 # Cache
-.prettiercache
+.eslintcache
+
+# Package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Config files
 *.config.mjs
@@ -25,7 +29,6 @@ coverage/
 
 # Public files
 public/
-public/sw.js
 
 # Prisma
 prisma/migrations/
@@ -41,10 +44,9 @@ Thumbs.db
 playwright-report/
 test-results/
 
-# Lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# IDE
+.vscode/
+.idea/
 
 # Temporary files
 *.tmp

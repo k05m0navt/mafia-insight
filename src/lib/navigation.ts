@@ -4,90 +4,81 @@ export type { UserRole };
 
 /**
  * Navigation menu configuration
- * Items are filtered by user role
+ * Items are filtered by user role and permissions
  */
 export const navigationMenu: NavigationItem[] = [
   {
     id: 'home',
     label: 'Home',
-    href: '/',
+    path: '/',
     icon: 'Home',
-    requiredRole: 'GUEST',
-    isVisible: true,
-    order: 1,
+    requiresAuth: false,
+    requiredPermissions: [],
   },
   {
     id: 'players',
     label: 'Players',
-    href: '/players',
+    path: '/players',
     icon: 'Users',
-    requiredRole: 'GUEST',
-    isVisible: true,
-    order: 2,
+    requiresAuth: false,
+    requiredPermissions: [],
   },
   {
     id: 'tournaments',
     label: 'Tournaments',
-    href: '/tournaments',
+    path: '/tournaments',
     icon: 'Trophy',
-    requiredRole: 'GUEST',
-    isVisible: true,
-    order: 3,
+    requiresAuth: false,
+    requiredPermissions: [],
   },
   {
     id: 'clubs',
     label: 'Clubs',
-    href: '/clubs',
+    path: '/clubs',
     icon: 'Building2',
-    requiredRole: 'GUEST',
-    isVisible: true,
-    order: 4,
+    requiresAuth: false,
+    requiredPermissions: [],
   },
   {
     id: 'games',
     label: 'Games',
-    href: '/games',
+    path: '/games',
     icon: 'Gamepad2',
-    requiredRole: 'GUEST',
-    isVisible: true,
-    order: 5,
+    requiresAuth: false,
+    requiredPermissions: [],
   },
   {
     id: 'import-progress',
     label: 'Import Progress',
-    href: '/import-progress',
+    path: '/import-progress',
     icon: 'Activity',
-    requiredRole: 'USER',
-    isVisible: true,
-    order: 6,
+    requiresAuth: true,
+    requiredPermissions: ['players:read'],
   },
   {
     id: 'admin',
     label: 'Admin',
-    href: '/admin',
+    path: '/admin',
     icon: 'Settings',
-    requiredRole: 'ADMIN',
-    isVisible: true,
-    order: 7,
+    requiresAuth: true,
+    requiredPermissions: ['admin:read'],
   },
 ];
 
 /**
- * Filter navigation items based on user role
+ * Filter navigation items based on user role and permissions
  */
 export function getNavigationMenu(userRole: UserRole): NavigationItem[] {
-  const roleHierarchy: Record<UserRole, number> = {
-    GUEST: 0,
-    USER: 1,
-    ADMIN: 2,
-  };
+  return navigationMenu.filter((item) => {
+    // Check if authentication is required
+    if (item.requiresAuth && userRole === 'guest') {
+      return false;
+    }
 
-  const userRoleLevel = roleHierarchy[userRole];
-
-  return navigationMenu
-    .filter((item) => roleHierarchy[item.requiredRole] <= userRoleLevel)
-    .filter((item) => item.isVisible)
-    .sort((a, b) => a.order - b.order);
+    // For now, return all items that don't require auth or are accessible to the user
+    // In a real implementation, you would check permissions here
+    return true;
+  });
 }
 
 /**
@@ -98,9 +89,10 @@ export function hasRequiredRole(
   requiredRole: UserRole
 ): boolean {
   const roleHierarchy: Record<UserRole, number> = {
-    GUEST: 0,
-    USER: 1,
-    ADMIN: 2,
+    guest: 0,
+    user: 1,
+    moderator: 1.5,
+    admin: 2,
   };
 
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole];

@@ -19,15 +19,15 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
   fallback = null,
   requireAll = false,
 }) => {
-  const { canPerformAction } = usePermissions();
+  const { canAccessResource } = usePermissions();
 
   const hasPermission = () => {
     if (requireAll) {
       // For now, we only check single permission
       // This could be extended to check multiple permissions
-      return canPerformAction(resource, action);
+      return canAccessResource(resource, action);
     } else {
-      return canPerformAction(resource, action);
+      return canAccessResource(resource, action);
     }
   };
 

@@ -41,7 +41,76 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateSampleData(strategy: string): any[] {
+interface SamplePlayer {
+  id: string;
+  name: string;
+  eloRating: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  region: string;
+}
+
+interface SampleTournament {
+  id: string;
+  name: string;
+  date: Date;
+  prizeMoney: number;
+  maxPlayers: number;
+  region: string;
+}
+
+interface SampleGame {
+  id: string;
+  date: Date;
+  durationMinutes: number;
+  winner: string;
+  region: string;
+}
+
+interface SampleClub {
+  id: string;
+  name: string;
+  region: string;
+  memberCount: number;
+}
+
+interface SamplePlayerStats {
+  playerId: string;
+  year: number;
+  totalGames: number;
+  donGames: number;
+  mafiaGames: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+}
+
+interface SampleTournamentResult {
+  playerId: string;
+  tournamentId: string;
+  position: number;
+  points: number;
+  gamesPlayed: number;
+}
+
+interface SampleHistoricalData {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: Date;
+}
+
+type SampleData =
+  | SamplePlayer
+  | SampleTournament
+  | SampleGame
+  | SampleClub
+  | SamplePlayerStats
+  | SampleTournamentResult
+  | SampleHistoricalData;
+
+function generateSampleData(strategy: string): SampleData[] {
   switch (strategy) {
     case 'players':
       return Array.from({ length: 100 }, (_, i) => ({
@@ -82,25 +151,29 @@ function generateSampleData(strategy: string): any[] {
       }));
 
     case 'player_stats':
-      return Array.from({ length: 100 }, (_, i) => ({
-        playerId: `player_${i + 1}`,
-        year: 2024,
-        totalGames: Math.floor(Math.random() * 50),
-        donGames: Math.floor(Math.random() * 10),
-        mafiaGames: Math.floor(Math.random() * 20),
-        sheriffGames: Math.floor(Math.random() * 15),
-        civilianGames: Math.floor(Math.random() * 30),
-        eloRating: 1000 + Math.floor(Math.random() * 500),
-        extraPoints: Math.floor(Math.random() * 100),
-      }));
+      return Array.from({ length: 100 }, (_, i) => {
+        const totalGames = Math.floor(Math.random() * 50);
+        const wins = Math.floor(Math.random() * totalGames);
+        const losses = totalGames - wins;
+        return {
+          playerId: `player_${i + 1}`,
+          year: 2024,
+          totalGames,
+          donGames: Math.floor(Math.random() * 10),
+          mafiaGames: Math.floor(Math.random() * 20),
+          wins,
+          losses,
+          winRate: totalGames > 0 ? wins / totalGames : 0,
+        };
+      });
 
     case 'tournament_results':
       return Array.from({ length: 100 }, (_, i) => ({
         playerId: `player_${i + 1}`,
         tournamentId: `tournament_${Math.floor(Math.random() * 50) + 1}`,
-        placement: Math.floor(Math.random() * 32) + 1,
-        ggPoints: Math.floor(Math.random() * 1000),
-        eloChange: Math.floor(Math.random() * 100) - 50,
+        position: Math.floor(Math.random() * 32) + 1,
+        points: Math.floor(Math.random() * 1000),
+        gamesPlayed: Math.floor(Math.random() * 20) + 1,
       }));
 
     default:

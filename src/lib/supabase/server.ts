@@ -19,15 +19,18 @@ export const createSupabaseServerClient = async () => {
       },
       set(name: string, value: string, options: unknown) {
         try {
-          cookieStore.set(name, value, options as any);
-        } catch (_error) {
+          cookieStore.set(name, value, options as Record<string, unknown>);
+        } catch {
           // Cookie can't be set if component is in read-only mode
         }
       },
       remove(name: string, options: unknown) {
         try {
-          cookieStore.set(name, '', { ...(options as any), maxAge: 0 });
-        } catch (_error) {
+          cookieStore.set(name, '', {
+            ...(options as Record<string, unknown>),
+            maxAge: 0,
+          });
+        } catch {
           // Cookie can't be removed if component is in read-only mode
         }
       },
@@ -48,10 +51,13 @@ export const createRouteHandlerClient = async () => {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: unknown) {
-        cookieStore.set(name, value, options as any);
+        cookieStore.set(name, value, options as Record<string, unknown>);
       },
       remove(name: string, options: unknown) {
-        cookieStore.set(name, '', { ...(options as any), maxAge: 0 });
+        cookieStore.set(name, '', {
+          ...(options as Record<string, unknown>),
+          maxAge: 0,
+        });
       },
     },
   });

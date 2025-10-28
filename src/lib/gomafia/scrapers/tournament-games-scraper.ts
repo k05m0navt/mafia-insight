@@ -47,7 +47,7 @@ export class TournamentGamesScraper {
           timeout: 10000,
         }
       );
-    } catch (_error) {
+    } catch {
       // No games available yet
       console.log(`No games found for tournament ${tournamentId}`);
       return [];
@@ -111,8 +111,7 @@ export class TournamentGamesScraper {
           };
 
           const parseTeam = (
-            role: string | null,
-            _winnerTeam: 'BLACK' | 'RED' | 'DRAW' | null
+            role: string | null
           ): 'MAFIA' | 'CITIZENS' | null => {
             if (!role) return null;
             const lower = role.toLowerCase();
@@ -182,7 +181,7 @@ export class TournamentGamesScraper {
                     `${year}-${month}-${day}T${hour}:${minute}:00Z`
                   ).toISOString();
                 }
-              } catch (_error) {
+              } catch {
                 console.error('Failed to parse date:', dateText);
               }
             }
@@ -212,7 +211,7 @@ export class TournamentGamesScraper {
               const roleText =
                 row.querySelector('.role, td.role')?.textContent?.trim() || '';
               const role = parseRole(roleText);
-              const team = parseTeam(roleText, winnerTeam);
+              const team = parseTeam(roleText);
 
               const performanceText =
                 row

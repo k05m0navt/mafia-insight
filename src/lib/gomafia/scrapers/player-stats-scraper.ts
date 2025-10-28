@@ -106,7 +106,7 @@ export class PlayerStatsScraper {
       // Step 4: Data refreshes immediately - no waiting needed!
       // Just a small delay to ensure DOM is stable
       await this.page.waitForTimeout(500);
-    } catch (_error) {
+    } catch {
       // Year selector might not exist or year not available
       console.warn(`Year ${year} selector not found for player ${gomafiaId}`);
     }
@@ -123,7 +123,7 @@ export class PlayerStatsScraper {
       await this.page.waitForSelector('.stats, .total-games', {
         timeout: 5000,
       });
-    } catch (_error) {
+    } catch {
       // Stats might not exist for this year
     }
 

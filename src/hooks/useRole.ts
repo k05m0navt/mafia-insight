@@ -14,12 +14,13 @@ import {
 import type { UserRole } from '@/types/navigation';
 
 export const useRole = () => {
-  const { user } = useAuth();
+  const { authState } = useAuth();
+  const { user } = authState;
 
   const role = useMemo(() => {
     if (!user) {
       return {
-        currentRole: 'GUEST' as UserRole,
+        currentRole: 'guest' as UserRole,
         displayName: 'Guest',
         description: 'Not signed in',
         isAdmin: false,
@@ -50,17 +51,17 @@ export const useRole = () => {
     return (feature: string) => {
       switch (feature) {
         case 'admin':
-          return user.role === 'ADMIN';
+          return user.role === 'admin';
         case 'analytics':
-          return user.role === 'USER' || user.role === 'ADMIN';
+          return user.role === 'user' || user.role === 'admin';
         case 'user_management':
-          return user.role === 'ADMIN';
+          return user.role === 'admin';
         case 'profile_editing':
-          return user.role === 'USER' || user.role === 'ADMIN';
+          return user.role === 'user' || user.role === 'admin';
         case 'data_export':
-          return user.role === 'ADMIN';
+          return user.role === 'admin';
         default:
-          return user.role !== 'GUEST';
+          return user.role !== 'guest';
       }
     };
   }, [user]);
@@ -69,9 +70,10 @@ export const useRole = () => {
     if (!user) return 0;
 
     const roleLevels = {
-      GUEST: 0,
-      USER: 1,
-      ADMIN: 2,
+      guest: 0,
+      user: 1,
+      admin: 2,
+      moderator: 1.5,
     };
 
     return roleLevels[user.role];
@@ -81,6 +83,6 @@ export const useRole = () => {
     ...role,
     canAccessFeature,
     getRoleLevel,
-    isGuest: user?.role === 'GUEST',
+    isGuest: user?.role === 'guest',
   };
 };

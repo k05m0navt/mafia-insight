@@ -61,7 +61,11 @@ export class PlayerTournamentPhase {
           prizeMoney: number | null;
         }> = [];
 
-        for (const player of batch) {
+        for (const player of batch as Array<{
+          id: string;
+          name: string;
+          gomafiaId: string;
+        }>) {
           try {
             // TODO: Implement scraper for /stats/{id}?tab=history
             // For now, we'll create links based on games the player participated in
@@ -76,7 +80,7 @@ export class PlayerTournamentPhase {
             });
 
             // Group by tournament
-            const tournamentMap = new Map<string, any[]>();
+            const tournamentMap = new Map<string, unknown[]>();
             for (const participation of games) {
               if (participation.game.tournamentId) {
                 if (!tournamentMap.has(participation.game.tournamentId)) {
@@ -89,13 +93,9 @@ export class PlayerTournamentPhase {
             }
 
             // Create PlayerTournament records
-            for (const [
-              tournamentId,
-              participations,
-            ] of tournamentMap.entries()) {
+            for (const [tournamentId] of tournamentMap.entries()) {
               // Calculate aggregate stats for this tournament
-              const _wins = participations.filter((p) => p.isWinner).length;
-              const _totalGames = participations.length;
+              // Note: wins and totalGames could be calculated here if needed
 
               linksToInsert.push({
                 playerId: player.id,
@@ -131,7 +131,9 @@ export class PlayerTournamentPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          batch.map((p) => p.gomafiaId)
+          (batch as Array<{ gomafiaId: string }>).map(
+            (p: { gomafiaId: string }) => p.gomafiaId
+          )
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

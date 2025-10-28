@@ -11,14 +11,14 @@ const UsersQuerySchema = z.object({
     .pipe(z.number().int().min(1).max(100))
     .default(20),
   search: z.string().optional(),
-  role: z.enum(['GUEST', 'USER', 'ADMIN']).optional(),
+  role: z.enum(['guest', 'user', 'admin']).optional(),
 });
 
 // Create user request body schema
 const CreateUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2).max(100),
-  role: z.enum(['GUEST', 'USER', 'ADMIN']),
+  role: z.enum(['guest', 'user', 'admin']),
 });
 
 /**

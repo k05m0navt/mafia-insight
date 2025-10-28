@@ -29,7 +29,6 @@ export async function checkRateLimit(
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
   const key = `${finalConfig.keyPrefix}${identifier}`;
   const now = Date.now();
-  const _windowStart = now - finalConfig.windowMs;
 
   try {
     // Get current request count

@@ -48,9 +48,9 @@ export async function proxy(request: NextRequest) {
 
   // Check admin routes
   if (adminRoutes.some((route) => pathname.startsWith(route))) {
-    const userRole = token.role || 'USER';
+    const userRole = token.role || 'user';
 
-    if (userRole !== 'ADMIN') {
+    if (userRole !== 'admin') {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
           { error: 'Admin access required' },

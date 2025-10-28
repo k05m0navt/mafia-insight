@@ -218,7 +218,7 @@ export async function resetSyncStatus() {
 }
 
 // Get sync status history (if we want to track changes over time)
-export async function getSyncStatusHistory(_limit: number = 10) {
+export async function getSyncStatusHistory() {
   // This would require a separate table to track status changes over time
   // For now, we'll return the current status
   const currentStatus = await getCurrentSyncStatus();

@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ClubCard } from '@/components/analytics/ClubCard';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonCard } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
 interface Club {
   id: string;
@@ -67,53 +66,39 @@ export default function ClubsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Clubs</h1>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      </div>
+      <PageLoading
+        title="Clubs"
+        showSearch={true}
+        showFilters={false}
+        cardCount={6}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">Error: {error}</p>
-              <Button onClick={fetchClubs}>Try Again</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageError
+        title="Error Loading Clubs"
+        message={error}
+        onRetry={fetchClubs}
+      />
     );
   }
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-4">Clubs</h1>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Clubs</h1>
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <SearchInput
-                placeholder="Search clubs..."
-                onSearch={setSearch}
-                debounceMs={300}
-              />
-            </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search clubs..."
+              onSearch={setSearch}
+              debounceMs={300}
+            />
           </div>
         </div>
 

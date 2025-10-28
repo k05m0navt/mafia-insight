@@ -29,7 +29,8 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ className = '' }) => {
-  const { user, loading, logout } = useAuth();
+  const { authState, logout } = useAuth();
+  const { user, isLoading: loading } = authState;
   const { isAdmin, isAuthenticated } = useRole();
 
   if (loading) {

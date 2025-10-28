@@ -74,7 +74,7 @@ export class ImportProgressManager {
   /**
    * Fail the import
    */
-  failImport(_error: string): ImportProgress | null {
+  failImport(): ImportProgress | null {
     if (!this.progress) return null;
 
     this.progress.status = 'FAILED';

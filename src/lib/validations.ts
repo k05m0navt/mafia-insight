@@ -130,7 +130,7 @@ export const GameSchema = z.object({
   durationMinutes: z.number().int().min(0).optional(),
   winnerTeam: z.enum(['BLACK', 'RED']).optional(),
   status: z
-    .enum(['SCHEDULED', 'ONGOING', 'COMPLETED', 'CANCELLED'])
+    .enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
     .default('SCHEDULED'),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

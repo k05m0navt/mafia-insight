@@ -14,7 +14,7 @@ let currentImportController: AbortController | null = null;
  * GET /api/gomafia-sync/import
  * Get current import status with progress and metrics
  */
-export async function GET(_request: Request) {
+export async function GET() {
   try {
     const syncStatus = await db.syncStatus.findUnique({
       where: { id: 'current' },
@@ -65,13 +65,15 @@ export async function GET(_request: Request) {
     response.headers.set('Expires', '0');
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch import status:', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch import status',
         code: 'INTERNAL_ERROR',
-        details: { message: error.message },
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );
@@ -160,7 +162,10 @@ export async function POST(request: Request) {
         data: {
           status: 'FAILED',
           endTime: new Date(),
-          errors: { message: error.message, stack: error.stack },
+          errors: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error.stack,
+          },
         },
       });
 
@@ -169,7 +174,7 @@ export async function POST(request: Request) {
         where: { id: 'current' },
         data: {
           isRunning: false,
-          lastError: error.message,
+          lastError: error instanceof Error ? error.message : 'Unknown error',
         },
       });
 
@@ -188,7 +193,7 @@ export async function POST(request: Request) {
       },
       { status: 202 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Import trigger failed:', error);
 
     // Ensure lock is released on error
@@ -202,7 +207,9 @@ export async function POST(request: Request) {
       {
         error: 'Failed to trigger import',
         code: 'INTERNAL_ERROR',
-        details: { message: error.message },
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );
@@ -218,7 +225,7 @@ export async function POST(request: Request) {
  * - Allows in-progress operations to complete gracefully
  * - Saves checkpoint for resume capability
  */
-export async function DELETE(_request: Request) {
+export async function DELETE() {
   try {
     const status = await db.syncStatus.findUnique({
       where: { id: 'current' },
@@ -272,13 +279,15 @@ export async function DELETE(_request: Request) {
         message: 'Import cancellation requested (fallback mode).',
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Import cancellation failed:', error);
     return NextResponse.json(
       {
         error: 'Failed to cancel import',
         code: 'INTERNAL_ERROR',
-        details: { message: error.message },
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );
@@ -395,9 +404,13 @@ async function startImportInBackground(
       try {
         await phase.execute();
         console.log(`[Import] Completed phase: ${name}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Check if it's a cancellation error
-        if (error.message?.includes('cancelled')) {
+        if (
+          error instanceof Error
+            ? error.message
+            : 'Unknown error'?.includes('cancelled')
+        ) {
           console.log(
             '[Import] Phase cancelled, calling orchestrator.cancel()...'
           );
@@ -440,7 +453,7 @@ async function startImportInBackground(
 
     // Clear the global controller
     currentImportController = null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Import] Import failed:', error);
 
     // Mark as failed
@@ -449,7 +462,10 @@ async function startImportInBackground(
       data: {
         status: 'FAILED',
         endTime: new Date(),
-        errors: { message: error.message, stack: error.stack },
+        errors: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        },
       },
     });
 
@@ -457,7 +473,7 @@ async function startImportInBackground(
       where: { id: 'current' },
       data: {
         isRunning: false,
-        lastError: error.message,
+        lastError: error instanceof Error ? error.message : 'Unknown error',
       },
     });
 
