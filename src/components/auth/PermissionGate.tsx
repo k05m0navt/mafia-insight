@@ -14,7 +14,7 @@ interface PermissionGateProps {
 
 export const PermissionGate: React.FC<PermissionGateProps> = ({
   children,
-  _resource,
+  resource: _resource,
   action,
   fallback = null,
   requireAll = false,
