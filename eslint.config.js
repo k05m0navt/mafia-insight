@@ -110,21 +110,112 @@ export default [
   },
   {
     ignores: [
+      // Dependencies
       'node_modules/',
+
+      // Production builds
       '.next/',
       'out/',
       'dist/',
       'build/',
-      'coverage/',
+
+      // Generated files
       '*.generated.*',
       '*.d.ts',
       'next-env.d.ts',
+
+      // Coverage
+      'coverage/',
+      '.nyc_output/',
+
+      // Cache
+      '.eslintcache',
+
+      // Package lock files
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+
+      // Config files
+      '*.config.mjs',
+      '*.config.ts',
+
+      // Public files
+      'public/',
+
+      // Prisma
       'prisma/migrations/',
+
+      // Logs
       '*.log',
+
+      // OS files
       '.DS_Store',
       'Thumbs.db',
+
+      // Test results
       'playwright-report/',
       'test-results/',
+      'test-results.json',
+      'test-results.xml',
+
+      // IDE
+      '.vscode/',
+      '.idea/',
+
+      // Temporary files
+      '*.tmp',
+      '*.swp',
+      '*~',
+
+      // Testing framework specific
+      'tests/fixtures/anonymized/',
+      'tests/fixtures/production/',
+      'tests/artifacts/',
+      'tests/reports/',
+      'tests/logs/',
+      'tests/screenshots/',
+      'tests/videos/',
+
+      // Performance test results
+      'tests/performance/results/',
+      'tests/performance/artifacts/',
+
+      // Security test results
+      'tests/security/results/',
+      'tests/security/artifacts/',
+
+      // Artillery results
+      'artillery-report.html',
+      'artillery-report.json',
+
+      // Lighthouse results
+      'lighthouse-results/',
+      'lighthouse-report.html',
+
+      // OWASP ZAP results
+      'zap-results/',
+      'zap-report.html',
+      'zap-report.json',
+
+      // Test database
+      '*.test.db',
+      '*.test.sqlite',
+      '*.test.sqlite3',
+
+      // Test environment files
+      '.env.test',
+      '.env.test.local',
+      '.env.testing',
+
+      // Minified files
+      '*.min.js',
+      '*.min.css',
+
+      // Source maps
+      '*.map',
+
+      // Test files (keep these for now but can be removed if needed)
       'tests/e2e/**/*.spec.ts',
       'tests/integration/**/*.test.ts',
       'tests/unit/**/*.test.ts',

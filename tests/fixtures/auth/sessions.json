@@ -1,0 +1,72 @@
+{
+  "active": {
+    "id": "session-001",
+    "userId": "user-001",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTAwMSIsIm5hbWUiOiJSZWd1bGFyIFVzZXIiLCJpYXQiOjE1MTYyMzkwMjJ9.signature",
+    "refreshToken": "refresh-token-001",
+    "expiresAt": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "isActive": true,
+    "permissions": [
+      "read:profile",
+      "update:profile",
+      "read:analytics",
+      "read:reports"
+    ],
+    "role": "user",
+    "metadata": {
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "device": "desktop",
+      "browser": "chrome",
+      "os": "windows"
+    }
+  },
+  "expired": {
+    "id": "session-002",
+    "userId": "user-001",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTAwMSIsIm5hbWUiOiJSZWd1bGFyIFVzZXIiLCJpYXQiOjE1MTYyMzkwMjJ9.signature",
+    "refreshToken": "refresh-token-002",
+    "expiresAt": "2024-01-01T00:00:00Z",
+    "createdAt": "2023-12-31T00:00:00Z",
+    "isActive": false,
+    "permissions": [],
+    "role": "user",
+    "metadata": {
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "device": "desktop",
+      "browser": "chrome",
+      "os": "windows"
+    }
+  },
+  "admin": {
+    "id": "session-003",
+    "userId": "admin-001",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbi0wMDEiLCJuYW1lIjoiQWRtaW4gVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.signature",
+    "refreshToken": "refresh-token-003",
+    "expiresAt": "2024-12-31T23:59:59Z",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "isActive": true,
+    "permissions": [
+      "read:profile",
+      "update:profile",
+      "read:users",
+      "create:users",
+      "update:users",
+      "delete:users",
+      "read:analytics",
+      "read:reports",
+      "manage:system",
+      "access:admin"
+    ],
+    "role": "admin",
+    "metadata": {
+      "ipAddress": "192.168.1.101",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "device": "desktop",
+      "browser": "chrome",
+      "os": "macos"
+    }
+  }
+}

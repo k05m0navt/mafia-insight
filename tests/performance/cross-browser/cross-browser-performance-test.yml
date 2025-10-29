@@ -1,0 +1,479 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: 'Warm-up Phase'
+    - duration: 300
+      arrivalRate: 5
+      rampTo: 15
+      name: 'Ramp-up Cross-Browser Load'
+    - duration: 600
+      arrivalRate: 15
+      name: 'Sustained Cross-Browser Load'
+    - duration: 180
+      arrivalRate: 15
+      rampTo: 30
+      name: 'Peak Cross-Browser Load'
+    - duration: 120
+      arrivalRate: 30
+      name: 'Stress Test'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cool-down Phase'
+
+scenarios:
+  - name: 'Chrome Desktop Performance Tests'
+    weight: 25
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Firefox Desktop Performance Tests'
+    weight: 25
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Safari Desktop Performance Tests'
+    weight: 25
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Edge Desktop Performance Tests'
+    weight: 25
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Mobile Chrome Performance Tests'
+    weight: 20
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36'
+            'X-Screen-Width': '393'
+            'X-Screen-Height': '851'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36'
+            'X-Screen-Width': '393'
+            'X-Screen-Height': '851'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36'
+            'X-Screen-Width': '393'
+            'X-Screen-Height': '851'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Mobile Safari Performance Tests'
+    weight: 20
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '375'
+            'X-Screen-Height': '667'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '375'
+            'X-Screen-Height': '667'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '375'
+            'X-Screen-Height': '667'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Tablet Chrome Performance Tests'
+    weight: 15
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-T870) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-T870) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-T870) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Tablet Safari Performance Tests'
+    weight: 15
+    flow:
+      - get:
+          url: '/'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/analytics'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/import'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+            'X-Screen-Width': '768'
+            'X-Screen-Height': '1024'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Feature Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/browser/capabilities'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.capabilities'
+              as: 'capabilities'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/device/features'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.features'
+              as: 'features'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/responsive/layout'
+          headers:
+            'X-Screen-Width': '{{ $randomInt(375, 1920) }}'
+            'X-Screen-Height': '{{ $randomInt(667, 1080) }}'
+          capture:
+            - json: '$.layout'
+              as: 'layout'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Performance Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/performance/browser'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.performance'
+              as: 'performance'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/performance/memory'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.memory'
+              as: 'memory'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/performance/network'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.network'
+              as: 'network'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Accessibility Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/accessibility/screen-reader'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.accessibility'
+              as: 'accessibility'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/accessibility/keyboard'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.keyboard'
+              as: 'keyboard'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/accessibility/high-contrast'
+          headers:
+            'User-Agent': '{{ $randomString("", 10) }}'
+          capture:
+            - json: '$.contrast'
+              as: 'contrast'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Touch Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/touch/tap'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            x: '{{ $randomInt(100, 500) }}'
+            y: '{{ $randomInt(100, 500) }}'
+            type: 'tap'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/touch/swipe'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            startX: '{{ $randomInt(100, 300) }}'
+            startY: '{{ $randomInt(100, 300) }}'
+            endX: '{{ $randomInt(300, 500) }}'
+            endY: '{{ $randomInt(100, 300) }}'
+            type: 'swipe'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'
+      - post:
+          url: '/api/touch/pinch'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            centerX: '{{ $randomInt(200, 400) }}'
+            centerY: '{{ $randomInt(200, 400) }}'
+            scale: '{{ $randomFloat(1.0, 2.0) }}'
+            type: 'pinch'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Keyboard Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/keyboard/navigation'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            key: 'Tab'
+            type: 'navigation'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/keyboard/shortcuts'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            key: 'Control+KeyA'
+            type: 'shortcut'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'
+      - post:
+          url: '/api/keyboard/arrow-keys'
+          headers:
+            'Content-Type': 'application/json'
+            'User-Agent': '{{ $randomString("", 10) }}'
+          json:
+            key: 'ArrowDown'
+            type: 'arrow-key'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Workarounds Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/browser/workarounds'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          capture:
+            - json: '$.workarounds'
+              as: 'workarounds'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/browser/workarounds'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+          capture:
+            - json: '$.workarounds'
+              as: 'workarounds'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/browser/workarounds'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+          capture:
+            - json: '$.workarounds'
+              as: 'workarounds'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Bug Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/browser/bugs/chrome'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          capture:
+            - json: '$.bugs'
+              as: 'bugs'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/browser/bugs/firefox'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0'
+          capture:
+            - json: '$.bugs'
+              as: 'bugs'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/browser/bugs/safari'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+          capture:
+            - json: '$.bugs'
+              as: 'bugs'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cross-Browser Testing Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/browser/test/chrome'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/device/test/mobile'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'
+      - get:
+          url: '/api/os/test/windows'
+          headers:
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          capture:
+            - json: '$.result'
+              as: 'result'
+      - think: '{{ $randomInt(1, 3) }}'

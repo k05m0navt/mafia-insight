@@ -1,0 +1,81 @@
+{
+  "clubs": [
+    {
+      "id": "club_001",
+      "name": "Alpha Mafia Club",
+      "description": "Premier mafia club for serious players",
+      "memberCount": 25,
+      "averageRating": 1825,
+      "totalGames": 500,
+      "winRate": 0.72,
+      "status": "active",
+      "createdAt": "2023-11-15T10:00:00Z",
+      "lastActivityAt": "2025-01-27T09:30:00Z",
+      "location": "New York, NY",
+      "category": "premium"
+    },
+    {
+      "id": "club_002",
+      "name": "Beta Gaming Society",
+      "description": "Casual gaming club for all skill levels",
+      "memberCount": 18,
+      "averageRating": 1650,
+      "totalGames": 300,
+      "winRate": 0.58,
+      "status": "active",
+      "createdAt": "2024-01-20T14:30:00Z",
+      "lastActivityAt": "2025-01-26T16:45:00Z",
+      "location": "Los Angeles, CA",
+      "category": "standard"
+    },
+    {
+      "id": "club_003",
+      "name": "Gamma Elite",
+      "description": "Exclusive club for top-rated players",
+      "memberCount": 12,
+      "averageRating": 1950,
+      "totalGames": 400,
+      "winRate": 0.85,
+      "status": "active",
+      "createdAt": "2023-09-10T08:15:00Z",
+      "lastActivityAt": "2025-01-27T11:20:00Z",
+      "location": "Chicago, IL",
+      "category": "premium"
+    },
+    {
+      "id": "club_004",
+      "name": "Delta Warriors",
+      "description": "Competitive club focused on tournaments",
+      "memberCount": 30,
+      "averageRating": 1725,
+      "totalGames": 600,
+      "winRate": 0.65,
+      "status": "active",
+      "createdAt": "2024-02-01T12:00:00Z",
+      "lastActivityAt": "2025-01-25T18:30:00Z",
+      "location": "Miami, FL",
+      "category": "standard"
+    },
+    {
+      "id": "club_005",
+      "name": "Epsilon Academy",
+      "description": "Learning-focused club for new players",
+      "memberCount": 35,
+      "averageRating": 1450,
+      "totalGames": 200,
+      "winRate": 0.45,
+      "status": "inactive",
+      "createdAt": "2024-03-15T16:45:00Z",
+      "lastActivityAt": "2025-01-20T14:10:00Z",
+      "location": "Seattle, WA",
+      "category": "beginner"
+    }
+  ],
+  "metadata": {
+    "total": 5,
+    "page": 1,
+    "limit": 10,
+    "hasMore": false,
+    "lastUpdated": "2025-01-27T10:30:00Z"
+  }
+}

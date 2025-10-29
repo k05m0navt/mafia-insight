@@ -1,0 +1,158 @@
+{
+  "admin": {
+    "id": "admin-001",
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "password": "AdminPass123!",
+    "role": "admin",
+    "isActive": true,
+    "emailVerified": true,
+    "permissions": [
+      "read:profile",
+      "update:profile",
+      "read:users",
+      "create:users",
+      "update:users",
+      "delete:users",
+      "read:analytics",
+      "read:reports",
+      "manage:system",
+      "access:admin"
+    ],
+    "profile": {
+      "firstName": "Admin",
+      "lastName": "User",
+      "avatar": "https://example.com/avatars/admin.jpg",
+      "bio": "System Administrator",
+      "location": "New York, NY",
+      "website": "https://admin.example.com"
+    },
+    "preferences": {
+      "theme": "dark",
+      "language": "en",
+      "timezone": "America/New_York",
+      "notifications": {
+        "email": true,
+        "push": true,
+        "sms": false
+      }
+    }
+  },
+  "user": {
+    "id": "user-001",
+    "name": "Regular User",
+    "email": "user@example.com",
+    "password": "UserPass123!",
+    "role": "user",
+    "isActive": true,
+    "emailVerified": true,
+    "permissions": [
+      "read:profile",
+      "update:profile",
+      "read:analytics",
+      "read:reports"
+    ],
+    "profile": {
+      "firstName": "Regular",
+      "lastName": "User",
+      "avatar": "https://example.com/avatars/user.jpg",
+      "bio": "Regular User",
+      "location": "San Francisco, CA",
+      "website": "https://user.example.com"
+    },
+    "preferences": {
+      "theme": "light",
+      "language": "en",
+      "timezone": "America/Los_Angeles",
+      "notifications": {
+        "email": true,
+        "push": false,
+        "sms": false
+      }
+    }
+  },
+  "guest": {
+    "id": "guest-001",
+    "name": "Guest User",
+    "email": "guest@example.com",
+    "password": "GuestPass123!",
+    "role": "guest",
+    "isActive": true,
+    "emailVerified": false,
+    "permissions": ["read:public"],
+    "profile": {
+      "firstName": "Guest",
+      "lastName": "User",
+      "avatar": "https://example.com/avatars/guest.jpg",
+      "bio": "Guest User",
+      "location": "Unknown",
+      "website": null
+    },
+    "preferences": {
+      "theme": "auto",
+      "language": "en",
+      "timezone": "UTC",
+      "notifications": {
+        "email": false,
+        "push": false,
+        "sms": false
+      }
+    }
+  },
+  "inactive": {
+    "id": "inactive-001",
+    "name": "Inactive User",
+    "email": "inactive@example.com",
+    "password": "InactivePass123!",
+    "role": "user",
+    "isActive": false,
+    "emailVerified": true,
+    "permissions": [],
+    "profile": {
+      "firstName": "Inactive",
+      "lastName": "User",
+      "avatar": null,
+      "bio": "Inactive User",
+      "location": null,
+      "website": null
+    },
+    "preferences": {
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC",
+      "notifications": {
+        "email": false,
+        "push": false,
+        "sms": false
+      }
+    }
+  },
+  "unverified": {
+    "id": "unverified-001",
+    "name": "Unverified User",
+    "email": "unverified@example.com",
+    "password": "UnverifiedPass123!",
+    "role": "user",
+    "isActive": true,
+    "emailVerified": false,
+    "permissions": ["read:profile"],
+    "profile": {
+      "firstName": "Unverified",
+      "lastName": "User",
+      "avatar": null,
+      "bio": "Unverified User",
+      "location": null,
+      "website": null
+    },
+    "preferences": {
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC",
+      "notifications": {
+        "email": true,
+        "push": false,
+        "sms": false
+      }
+    }
+  }
+}

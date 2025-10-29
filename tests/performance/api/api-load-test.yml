@@ -1,0 +1,478 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 3
+      name: 'Warm-up Phase'
+    - duration: 300
+      arrivalRate: 5
+      rampTo: 25
+      name: 'Ramp-up API Load'
+    - duration: 600
+      arrivalRate: 25
+      name: 'Sustained API Load'
+    - duration: 180
+      arrivalRate: 25
+      rampTo: 75
+      name: 'Peak API Load'
+    - duration: 120
+      arrivalRate: 75
+      name: 'Stress Test'
+    - duration: 60
+      arrivalRate: 10
+      name: 'Cool-down Phase'
+
+scenarios:
+  - name: 'Authentication API Tests'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/auth/login'
+          headers:
+            Content-Type: 'application/json'
+          json:
+            email: 'test{{ $randomInt(1, 1000) }}@example.com'
+            password: 'password123'
+          capture:
+            - json: '$.token'
+              as: 'authToken'
+      - get:
+          url: '/api/auth/profile'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+      - post:
+          url: '/api/auth/refresh'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+      - think: '{{ $randomInt(5, 15) }}'
+      - post:
+          url: '/api/auth/logout'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+
+  - name: 'Analytics API Tests'
+    weight: 25
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/clubs/club-{{ $randomString("", 8) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/tournaments/tourney-{{ $randomString("", 8) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/dashboard'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(2, 8) }}'
+
+  - name: 'Import API Tests'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(50, 200) }}'
+              concurrency: '{{ $randomInt(2, 10) }}'
+          capture:
+            - json: '$.importId'
+              as: 'importId'
+      - get:
+          url: '/api/import/status/{{ importId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ importId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: '{{ $randomString("info", "error", "warning") }}'
+            limit: '{{ $randomInt(10, 100) }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'Data Synchronization API Tests'
+    weight: 15
+    flow:
+      - get:
+          url: '/api/sync/status'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/sync/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.syncId'
+              as: 'syncId'
+      - get:
+          url: '/api/sync/status/{{ syncId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/sync/history'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            page: '{{ $randomInt(1, 10) }}'
+            limit: '{{ $randomInt(10, 50) }}'
+      - think: '{{ $randomInt(5, 20) }}'
+
+  - name: 'CRUD Operations API Tests'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            name: 'Player {{ $randomString("", 10) }}'
+            email: 'player{{ $randomInt(1, 1000) }}@example.com'
+            rating: '{{ $randomInt(1000, 3000) }}'
+          capture:
+            - json: '$.id'
+              as: 'playerId'
+      - get:
+          url: '/api/players/{{ playerId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - put:
+          url: '/api/players/{{ playerId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            rating: '{{ $randomInt(1000, 3000) }}'
+      - delete:
+          url: '/api/players/{{ playerId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Search and Filter API Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            search: '{{ $randomString("player", 5) }}'
+            rating_min: '{{ $randomInt(1000, 2000) }}'
+            rating_max: '{{ $randomInt(2000, 3000) }}'
+            page: '{{ $randomInt(1, 10) }}'
+            limit: '{{ $randomInt(10, 50) }}'
+            sort: '{{ $randomString("name", "rating", "created_at") }}'
+            order: '{{ $randomString("asc", "desc") }}'
+      - get:
+          url: '/api/clubs'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            search: '{{ $randomString("club", 5) }}'
+            members_min: '{{ $randomInt(5, 20) }}'
+            members_max: '{{ $randomInt(20, 50) }}'
+      - get:
+          url: '/api/tournaments'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            status: '{{ $randomString("upcoming", "ongoing", "completed") }}'
+            participants_min: '{{ $randomInt(16, 64) }}'
+            participants_max: '{{ $randomInt(64, 256) }}'
+      - think: '{{ $randomInt(2, 8) }}'
+
+  - name: 'Batch Operations API Tests'
+    weight: 8
+    flow:
+      - post:
+          url: '/api/players/batch'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            players:
+              - name: 'Player {{ $randomString("", 8) }}'
+                email: 'player{{ $randomInt(1, 1000) }}@example.com'
+                rating: '{{ $randomInt(1000, 3000) }}'
+              - name: 'Player {{ $randomString("", 8) }}'
+                email: 'player{{ $randomInt(1, 1000) }}@example.com'
+                rating: '{{ $randomInt(1000, 3000) }}'
+      - put:
+          url: '/api/players/batch'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            updates:
+              - id: '{{ $randomInt(1, 100) }}'
+                rating: '{{ $randomInt(1000, 3000) }}'
+              - id: '{{ $randomInt(1, 100) }}'
+                rating: '{{ $randomInt(1000, 3000) }}'
+      - delete:
+          url: '/api/players/batch'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            ids: ['{{ $randomInt(1, 100) }}', '{{ $randomInt(1, 100) }}']
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Webhook API Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/webhooks'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            url: 'https://example.com/webhook/{{ $randomString("", 10) }}'
+            events: ['player.created', 'player.updated', 'tournament.completed']
+          capture:
+            - json: '$.webhookId'
+              as: 'webhookId'
+      - get:
+          url: '/api/webhooks/{{ webhookId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/webhooks/{{ webhookId }}/test'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - delete:
+          url: '/api/webhooks/{{ webhookId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'API Versioning Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/v1/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/v2/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Accept: 'application/vnd.api+json;version=1'
+      - get:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Accept: 'application/vnd.api+json;version=2'
+      - think: '{{ $randomInt(2, 8) }}'
+
+  - name: 'Error Handling API Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/non-existent-endpoint'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            name: ''
+            email: 'invalid-email'
+            rating: -100
+      - get:
+          url: '/api/players/999999'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/auth/login'
+          headers:
+            Content-Type: 'application/json'
+          json:
+            email: 'test@example.com'
+            password: 'wrong-password'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Rate Limiting API Tests'
+    weight: 3
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(1, 5) }}'
+
+  - name: 'Caching API Tests'
+    weight: 3
+    flow:
+      - get:
+          url: '/api/analytics/dashboard'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/dashboard'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            If-None-Match: 'etag-value'
+      - get:
+          url: '/api/analytics/dashboard'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Cache-Control: 'no-cache'
+      - think: '{{ $randomInt(2, 8) }}'
+
+  - name: 'Health Check API Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/health'
+      - get:
+          url: '/api/health/detailed'
+      - get:
+          url: '/api/health/ready'
+      - get:
+          url: '/api/health/live'
+      - get:
+          url: '/api/metrics'
+      - think: '{{ $randomInt(1, 5) }}'
+
+  - name: 'Performance Monitoring API Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/clubs/club-{{ $randomString("", 8) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/tournaments/tourney-{{ $randomString("", 8) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/dashboard'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Concurrent API Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'Data Validation API Tests'
+    weight: 2
+    flow:
+      - post:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            name: 'Valid Player {{ $randomString("", 8) }}'
+            email: 'valid{{ $randomInt(1, 1000) }}@example.com'
+            rating: '{{ $randomInt(1000, 3000) }}'
+      - post:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            name: ''
+            email: 'invalid-email'
+            rating: -100
+      - post:
+          url: '/api/players'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            name: 'Valid Player {{ $randomString("", 8) }}'
+            email: 'valid{{ $randomInt(1, 1000) }}@example.com'
+            rating: '{{ $randomInt(1000, 3000) }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'API Security Tests'
+    weight: 1
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer invalid-token'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer expired-token'
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 100) }}/stats'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'API Documentation Tests'
+    weight: 1
+    flow:
+      - get:
+          url: '/api/docs'
+      - get:
+          url: '/api/docs/swagger.json'
+      - get:
+          url: '/api/docs/openapi.yaml'
+      - get:
+          url: '/api/schema'
+      - think: '{{ $randomInt(2, 8) }}'
