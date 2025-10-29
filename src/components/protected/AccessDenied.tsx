@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AccessDeniedProps {
   reason: 'authentication' | 'permissions';
@@ -15,7 +15,7 @@ export function AccessDenied({
   requiredPermissions = [],
   className = '',
 }: AccessDeniedProps) {
-  const { authState } = useAuth();
+  const { user } = useAuth();
 
   const getTitle = () => {
     if (reason === 'authentication') {
@@ -57,7 +57,7 @@ export function AccessDenied({
           Required permissions: {requiredPermissions.join(', ')}
         </p>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Your current role: {authState.user?.role || 'guest'}
+          Your current role: {user?.role || 'guest'}
         </p>
         <div className="mt-4">
           <Link

@@ -17,6 +17,8 @@ vi.mock('@/lib/db', () => ({
     },
     syncLog: {
       create: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }));

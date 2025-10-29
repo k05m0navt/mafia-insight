@@ -19,8 +19,7 @@ export const SignInButton: React.FC<SignInButtonProps> = ({
   className = '',
   redirectTo = '/login',
 }) => {
-  const { authState } = useAuth();
-  const { isLoading: loading } = authState;
+  const { isLoading: loading } = useAuth();
 
   if (loading) {
     return (

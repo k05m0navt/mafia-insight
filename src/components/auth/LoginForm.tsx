@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { validateLoginCredentials } from '@/lib/auth';
 
 interface LoginFormProps {
@@ -10,7 +10,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
-  const { login, authState, clearError } = useAuth();
+  const { login, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,7 +30,7 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
     }
 
     // Clear auth error when user starts typing
-    if (authState.error) {
+    if (error) {
       clearError();
     }
   };
@@ -63,9 +63,9 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
   const hasValidationErrors = Object.values(validationErrors).some(
     (error) => error
   );
-  const hasError = authState.error || hasValidationErrors;
+  const hasError = error || hasValidationErrors;
   const errorMessage =
-    authState.error || Object.values(validationErrors)[0] || '';
+    error || Object.values(validationErrors)[0] || '';
 
   return (
     <form

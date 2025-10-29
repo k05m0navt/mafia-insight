@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthControlsProps {
   className?: string;
@@ -13,7 +13,7 @@ export function AuthControls({
   className = '',
   mobile = false,
 }: AuthControlsProps) {
-  const { authState, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -25,7 +25,7 @@ export function AuthControls({
     }
   };
 
-  if (!authState.isAuthenticated) {
+  if (!isAuthenticated) {
     if (mobile) {
       return (
         <div className={`flex flex-col space-y-3 ${className}`}>
@@ -79,13 +79,13 @@ export function AuthControls({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {authState.user?.email}
+                {user?.email}
               </p>
               <p
                 className="text-xs text-muted-foreground"
                 data-testid="user-role"
               >
-                {authState.user?.role || 'guest'}
+                {user?.role || 'guest'}
               </p>
             </div>
           </div>
@@ -132,12 +132,12 @@ export function AuthControls({
         <span className="text-lg" aria-hidden="true">
           👤
         </span>
-        <span className="hidden sm:block">{authState.user?.email}</span>
+        <span className="hidden sm:block">{user?.email}</span>
         <span
           className="text-xs text-gray-500 dark:text-gray-400"
           data-testid="user-role"
         >
-          {authState.user?.role || 'guest'}
+          {user?.role || 'guest'}
         </span>
         <svg
           className={`h-4 w-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
@@ -164,9 +164,9 @@ export function AuthControls({
           aria-orientation="vertical"
         >
           <div className="px-4 py-2 text-sm text-popover-foreground border-b border-border">
-            <div className="font-medium">{authState.user?.email}</div>
+            <div className="font-medium">{user?.email}</div>
             <div className="text-xs text-muted-foreground">
-              Role: {authState.user?.role || 'guest'}
+              Role: {user?.role || 'guest'}
             </div>
           </div>
 

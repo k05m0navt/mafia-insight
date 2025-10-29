@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { validateSignupCredentials } from '@/lib/auth';
 
 interface SignupFormProps {
@@ -10,8 +10,9 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
-  const { signup, authState, clearError } = useAuth();
+  const { register, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -31,7 +32,7 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
     }
 
     // Clear auth error when user starts typing
-    if (authState.error) {
+    if (error) {
       clearError();
     }
   };
@@ -51,7 +52,7 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
 
     try {
       setIsSubmitting(true);
-      await signup(formData);
+      await register(formData);
       onSuccess?.();
     } catch (error) {
       // Error is handled by the auth context
@@ -64,9 +65,9 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
   const hasValidationErrors = Object.values(validationErrors).some(
     (error) => error
   );
-  const hasError = authState.error || hasValidationErrors;
+  const hasError = error || hasValidationErrors;
   const errorMessage =
-    authState.error || Object.values(validationErrors)[0] || '';
+    error || Object.values(validationErrors)[0] || '';
 
   return (
     <form
@@ -74,6 +75,27 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
       className={`space-y-4 ${className}`}
       data-testid="signup-form"
     >
+      <div>
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Name
+        </label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          value={formData.name}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          placeholder="Enter your name"
+          data-testid="name"
+          aria-label="Name"
+        />
+      </div>
+
       <div>
         <label
           htmlFor="email"

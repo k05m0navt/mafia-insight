@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from './usePermissions';
 import { NavigationState, NavigationItem } from '@/types/navigation';
 
 export function useNavigation() {
   const pathname = usePathname();
-  const { authState } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { canAccessPage } = usePermissions();
   const [navigationState, setNavigationState] = useState<NavigationState>({
-    userId: authState.user?.id || null,
+    userId: user?.id || null,
     activePage: pathname,
     visiblePages: [],
     lastUpdated: new Date(),
@@ -56,7 +56,7 @@ export function useNavigation() {
     const visiblePages = navigationItems
       .filter((item) => {
         if (!item.requiresAuth) return true;
-        if (!authState.isAuthenticated) return false;
+        if (!isAuthenticated) return false;
         return canAccessPage(item.id);
       })
       .map((item) => item.id);
@@ -66,7 +66,7 @@ export function useNavigation() {
       visiblePages,
       lastUpdated: new Date(),
     }));
-  }, [authState.isAuthenticated, canAccessPage]);
+  }, [isAuthenticated, canAccessPage]);
 
   const setActivePage = useCallback((pageId: string) => {
     setNavigationState((prev) => ({
@@ -106,9 +106,9 @@ export function useNavigation() {
   useEffect(() => {
     setNavigationState((prev) => ({
       ...prev,
-      userId: authState.user?.id || null,
+      userId: user?.id || null,
     }));
-  }, [authState.user?.id]);
+  }, [user?.id]);
 
   return {
     navigationState,

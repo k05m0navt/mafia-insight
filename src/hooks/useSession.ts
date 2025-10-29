@@ -1,130 +1,81 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
-import { createSupabaseClient } from '@/lib/supabase/client';
-import type { Session } from '@supabase/supabase-js';
+import { authService, User } from '@/services/AuthService';
 
-interface SessionState {
-  session: Session | null;
-  loading: boolean;
-  error: string | null;
+export interface Session {
+  user: User | null;
+  token: string | null;
+  expiresAt: Date | null;
+  isValid: boolean;
 }
 
-export const useSession = () => {
-  const [state, setState] = useState<SessionState>({
-    session: null,
-    loading: true,
-    error: null,
+export function useSession(): Session & { refreshSession: () => { success: boolean; error?: string }; isExpired: () => boolean; needsRefresh: () => boolean } {
+  const [session, setSession] = useState<Session>({
+    user: null,
+    token: null,
+    expiresAt: null,
+    isValid: false,
   });
 
-  const supabase = createSupabaseClient();
-
-  const refreshSession = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-
-      if (error) {
-        throw error;
-      }
-
-      setState((prev) => ({
-        ...prev,
-        session: data.session,
-        loading: false,
-        error: null,
-      }));
-
-      return { success: true };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Session refresh failed';
-      setState((prev) => ({
-        ...prev,
-        session: null,
-        loading: false,
-        error: errorMessage,
-      }));
-      return { success: false, error: errorMessage };
-    }
-  }, [supabase.auth]);
-
-  const isSessionValid = useCallback(() => {
-    if (!state.session) return false;
-
-    const now = new Date().getTime() / 1000;
-    const expiresAt = state.session.expires_at;
-
-    // Consider session valid if it expires in more than 5 minutes
-    return expiresAt ? expiresAt > now + 300 : false;
-  }, [state.session]);
-
-  const getTimeUntilExpiry = useCallback(() => {
-    if (!state.session) return 0;
-
-    const now = new Date().getTime() / 1000;
-    const expiresAt = state.session.expires_at;
-
-    return expiresAt ? Math.max(0, expiresAt - now) : 0;
-  }, [state.session]);
-
-  // Initialize session state
-  useEffect(() => {
-    let mounted = true;
-
-    const initializeSession = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Error getting session:', error);
-        }
-
-        if (mounted) {
-          setState({
-            session,
-            loading: false,
-            error: null,
-          });
-        }
-      } catch {
-        if (mounted) {
-          setState({
-            session: null,
-            loading: false,
-            error: 'Failed to initialize session',
-          });
-        }
-      }
-    };
-
-    initializeSession();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (mounted) {
-        setState({
-          session,
-          loading: false,
-          error: null,
-        });
-      }
+  // Update session state
+  const updateSession = useCallback(() => {
+    const authSession = authService.getSession();
+    const validation = authService.validateSession();
+    
+    setSession({
+      user: authSession.user,
+      token: authSession.token,
+      expiresAt: authSession.expiresAt,
+      isValid: validation.valid,
     });
+  }, []);
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [supabase.auth]);
+  // Initialize session
+  useEffect(() => {
+    updateSession();
+
+    // Set up interval to check session validity
+    const interval = setInterval(updateSession, 1000);
+
+    return () => clearInterval(interval);
+  }, [updateSession]);
+
+  // Refresh session
+  const refreshSession = useCallback(() => {
+    const refreshResult = authService.refreshToken();
+    
+    if (refreshResult.success) {
+      updateSession();
+    }
+    
+    return refreshResult;
+  }, [updateSession]);
+
+  // Check if session is expired
+  const isExpired = useCallback((): boolean => {
+    if (!session.expiresAt) return true;
+    return new Date() > session.expiresAt;
+  }, [session.expiresAt]);
+
+  // Check if session needs refresh (within 1 hour of expiry)
+  const needsRefresh = useCallback((): boolean => {
+    if (!session.expiresAt) return false;
+    const oneHour = 60 * 60 * 1000;
+    return new Date().getTime() + oneHour > session.expiresAt.getTime();
+  }, [session.expiresAt]);
+
+  // Auto-refresh session if needed
+  useEffect(() => {
+    if (session.isValid && needsRefresh()) {
+      refreshSession();
+    }
+  }, [session.isValid, needsRefresh, refreshSession]);
 
   return {
-    ...state,
+    ...session,
     refreshSession,
-    isSessionValid,
-    getTimeUntilExpiry,
+    isExpired,
+    needsRefresh,
   };
-};
+}
+
+export default useSession;

@@ -21,6 +21,8 @@ describe('RetryManager', () => {
       });
 
       const promise = retryManager.execute(operation);
+      // Add catch handler to suppress unhandled rejection warning
+      promise.catch(() => {});
 
       // Advance through all retries
       await vi.runAllTimersAsync();
@@ -122,6 +124,8 @@ describe('RetryManager', () => {
         .mockRejectedValueOnce(new Error('Network timeout')); // Transient error
 
       const promise = retryManager.execute(operation);
+      // Add catch handler to suppress unhandled rejection warning
+      promise.catch(() => {});
 
       await vi.runAllTimersAsync();
 
@@ -198,6 +202,8 @@ describe('RetryManager', () => {
       const operation = vi.fn().mockRejectedValue(new Error('Network timeout')); // Transient error
 
       const promise = retryManager.execute(operation);
+      // Add catch handler to suppress unhandled rejection warning
+      promise.catch(() => {});
 
       // Advance through all retry attempts
       await vi.runAllTimersAsync();
@@ -226,6 +232,8 @@ describe('RetryManager', () => {
       const promise = retryManager.execute(operation, {
         signal: abortController.signal,
       });
+      // Add catch handler to suppress unhandled rejection warning
+      promise.catch(() => {});
 
       // Advance timers to trigger cancellation during retry wait
       await vi.runAllTimersAsync();

@@ -1,0 +1,158 @@
+{
+  "users": [
+    {
+      "id": "test-user-1",
+      "email": "test@example.com",
+      "name": "Test User",
+      "role": "user",
+      "isActive": true,
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-admin-1",
+      "email": "admin@example.com",
+      "name": "Test Admin",
+      "role": "admin",
+      "isActive": true,
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-moderator-1",
+      "email": "moderator@example.com",
+      "name": "Test Moderator",
+      "role": "moderator",
+      "isActive": true,
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    }
+  ],
+  "games": [
+    {
+      "id": "test-game-1",
+      "name": "Test Game 1",
+      "status": "active",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-game-2",
+      "name": "Test Game 2",
+      "status": "completed",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-game-3",
+      "name": "Test Game 3",
+      "status": "cancelled",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    }
+  ],
+  "players": [
+    {
+      "id": "test-player-1",
+      "name": "Test Player 1",
+      "gameId": "test-game-1",
+      "userId": "test-user-1",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-player-2",
+      "name": "Test Player 2",
+      "gameId": "test-game-1",
+      "userId": "test-admin-1",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-player-3",
+      "name": "Test Player 3",
+      "gameId": "test-game-2",
+      "userId": "test-moderator-1",
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    }
+  ],
+  "syncStatus": [
+    {
+      "id": "test-sync-1",
+      "lastSyncAt": "2025-01-26T00:00:00.000Z",
+      "status": "completed",
+      "recordsProcessed": 100,
+      "errors": [],
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    },
+    {
+      "id": "test-sync-2",
+      "lastSyncAt": "2025-01-26T00:00:00.000Z",
+      "status": "failed",
+      "recordsProcessed": 50,
+      "errors": ["Connection timeout", "Invalid data format"],
+      "createdAt": "2025-01-26T00:00:00.000Z",
+      "updatedAt": "2025-01-26T00:00:00.000Z"
+    }
+  ],
+  "authCredentials": {
+    "valid": {
+      "email": "test@example.com",
+      "password": "password123"
+    },
+    "invalid": {
+      "email": "invalid@example.com",
+      "password": "wrongpassword"
+    },
+    "admin": {
+      "email": "admin@example.com",
+      "password": "admin123"
+    },
+    "moderator": {
+      "email": "moderator@example.com",
+      "password": "moderator123"
+    }
+  },
+  "errorScenarios": {
+    "databaseConnection": {
+      "error": "Connection timeout",
+      "code": "DB_CONNECTION_TIMEOUT",
+      "message": "Failed to connect to database"
+    },
+    "authentication": {
+      "error": "Invalid credentials",
+      "code": "AUTH_INVALID_CREDENTIALS",
+      "message": "Email or password is incorrect"
+    },
+    "validation": {
+      "error": "Validation failed",
+      "code": "VALIDATION_ERROR",
+      "message": "Required fields are missing"
+    },
+    "network": {
+      "error": "Network error",
+      "code": "NETWORK_ERROR",
+      "message": "Failed to connect to external service"
+    }
+  },
+  "testConfig": {
+    "timeouts": {
+      "short": 5000,
+      "medium": 15000,
+      "long": 30000
+    },
+    "retries": {
+      "max": 3,
+      "delay": 1000
+    },
+    "coverage": {
+      "threshold": 80,
+      "branches": 70,
+      "functions": 80,
+      "lines": 80,
+      "statements": 80
+    }
+  }
+}
