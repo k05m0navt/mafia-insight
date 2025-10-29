@@ -6,15 +6,267 @@ This document outlines the critical refactoring needs identified through compreh
 
 ## Test Results Summary
 
-- **Total Tests**: 299
-- **Passed**: 1
-- **Failed**: 298
-- **Success Rate**: 0.33%
+- **Total Tests**: 195
+- **Passed**: 0
+- **Failed**: 195
+- **Success Rate**: 0%
 - **Critical Issues**: 15+
+
+## 🚨 UPDATED TEST RESULTS (Latest Run)
+
+**Current Status**: All tests failing with critical infrastructure issues
+**Primary Failure Categories**:
+
+1. **Database Connection Failures** - 40+ tests failing due to Prisma client issues
+2. **Test Timeouts** - 15+ tests timing out at 5000ms
+3. **Mock Configuration Issues** - Missing exports causing test failures
+4. **Component Test Failures** - Multiple elements with same text
+5. **Scraper Test Failures** - Data extraction not working properly
 
 ## Critical Issues Identified
 
-### 1. Missing Dependencies and Services
+### 1. Database Infrastructure Failures (CRITICAL)
+
+#### Issue: Prisma Client Connection Failures
+
+**Severity**: CRITICAL
+**Impact**: 40+ integration tests failing, complete data layer failure
+
+**Problem**:
+
+```
+PrismaClientKnownRequestError: Server has closed the connection
+```
+
+**Root Cause**: Missing or incorrect database configuration for test environment
+
+**Files Affected**:
+
+- `tests/setup/test-db.ts`
+- `src/lib/gomafia/import/auto-trigger.ts`
+- All integration test files
+
+**Refactoring Solution**:
+
+1. **Fix Database Configuration**:
+
+```typescript
+// Update: tests/setup/test-db.ts
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL || 'file:./test.db',
+    },
+  },
+});
+
+export { prisma };
+```
+
+2. **Add Database Setup in Tests**:
+
+```typescript
+// Add to test setup
+beforeAll(async () => {
+  await prisma.$connect();
+});
+
+afterAll(async () => {
+  await prisma.$disconnect();
+});
+```
+
+3. **Environment Configuration**:
+
+```bash
+# Create .env.test
+DATABASE_URL=file:./test.db
+```
+
+### 2. Test Configuration Issues (CRITICAL)
+
+#### Issue: Test Timeouts
+
+**Severity**: CRITICAL
+**Impact**: 15+ tests timing out, retry logic tests failing
+
+**Problem**:
+
+```
+Test timed out in 5000ms
+```
+
+**Root Cause**: Test timeout set too low for integration tests
+
+**Files Affected**:
+
+- `vitest.config.ts`
+- All integration test files
+- Retry logic test files
+
+**Refactoring Solution**:
+
+1. **Update Test Configuration**:
+
+```typescript
+// Update: vitest.config.ts
+export default defineConfig({
+  test: {
+    testTimeout: 30000, // Increase from 5000ms
+    hookTimeout: 30000,
+    teardownTimeout: 30000,
+  },
+});
+```
+
+2. **Add Test-Specific Timeouts**:
+
+```typescript
+// For specific long-running tests
+test('retry logic test', async () => {
+  // Test implementation
+}, 30000); // 30 second timeout
+```
+
+### 3. Mock Configuration Issues (HIGH)
+
+#### Issue: Missing Mock Exports
+
+**Severity**: HIGH
+**Impact**: 20+ tests failing due to missing mock exports
+
+**Problem**:
+
+```
+No "cleanup" export is defined on the "@/lib/parsers/gomafiaParser" mock
+```
+
+**Root Cause**: Incomplete mock implementations
+
+**Files Affected**:
+
+- `tests/mocks/gomafiaParser.ts`
+- All parser test files
+- Validation test files
+
+**Refactoring Solution**:
+
+1. **Complete Mock Implementation**:
+
+```typescript
+// Update: tests/mocks/gomafiaParser.ts
+export const gomafiaParser = {
+  parsePlayer: vi.fn(),
+  parseTournament: vi.fn(),
+  parseGame: vi.fn(),
+  cleanup: vi.fn(), // Add missing export
+};
+```
+
+2. **Add Mock Data**:
+
+```typescript
+// Add proper mock data
+export const mockPlayerData = {
+  gomafiaId: '575',
+  name: 'Player Name',
+  club: 'Club Name',
+  region: 'Region',
+  elo: 2345.75,
+  ggPoints: -50,
+};
+```
+
+### 4. Component Test Issues (MEDIUM)
+
+#### Issue: Multiple Elements with Same Text
+
+**Severity**: MEDIUM
+**Impact**: Component tests failing, UI testing unreliable
+
+**Problem**:
+
+```
+Found multiple elements with the text: Mafia Insight
+```
+
+**Root Cause**: Non-specific test selectors, duplicate content
+
+**Files Affected**:
+
+- `tests/components/navigation/Navbar.test.tsx`
+- All component test files
+
+**Refactoring Solution**:
+
+1. **Use Specific Test Selectors**:
+
+```typescript
+// Update test selectors
+const logo = screen.getByTestId('nav-logo');
+const title = screen.getByText('Mafia Insight', { selector: 'span' });
+```
+
+2. **Add Unique Test IDs**:
+
+```typescript
+// Update components with unique test IDs
+<nav data-testid="main-navigation">
+  <a data-testid="nav-logo">Mafia Insight</a>
+</nav>
+```
+
+### 5. Scraper Test Failures (MEDIUM)
+
+#### Issue: Empty Data Extraction
+
+**Severity**: MEDIUM
+**Impact**: 8+ scraper tests failing, data parsing not working
+
+**Problem**:
+
+```
+expected { gomafiaId: '', name: '', ... } to deeply equal { gomafiaId: '575', ... }
+```
+
+**Root Cause**: Test fixtures not properly configured
+
+**Files Affected**:
+
+- `tests/unit/scrapers/players-scraper.test.ts`
+- `tests/unit/scrapers/tournaments-scraper.test.ts`
+- All scraper test files
+
+**Refactoring Solution**:
+
+1. **Fix Test HTML Fixtures**:
+
+```typescript
+// Update test fixtures
+const mockHtml = `
+  <tr>
+    <td>575</td>
+    <td>Player Name</td>
+    <td>Club Name</td>
+    <td>Region</td>
+    <td>2345.75</td>
+    <td>-50</td>
+  </tr>
+`;
+```
+
+2. **Add Data Validation**:
+
+```typescript
+// Add validation in scraper tests
+expect(result.gomafiaId).toBe('575');
+expect(result.name).toBe('Player Name');
+expect(result.elo).toBe(2345.75);
+```
+
+### 6. Missing Dependencies and Services (LOW)
 
 #### Issue: Missing Authentication Service
 
@@ -382,45 +634,54 @@ export type UserRole = 'admin' | 'user' | 'moderator';
 
 ## Refactoring Priority Matrix
 
-| Priority | Issue                  | Effort | Impact   | Timeline |
-| -------- | ---------------------- | ------ | -------- | -------- |
-| P0       | Missing Auth Service   | High   | Critical | 1-2 days |
-| P0       | Missing Validation     | Medium | Critical | 1 day    |
-| P1       | UI State Management    | High   | High     | 2-3 days |
-| P1       | Missing Hooks          | Medium | High     | 1-2 days |
-| P2       | Error Boundaries       | Medium | High     | 1 day    |
-| P2       | Test Attributes        | Low    | Medium   | 1 day    |
-| P3       | Component Architecture | High   | Medium   | 3-5 days |
-| P3       | Type Definitions       | Medium | Medium   | 1-2 days |
+| Priority | Issue                        | Effort | Impact   | Timeline |
+| -------- | ---------------------------- | ------ | -------- | -------- |
+| P0       | Database Connection Failures | Medium | Critical | 1-2 days |
+| P0       | Test Timeout Issues          | Low    | Critical | 1 day    |
+| P1       | Mock Configuration Issues    | Low    | High     | 1 day    |
+| P1       | Component Test Issues        | Low    | High     | 1 day    |
+| P2       | Scraper Test Failures        | Low    | Medium   | 1 day    |
+| P2       | Missing Auth Service         | High   | Critical | 1-2 days |
+| P2       | Missing Validation           | Medium | Critical | 1 day    |
+| P3       | UI State Management          | High   | High     | 2-3 days |
+| P3       | Missing Hooks                | Medium | High     | 1-2 days |
+| P4       | Error Boundaries             | Medium | High     | 1 day    |
+| P4       | Test Attributes              | Low    | Medium   | 1 day    |
+| P5       | Component Architecture       | High   | Medium   | 3-5 days |
+| P5       | Type Definitions             | Medium | Medium   | 1-2 days |
 
 ## Implementation Plan
 
-### Phase 1: Critical Fixes (Week 1)
+### Phase 1: Critical Infrastructure Fixes (Week 1)
 
-1. **Day 1-2**: Implement authentication service and validation
-2. **Day 3-4**: Add UI state management and error handling
-3. **Day 5**: Add missing hooks and test attributes
+1. **Day 1**: Fix database connection issues and test timeouts
+2. **Day 2**: Fix mock configuration and component test issues
+3. **Day 3**: Fix scraper test failures and data extraction
+4. **Day 4**: Implement authentication service and validation
+5. **Day 5**: Add missing hooks and test attributes
 
 ### Phase 2: Architecture Improvements (Week 2)
 
-1. **Day 1-2**: Implement error boundaries and fallback UI
-2. **Day 3-4**: Refactor component architecture
-3. **Day 5**: Add comprehensive type definitions
+1. **Day 1-2**: Implement UI state management and error handling
+2. **Day 3-4**: Add error boundaries and fallback UI
+3. **Day 5**: Refactor component architecture
 
 ### Phase 3: Testing and Validation (Week 3)
 
-1. **Day 1-2**: Fix all failing tests
-2. **Day 3-4**: Add integration tests
+1. **Day 1-2**: Fix all remaining failing tests
+2. **Day 3-4**: Add integration tests and improve test coverage
 3. **Day 5**: Performance testing and optimization
 
 ## Code Quality Metrics
 
 ### Current State
 
-- **Test Coverage**: 0.33%
+- **Test Coverage**: 0% (0/195 tests passing)
 - **Type Safety**: 40%
 - **Error Handling**: 10%
 - **Component Reusability**: 30%
+- **Database Connectivity**: 0%
+- **Test Infrastructure**: 0%
 
 ### Target State
 
@@ -428,6 +689,8 @@ export type UserRole = 'admin' | 'user' | 'moderator';
 - **Type Safety**: 95%+
 - **Error Handling**: 90%+
 - **Component Reusability**: 80%+
+- **Database Connectivity**: 100%
+- **Test Infrastructure**: 100%
 
 ## Best Practices to Implement
 

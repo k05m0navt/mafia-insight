@@ -2,11 +2,212 @@
 
 ## Executive Summary
 
-Based on comprehensive testing of the Mafia Insight application, we have identified **15 critical issues** that require immediate attention. The current test suite shows a **0.33% success rate** (1 out of 299 tests passing), indicating significant architectural and implementation problems.
+Based on comprehensive testing of the Mafia Insight application, we have identified **15 critical issues** that require immediate attention. The current test suite shows a **0% success rate** (0 out of 195 tests passing), indicating significant architectural and implementation problems.
+
+## 🚨 UPDATED TEST RESULTS (Latest Run)
+
+**Test Execution Summary**:
+
+- **Total Tests**: 195
+- **Passing**: 0 (0%)
+- **Failing**: 195 (100%)
+- **Critical Issues**: 15 major problems identified
+
+**Primary Failure Categories**:
+
+1. **Database Connection Failures** - 40+ tests failing due to Prisma client issues
+2. **Test Timeouts** - 15+ tests timing out at 5000ms
+3. **Mock Configuration Issues** - Missing exports causing test failures
+4. **Component Test Failures** - Multiple elements with same text
+5. **Scraper Test Failures** - Data extraction not working properly
 
 ## Detailed Issue Analysis
 
-### 1. Authentication System Failures
+### 1. Database Connection Failures (CRITICAL)
+
+#### Error: `PrismaClientKnownRequestError: Server has closed the connection`
+
+**Root Cause Analysis**:
+
+- Prisma client connection timeouts in test environment
+- Missing or incorrect database configuration for tests
+- Database not properly initialized before test execution
+
+**Impact**:
+
+- 40+ integration tests failing
+- API endpoints cannot connect to database
+- Complete data layer failure
+
+**Technical Details**:
+
+```typescript
+// Error occurs in auto-trigger.ts:17
+at Module.autoTriggerImportIfNeeded (/Users/k05m0navt/Programming/PetProjects/Web/mafia-insight/src/lib/gomafia/import/auto-trigger.ts:17:24)
+```
+
+**Solution**:
+
+```typescript
+// Update test database configuration
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL || 'file:./test.db',
+    },
+  },
+});
+```
+
+### 2. Test Timeout Issues (CRITICAL)
+
+#### Error: `Test timed out in 5000ms`
+
+**Root Cause Analysis**:
+
+- Test timeout set too low (5000ms) for long-running operations
+- Retry logic tests taking longer than expected
+- Database operations not completing within timeout
+
+**Impact**:
+
+- 15+ tests timing out
+- Retry logic tests failing
+- Integration tests not completing
+
+**Technical Details**:
+
+```typescript
+// Current timeout configuration
+testTimeout: 5000; // Too low for integration tests
+```
+
+**Solution**:
+
+```typescript
+// Update vitest.config.ts
+export default defineConfig({
+  test: {
+    testTimeout: 30000, // Increase to 30 seconds
+    hookTimeout: 30000,
+    teardownTimeout: 30000,
+  },
+});
+```
+
+### 3. Mock Configuration Issues (HIGH)
+
+#### Error: `No "cleanup" export is defined on the "@/lib/parsers/gomafiaParser" mock`
+
+**Root Cause Analysis**:
+
+- Missing exports in mock files
+- Incomplete mock implementations
+- Mock data not properly configured
+
+**Impact**:
+
+- 20+ tests failing due to missing mock exports
+- Parser tests not working
+- Validation tests failing
+
+**Technical Details**:
+
+```typescript
+// Missing export in mock
+export const gomafiaParser = {
+  parsePlayer: vi.fn(),
+  parseTournament: vi.fn(),
+  parseGame: vi.fn(),
+  // cleanup: vi.fn() // Missing this export
+};
+```
+
+**Solution**:
+
+```typescript
+// Complete mock implementation
+export const gomafiaParser = {
+  parsePlayer: vi.fn(),
+  parseTournament: vi.fn(),
+  parseGame: vi.fn(),
+  cleanup: vi.fn(), // Add missing export
+};
+```
+
+### 4. Component Test Issues (MEDIUM)
+
+#### Error: `Found multiple elements with the text: Mafia Insight`
+
+**Root Cause Analysis**:
+
+- Multiple navigation elements with same text
+- Non-specific test selectors
+- Duplicate content in rendered components
+
+**Impact**:
+
+- Component tests failing
+- Navigation tests not working
+- UI testing unreliable
+
+**Technical Details**:
+
+```typescript
+// Problematic test selector
+const title = screen.getByText('Mafia Insight'); // Finds multiple elements
+```
+
+**Solution**:
+
+```typescript
+// Use more specific selectors
+const logo = screen.getByTestId('nav-logo');
+const title = screen.getByText('Mafia Insight', { selector: 'span' });
+```
+
+### 5. Scraper Test Failures (MEDIUM)
+
+#### Error: `expected { gomafiaId: '', name: '', ... } to deeply equal { gomafiaId: '575', ... }`
+
+**Root Cause Analysis**:
+
+- Scraper tests returning empty data
+- HTML parsing not working correctly
+- Test fixtures not properly configured
+
+**Impact**:
+
+- 8+ scraper tests failing
+- Data extraction not working
+- Tournament/player data not being parsed
+
+**Technical Details**:
+
+```typescript
+// Empty data being returned
+const result = scraper.extractPlayerData(mockHtml);
+// Returns: { gomafiaId: '', name: '', ... }
+// Expected: { gomafiaId: '575', name: 'Player Name', ... }
+```
+
+**Solution**:
+
+```typescript
+// Fix test HTML fixtures
+const mockHtml = `
+  <tr>
+    <td>575</td>
+    <td>Player Name</td>
+    <td>Club Name</td>
+    <td>Region</td>
+    <td>2345.75</td>
+    <td>-50</td>
+  </tr>
+`;
+```
+
+### 6. Authentication System Failures (LOW)
 
 #### Critical Error: `authService.isAuthenticated is not a function`
 
