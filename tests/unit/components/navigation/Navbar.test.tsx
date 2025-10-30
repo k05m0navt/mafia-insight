@@ -5,6 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Navbar } from '@/components/navigation/Navbar';
+import { useMobileMenu } from '@/hooks/useMobileMenu';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Mock the hooks
 vi.mock('@/components/auth/AuthProvider', () => ({
@@ -23,18 +25,18 @@ vi.mock('@/components/theme/ThemeProvider', () => ({
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({
+  usePermissions: vi.fn(() => ({
     canAccessPage: vi.fn(() => true),
-  }),
+  })),
 }));
 
 vi.mock('@/hooks/useMobileMenu', () => ({
-  useMobileMenu: () => ({
+  useMobileMenu: vi.fn(() => ({
     isOpen: false,
     open: vi.fn(),
     close: vi.fn(),
     toggle: vi.fn(),
-  }),
+  })),
 }));
 
 // Mock Next.js Link component
@@ -138,8 +140,8 @@ describe('Navbar Component', () => {
   it('should render without crashing', () => {
     render(<Navbar />);
 
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
-    expect(screen.getByText('Mafia Insight')).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Mafia Insight')[0]).toBeInTheDocument();
   });
 
   it('should render desktop navigation items', () => {
@@ -147,8 +149,8 @@ describe('Navbar Component', () => {
 
     // Check that desktop navigation is visible
     const desktopNav = screen
-      .getByRole('navigation')
-      .querySelector('.hidden.md\\:block');
+      .getAllByRole('navigation')[0]
+      .querySelector('.hidden.md\\:flex');
     expect(desktopNav).toBeInTheDocument();
   });
 
@@ -167,11 +169,11 @@ describe('Navbar Component', () => {
     render(<Navbar />);
 
     // Check for navigation items
-    expect(screen.getByTestId('nav-home')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-players')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-tournaments')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-clubs')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-games')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-home-desktop')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-players-desktop')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-tournaments-desktop')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-clubs-desktop')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-games-desktop')).toBeInTheDocument();
   });
 
   it('should not render duplicate close buttons', () => {
@@ -188,7 +190,7 @@ describe('Navbar Component', () => {
   it('should have proper accessibility attributes', () => {
     render(<Navbar />);
 
-    const nav = screen.getByRole('navigation');
+    const nav = screen.getAllByRole('navigation')[0];
     expect(nav).toHaveAttribute('aria-label', 'Main navigation');
 
     const mobileMenuButton = screen.getByTestId('mobile-menu-button');
@@ -201,13 +203,14 @@ describe('Navbar Component', () => {
   it('should render logo with correct link', () => {
     render(<Navbar />);
 
-    const logoLink = screen.getByText('Mafia Insight').closest('a');
+    const logoLink = screen.getAllByText('Mafia Insight')[0].closest('a');
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
   it('should handle mobile menu toggle', () => {
     const mockToggle = vi.fn();
-    vi.mocked(require('@/hooks/useMobileMenu').useMobileMenu).mockReturnValue({
+    const useMobileMenuMock = vi.mocked(useMobileMenu);
+    useMobileMenuMock.mockReturnValue({
       isOpen: false,
       open: vi.fn(),
       close: vi.fn(),
@@ -224,7 +227,8 @@ describe('Navbar Component', () => {
 
   it('should close mobile menu when navigation item is clicked', () => {
     const mockClose = vi.fn();
-    vi.mocked(require('@/hooks/useMobileMenu').useMobileMenu).mockReturnValue({
+    const useMobileMenuMock = vi.mocked(useMobileMenu);
+    useMobileMenuMock.mockReturnValue({
       isOpen: true,
       open: vi.fn(),
       close: mockClose,
@@ -233,8 +237,12 @@ describe('Navbar Component', () => {
 
     render(<Navbar />);
 
-    // Find a navigation item and click it
-    const homeLink = screen.getByTestId('nav-home');
+    // Open mobile menu first
+    const mobileMenuButton = screen.getByTestId('mobile-menu-button');
+    fireEvent.click(mobileMenuButton);
+
+    // Find a mobile navigation item and click it
+    const homeLink = screen.getByTestId('nav-home-mobile');
     fireEvent.click(homeLink);
 
     expect(mockClose).toHaveBeenCalled();
@@ -243,7 +251,7 @@ describe('Navbar Component', () => {
   it('should render with custom className', () => {
     render(<Navbar className="custom-class" />);
 
-    const nav = screen.getByRole('navigation');
+    const nav = screen.getAllByRole('navigation')[0];
     expect(nav).toHaveClass('custom-class');
   });
 
@@ -253,17 +261,16 @@ describe('Navbar Component', () => {
       return pageId === 'home' || pageId === 'players';
     });
 
-    vi.mocked(require('@/hooks/usePermissions').usePermissions).mockReturnValue(
-      {
-        canAccessPage: mockCanAccessPage,
-      }
-    );
+    const usePermissionsMock = vi.mocked(usePermissions);
+    usePermissionsMock.mockReturnValue({
+      canAccessPage: mockCanAccessPage,
+    });
 
     render(<Navbar />);
 
     // Check that only allowed items are rendered
-    expect(screen.getByTestId('nav-home')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-players')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-home-desktop')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-players-desktop')).toBeInTheDocument();
 
     // Check that restricted items are not rendered
     expect(screen.queryByTestId('nav-admin')).not.toBeInTheDocument();

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMobileMenu } from '@/hooks/useMobileMenu';
 import { NavItem } from './NavItem';
@@ -30,7 +30,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ className = '' }: NavbarProps) {
-  const { authState } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { canAccessPage } = usePermissions();
   const {
     isOpen: isMobileMenuOpen,
@@ -100,7 +100,7 @@ export function Navbar({ className = '' }: NavbarProps) {
 
   const visibleItems = navigationItems.filter((item) => {
     if (!item.requiresAuth) return true;
-    if (!authState.isAuthenticated) return false;
+    if (!isAuthenticated) return false;
     try {
       return canAccessPage(item.id);
     } catch (error) {
@@ -149,7 +149,7 @@ export function Navbar({ className = '' }: NavbarProps) {
                         <Link
                           href={item.path}
                           className={navigationMenuTriggerStyle()}
-                          data-testid={`nav-${item.id}`}
+                          data-testid={`nav-${item.id}-desktop`}
                         >
                           <span className="flex items-center">
                             {item.icon && (
@@ -232,7 +232,7 @@ export function Navbar({ className = '' }: NavbarProps) {
                           path={item.path}
                           icon={item.icon}
                           mobile
-                          data-testid={`nav-${item.id}`}
+                          data-testid={`nav-${item.id}-mobile`}
                           onClick={closeMobileMenu}
                         />
                       );

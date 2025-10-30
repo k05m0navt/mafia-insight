@@ -1,0 +1,45 @@
+{
+  "validation": {
+    "email": {
+      "required": "Email is required",
+      "invalid": "Invalid email format",
+      "taken": "Email already exists",
+      "notFound": "Email not found"
+    },
+    "password": {
+      "required": "Password is required",
+      "tooShort": "Password must be at least 8 characters long",
+      "tooLong": "Password must be no more than 128 characters long",
+      "weak": "Password is too weak",
+      "mismatch": "Passwords do not match",
+      "incorrect": "Incorrect password"
+    },
+    "name": {
+      "required": "Name is required",
+      "tooShort": "Name must be at least 2 characters long",
+      "tooLong": "Name must be no more than 100 characters long",
+      "invalid": "Name contains invalid characters"
+    }
+  },
+  "authentication": {
+    "invalidCredentials": "Invalid email or password",
+    "accountLocked": "Account is locked due to multiple failed attempts",
+    "emailNotVerified": "Email not verified",
+    "sessionExpired": "Session has expired",
+    "tokenInvalid": "Invalid token",
+    "tokenExpired": "Token has expired",
+    "accessDenied": "Access denied",
+    "insufficientPermissions": "Insufficient permissions"
+  },
+  "network": {
+    "timeout": "Request timeout",
+    "connectionFailed": "Connection failed",
+    "serverError": "Server error",
+    "serviceUnavailable": "Service unavailable"
+  },
+  "rateLimit": {
+    "tooManyRequests": "Too many requests",
+    "rateLimitExceeded": "Rate limit exceeded",
+    "tryAgainLater": "Please try again later"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "desktop": {
+    "windows": {
+      "name": "Windows",
+      "version": "10",
+      "capabilities": ["touch", "mouse", "keyboard"],
+      "screenSizes": [
+        { "width": 1920, "height": 1080 },
+        { "width": 1366, "height": 768 },
+        { "width": 2560, "height": 1440 }
+      ]
+    },
+    "macos": {
+      "name": "macOS",
+      "version": "14",
+      "capabilities": ["touch", "mouse", "keyboard"],
+      "screenSizes": [
+        { "width": 2560, "height": 1600 },
+        { "width": 1920, "height": 1200 },
+        { "width": 1680, "height": 1050 }
+      ]
+    },
+    "linux": {
+      "name": "Linux",
+      "version": "Ubuntu 22.04",
+      "capabilities": ["mouse", "keyboard"],
+      "screenSizes": [
+        { "width": 1920, "height": 1080 },
+        { "width": 1366, "height": 768 }
+      ]
+    }
+  },
+  "mobile": {
+    "ios": {
+      "name": "iOS",
+      "version": "17",
+      "devices": ["iPhone 13", "iPhone 14", "iPad Pro"],
+      "capabilities": ["touch", "orientation"],
+      "screenSizes": [
+        { "width": 390, "height": 844, "device": "iPhone 13" },
+        { "width": 428, "height": 926, "device": "iPhone 14" },
+        { "width": 1024, "height": 1366, "device": "iPad Pro" }
+      ]
+    },
+    "android": {
+      "name": "Android",
+      "version": "13",
+      "devices": ["Pixel 5", "Galaxy S21", "OnePlus 9"],
+      "capabilities": ["touch", "orientation"],
+      "screenSizes": [
+        { "width": 393, "height": 851, "device": "Pixel 5" },
+        { "width": 360, "height": 800, "device": "Galaxy S21" },
+        { "width": 412, "height": 915, "device": "OnePlus 9" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "players": [
+    {
+      "id": "player_001",
+      "name": "Player Alpha",
+      "email": "player.alpha@example.com",
+      "rating": 1850,
+      "gamesPlayed": 150,
+      "winRate": 0.75,
+      "category": "premium",
+      "clubId": "club_001",
+      "joinedAt": "2024-01-15T10:00:00Z",
+      "lastActiveAt": "2025-01-27T08:30:00Z",
+      "status": "active"
+    },
+    {
+      "id": "player_002",
+      "name": "Player Beta",
+      "email": "player.beta@example.com",
+      "rating": 1800,
+      "gamesPlayed": 120,
+      "winRate": 0.68,
+      "category": "standard",
+      "clubId": "club_001",
+      "joinedAt": "2024-02-20T14:30:00Z",
+      "lastActiveAt": "2025-01-26T16:45:00Z",
+      "status": "active"
+    },
+    {
+      "id": "player_003",
+      "name": "Player Gamma",
+      "email": "player.gamma@example.com",
+      "rating": 1750,
+      "gamesPlayed": 95,
+      "winRate": 0.62,
+      "category": "premium",
+      "clubId": "club_002",
+      "joinedAt": "2024-03-10T09:15:00Z",
+      "lastActiveAt": "2025-01-25T12:20:00Z",
+      "status": "active"
+    },
+    {
+      "id": "player_004",
+      "name": "Player Delta",
+      "email": "player.delta@example.com",
+      "rating": 1650,
+      "gamesPlayed": 80,
+      "winRate": 0.55,
+      "category": "standard",
+      "clubId": "club_002",
+      "joinedAt": "2024-04-05T11:45:00Z",
+      "lastActiveAt": "2025-01-24T19:10:00Z",
+      "status": "inactive"
+    },
+    {
+      "id": "player_005",
+      "name": "Player Epsilon",
+      "email": "player.epsilon@example.com",
+      "rating": 1950,
+      "gamesPlayed": 200,
+      "winRate": 0.82,
+      "category": "premium",
+      "clubId": "club_003",
+      "joinedAt": "2023-12-01T08:00:00Z",
+      "lastActiveAt": "2025-01-27T10:15:00Z",
+      "status": "active"
+    }
+  ],
+  "metadata": {
+    "total": 5,
+    "page": 1,
+    "limit": 10,
+    "hasMore": false,
+    "lastUpdated": "2025-01-27T10:30:00Z"
+  }
+}

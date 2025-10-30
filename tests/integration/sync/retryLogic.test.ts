@@ -7,6 +7,7 @@ vi.mock('@/lib/parsers/gomafiaParser', () => ({
   parsePlayerList: vi.fn(),
   parsePlayer: vi.fn(),
   parseGame: vi.fn(),
+  cleanup: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({

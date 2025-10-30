@@ -1,0 +1,99 @@
+// Test Prisma schema file for SQLite testing
+// This file is used when DATABASE_URL points to a SQLite database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  name            String
+  avatar          String?
+  subscriptionTier SubscriptionTier @default(FREE)
+  role            UserRole  @default(user)
+  isActive        Boolean   @default(true)
+  lastLogin       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  players         Player[]
+  games           Game[]
+  syncStatus      SyncStatus[]
+
+  @@map("users")
+}
+
+model Player {
+  id        String   @id @default(uuid())
+  name      String
+  gameId    String
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("players")
+}
+
+model Game {
+  id        String      @id @default(uuid())
+  name      String
+  status    GameStatus  @default(active)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relations
+  players   Player[]
+  user      User?       @relation(fields: [id], references: [id])
+
+  @@map("games")
+}
+
+model SyncStatus {
+  id               String   @id @default(uuid())
+  lastSyncAt       DateTime @default(now())
+  status           SyncStatusType @default(completed)
+  recordsProcessed Int      @default(0)
+  errors           String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user             User?    @relation(fields: [id], references: [id])
+
+  @@map("sync_status")
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  ENTERPRISE
+}
+
+enum UserRole {
+  admin
+  user
+  moderator
+}
+
+enum GameStatus {
+  active
+  completed
+  cancelled
+}
+
+enum SyncStatusType {
+  completed
+  failed
+  in_progress
+}

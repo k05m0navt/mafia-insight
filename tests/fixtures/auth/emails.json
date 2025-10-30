@@ -1,0 +1,43 @@
+{
+  "valid": [
+    "test@example.com",
+    "user@domain.org",
+    "admin@company.co.uk",
+    "test.user@example.com",
+    "user+tag@example.com",
+    "user123@example.com",
+    "a@b.co",
+    "very.long.email.address@very.long.domain.name.com",
+    "user@subdomain.example.com",
+    "test@example-domain.com"
+  ],
+  "invalid": [
+    "",
+    " ",
+    "invalid",
+    "@example.com",
+    "test@",
+    "test@.com",
+    "test.example.com",
+    "@",
+    "test@.com",
+    "test@example.",
+    "test..user@example.com",
+    "test@example..com",
+    "test@example.com.",
+    ".test@example.com",
+    "test@example.com.."
+  ],
+  "edgeCases": [
+    "test@example.com.",
+    "test@example.com..",
+    "test@example.com...",
+    "test@example.com....",
+    "test@example.com.....",
+    "test@example.com......",
+    "test@example.com.......",
+    "test@example.com........",
+    "test@example.com.........",
+    "test@example.com.........."
+  ]
+}

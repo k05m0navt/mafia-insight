@@ -1,8 +1,18 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const handleSuccess = () => {
+    console.log('Login successful, redirecting to home page');
+    router.push('/');
+  };
+
   return (
     <main
       className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8"
@@ -19,7 +29,7 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-card py-8 px-6 shadow-lg rounded-lg border border-border">
-          <LoginForm />
+          <LoginForm onSuccess={handleSuccess} />
 
           <div className="mt-6">
             <div className="relative">

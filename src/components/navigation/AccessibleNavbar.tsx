@@ -28,8 +28,7 @@ export const AccessibleNavbar: React.FC<AccessibleNavbarProps> = ({
   const { announce, trapFocus } = useAccessibility();
   const { visibleItems, activePage, setActivePage } = useOptimizedNavigation();
   const { theme, toggleTheme } = useOptimizedTheme();
-  const { authState, logout } = useAuth();
-  const { user, isAuthenticated } = authState;
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Focus management for mobile menu
   useEffect(() => {

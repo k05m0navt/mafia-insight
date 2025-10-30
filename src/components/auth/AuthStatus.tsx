@@ -28,9 +28,8 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
   showActions = true,
   className = '',
 }) => {
-  const { authState, logout } = useAuth();
-  const { user, isLoading: loading, error } = authState;
-  const { session, isSessionValid, getTimeUntilExpiry } = useSession();
+  const { user, isLoading: loading, error, logout } = useAuth();
+  const { token, expiresAt, isValid: isSessionValid, isExpired: isExpiredFn } = useSession();
   const { description, isAdmin, isAuthenticated } = useRole();
 
   if (loading) {
@@ -74,18 +73,23 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
     return <Badge variant="default">User</Badge>;
   };
 
+  const getTimeUntilExpiry = () => {
+    if (!expiresAt) return 0;
+    return Math.max(0, expiresAt.getTime() - new Date().getTime());
+  };
+
   const getSessionStatus = () => {
-    if (!session) return null;
+    if (!token || !expiresAt) return null;
 
     const timeUntilExpiry = getTimeUntilExpiry();
-    const isValid = isSessionValid();
+    const isValid = isSessionValid && !isExpiredFn();
 
     if (isValid) {
       return (
         <div className="flex items-center gap-1 text-green-600">
           <CheckCircle className="h-3 w-3" />
           <span className="text-xs">
-            Session expires in {Math.floor(timeUntilExpiry / 60)}m
+            Session expires in {Math.floor(timeUntilExpiry / 60000)}m
           </span>
         </div>
       );

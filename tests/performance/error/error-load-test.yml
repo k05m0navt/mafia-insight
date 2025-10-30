@@ -1,0 +1,518 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: 'Warm-up Phase'
+    - duration: 300
+      arrivalRate: 5
+      rampTo: 15
+      name: 'Ramp-up Error Load'
+    - duration: 600
+      arrivalRate: 15
+      name: 'Sustained Error Load'
+    - duration: 180
+      arrivalRate: 15
+      rampTo: 30
+      name: 'Peak Error Load'
+    - duration: 120
+      arrivalRate: 30
+      name: 'Stress Test'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cool-down Phase'
+
+scenarios:
+  - name: 'Network Error Tests'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - get:
+          url: '/api/error/retry'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Server Error Tests'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/recover'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'server-restart'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Authentication Error Tests'
+    weight: 15
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer invalid-token'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/auth/refresh'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer invalid-token'
+          json:
+            token: 'invalid-token'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Validation Error Tests'
+    weight: 15
+    flow:
+      - post:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            playerId: 'invalid-id'
+            stats: { rating: 'invalid-rating' }
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/validate'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            validationRules: ['required', 'type', 'range']
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Timeout Error Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          timeout: 1000
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/retry'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            retryCount: 3
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Rate Limiting Error Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/rate-limit'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            retryAfter: 60
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Database Error Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/database'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'connection-reset'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Memory Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/memory'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'cleanup'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'File System Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/files/{{ $randomString("", 10) }}.txt'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/file-system'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'file-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'External Service Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/external-service'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'fallback'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Configuration Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/configuration'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'config-reload'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Security Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/security'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'security-reset'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Concurrent Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/concurrent'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'conflict-resolution'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Cascading Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/cascading'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'cascade-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Partial Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/partial'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'partial-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Intermittent Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/intermittent'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'intermittent-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'System Overload Error Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/overload'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'overload-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error Recovery Tests'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/recover'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            recoveryMethod: 'auto-recovery'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error Logging Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/log'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            context: { userId: '{{ $randomInt(1, 1000) }}', action: 'test' }
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error Monitoring Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/monitor'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            metrics: { severity: 'high', category: 'network' }
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error Reporting Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/report'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            reportType: 'error-analysis'
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error Context Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/context'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            context:
+              {
+                userId: '{{ $randomInt(1, 1000) }}',
+                action: 'test',
+                timestamp: '{{ $isoTimestamp() }}',
+              }
+      - think: '{{ $randomInt(1, 3) }}'
+
+  - name: 'Error User Guidance Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          capture:
+            - json: '$.error'
+              as: 'error'
+      - think: '{{ $randomInt(1, 5) }}'
+      - post:
+          url: '/api/error/guidance'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: '{{ error }}'
+            userGuidance:
+              {
+                message: 'What you can do',
+                actions: ['retry', 'contact-support', 'check-status'],
+              }
+      - think: '{{ $randomInt(1, 3) }}'

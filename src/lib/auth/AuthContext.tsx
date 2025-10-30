@@ -13,11 +13,43 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const auth = useAuth();
 
+  // Map AuthService.User to types/auth.User
+  const mapUser = (user: any) => {
+    if (!user) return null;
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      role: user.role,
+      permissions: [], // Default empty permissions array
+      lastLoginAt: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  };
+
   const contextValue: AuthContextType = {
-    authState: auth.authState,
-    login: auth.login,
-    signup: auth.signup,
-    logout: auth.logout,
+    authState: {
+      isAuthenticated: auth.isAuthenticated,
+      user: mapUser(auth.user),
+      isLoading: auth.isLoading,
+      error: auth.error,
+    },
+    login: async (credentials) => {
+      await auth.login(credentials);
+    },
+    signup: async (credentials) => {
+      const registerData = {
+        email: credentials.email,
+        password: credentials.password,
+        name: credentials.email.split('@')[0], // Use email prefix as name
+      };
+      await auth.register(registerData);
+    },
+    logout: async () => {
+      auth.logout();
+    },
     clearError: auth.clearError,
   };
 

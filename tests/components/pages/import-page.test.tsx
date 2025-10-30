@@ -10,7 +10,11 @@ global.fetch = vi.fn();
 
 describe('Import Page', () => {
   let queryClient: QueryClient;
-  let wrapper: any;
+  let wrapper: ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => React.ReactElement;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -46,7 +50,7 @@ describe('Import Page', () => {
       },
     };
 
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockStatus,
     });
@@ -84,7 +88,7 @@ describe('Import Page', () => {
       },
     };
 
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as unknown as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => mockStatus,
     });
@@ -175,7 +179,7 @@ describe('Import Page', () => {
       },
     };
 
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as unknown as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => mockStatus,
     });
@@ -208,7 +212,7 @@ describe('Import Page', () => {
       },
     };
 
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as unknown as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => mockStatus,
     });

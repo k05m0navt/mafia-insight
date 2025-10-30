@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: Test Infrastructure API
+  description: API for managing test infrastructure and execution
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Development Team
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+  - url: https://ci.example.com/api
+    description: CI/CD pipeline server
+  - url: https://staging.example.com/api
+    description: Staging environment server
+
+paths:
+  /test/run:
+    post:
+      summary: Execute test suite
+      description: Run the complete test suite and return results
+      operationId: runTestSuite
+      tags:
+        - Test Execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                environment:
+                  type: string
+                  enum: [local, ci, staging]
+                  description: Test environment to run in
+                testTypes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [unit, integration, component, e2e, performance]
+                  description: Types of tests to run
+                timeout:
+                  type: integer
+                  minimum: 1000
+                  maximum: 300000
+                  default: 30000
+                  description: Test timeout in milliseconds
+              required:
+                - environment
+      responses:
+        '200':
+          description: Test execution completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  results:
+                    $ref: '#/components/schemas/TestResults'
+                  executionTime:
+                    type: integer
+                    description: Total execution time in milliseconds
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Test execution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test/status:
+    get:
+      summary: Get test infrastructure status
+      description: Check the health and status of test infrastructure
+      operationId: getTestStatus
+      tags:
+        - Test Infrastructure
+      responses:
+        '200':
+          description: Test infrastructure status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  database:
+                    type: object
+                    properties:
+                      connected:
+                        type: boolean
+                      connectionTime:
+                        type: integer
+                        description: Connection time in milliseconds
+                  mocks:
+                    type: object
+                    properties:
+                      configured:
+                        type: boolean
+                      count:
+                        type: integer
+                        description: Number of configured mocks
+                  coverage:
+                    type: object
+                    properties:
+                      current:
+                        type: number
+                        description: Current test coverage percentage
+                      threshold:
+                        type: number
+                        description: Required coverage threshold
+        '500':
+          description: Infrastructure health check failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test/coverage:
+    get:
+      summary: Get test coverage report
+      description: Retrieve detailed test coverage information
+      operationId: getTestCoverage
+      tags:
+        - Test Coverage
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, html, text]
+            default: json
+          description: Coverage report format
+      responses:
+        '200':
+          description: Test coverage report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+        '500':
+          description: Coverage report generation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TestResults:
+      type: object
+      properties:
+        totalTests:
+          type: integer
+          description: Total number of tests executed
+        passedTests:
+          type: integer
+          description: Number of tests that passed
+        failedTests:
+          type: integer
+          description: Number of tests that failed
+        skippedTests:
+          type: integer
+          description: Number of tests that were skipped
+        passRate:
+          type: number
+          description: Percentage of tests that passed
+        testSuites:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestSuite'
+        failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestFailure'
+
+    TestSuite:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the test suite
+        type:
+          type: string
+          enum: [unit, integration, component, e2e, performance]
+          description: Type of tests in the suite
+        totalTests:
+          type: integer
+        passedTests:
+          type: integer
+        failedTests:
+          type: integer
+        executionTime:
+          type: integer
+          description: Execution time in milliseconds
+        coverage:
+          type: number
+          description: Code coverage percentage for this suite
+
+    TestFailure:
+      type: object
+      properties:
+        testName:
+          type: string
+          description: Name of the failing test
+        suiteName:
+          type: string
+          description: Name of the test suite
+        errorMessage:
+          type: string
+          description: Error message from the test
+        stackTrace:
+          type: string
+          description: Stack trace of the error
+        duration:
+          type: integer
+          description: Test duration in milliseconds
+
+    CoverageReport:
+      type: object
+      properties:
+        overall:
+          type: number
+          description: Overall coverage percentage
+        byFile:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+                description: File path
+              coverage:
+                type: number
+                description: Coverage percentage for this file
+              lines:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  covered:
+                    type: integer
+                  uncovered:
+                    type: integer
+        thresholds:
+          type: object
+          properties:
+            statements:
+              type: number
+            branches:
+              type: number
+            functions:
+              type: number
+            lines:
+              type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+tags:
+  - name: Test Execution
+    description: Test execution and management
+  - name: Test Infrastructure
+    description: Test infrastructure health and configuration
+  - name: Test Coverage
+    description: Test coverage reporting and analysis

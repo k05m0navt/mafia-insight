@@ -1,0 +1,137 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: 'Warm up'
+    - duration: 120
+      arrivalRate: 10
+      name: 'Normal load'
+    - duration: 60
+      arrivalRate: 20
+      name: 'Peak load'
+    - duration: 30
+      arrivalRate: 5
+      name: 'Cool down'
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      Accept: 'application/json'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+
+scenarios:
+  - name: 'Analytics Dashboard Load'
+    weight: 30
+    flow:
+      - get:
+          url: '/analytics'
+          name: 'Load Analytics Dashboard'
+      - get:
+          url: '/api/analytics/overview'
+          name: 'Get Analytics Overview'
+      - get:
+          url: '/api/analytics/players'
+          name: 'Get Players Data'
+      - get:
+          url: '/api/analytics/clubs'
+          name: 'Get Clubs Data'
+      - get:
+          url: '/api/analytics/tournaments'
+          name: 'Get Tournaments Data'
+
+  - name: 'Player Analytics Load'
+    weight: 25
+    flow:
+      - get:
+          url: '/players'
+          name: 'Load Players Page'
+      - get:
+          url: '/api/players'
+          name: 'Get Players List'
+      - get:
+          url: '/api/analytics/leaderboard'
+          name: 'Get Leaderboard'
+      - post:
+          url: '/api/analytics/players/filter'
+          json:
+            filters:
+              rating:
+                min: 1000
+                max: 2000
+              category: 'all'
+          name: 'Filter Players'
+
+  - name: 'Club Analytics Load'
+    weight: 20
+    flow:
+      - get:
+          url: '/clubs'
+          name: 'Load Clubs Page'
+      - get:
+          url: '/api/clubs'
+          name: 'Get Clubs List'
+      - get:
+          url: '/api/analytics/clubs/stats'
+          name: 'Get Club Statistics'
+      - post:
+          url: '/api/analytics/clubs/filter'
+          json:
+            filters:
+              memberCount:
+                min: 5
+                max: 50
+              status: 'active'
+          name: 'Filter Clubs'
+
+  - name: 'Tournament Analytics Load'
+    weight: 15
+    flow:
+      - get:
+          url: '/tournaments'
+          name: 'Load Tournaments Page'
+      - get:
+          url: '/api/tournaments'
+          name: 'Get Tournaments List'
+      - get:
+          url: '/api/analytics/tournaments/stats'
+          name: 'Get Tournament Statistics'
+      - post:
+          url: '/api/analytics/tournaments/filter'
+          json:
+            filters:
+              dateRange:
+                start: '2025-01-01'
+                end: '2025-12-31'
+              status: 'upcoming'
+          name: 'Filter Tournaments'
+
+  - name: 'Data Export Load'
+    weight: 10
+    flow:
+      - get:
+          url: '/analytics'
+          name: 'Load Analytics Dashboard'
+      - post:
+          url: '/api/analytics/export'
+          json:
+            dataType: 'players'
+            format: 'csv'
+            filters: {}
+          name: 'Export Players Data'
+      - post:
+          url: '/api/analytics/export'
+          json:
+            dataType: 'clubs'
+            format: 'json'
+            filters: {}
+          name: 'Export Clubs Data'
+
+# Custom metrics and assertions
+expect:
+  - http.response_time.p95: 2000
+  - http.response_time.p99: 5000
+  - http.codes.200: 95
+  - http.codes.4xx: 5
+  - http.codes.5xx: 0

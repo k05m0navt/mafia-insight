@@ -1,0 +1,531 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: 'Warm-up Phase'
+    - duration: 300
+      arrivalRate: 5
+      rampTo: 15
+      name: 'Ramp-up PWA Load'
+    - duration: 600
+      arrivalRate: 15
+      name: 'Sustained PWA Load'
+    - duration: 180
+      arrivalRate: 15
+      rampTo: 30
+      name: 'Peak PWA Load'
+    - duration: 120
+      arrivalRate: 30
+      name: 'Stress Test'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cool-down Phase'
+
+scenarios:
+  - name: 'PWA Installation Tests'
+    weight: 15
+    flow:
+      - get:
+          url: '/'
+          capture:
+            - json: '$.installPrompt'
+              as: 'installPrompt'
+      - post:
+          url: '/api/pwa/install'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            prompt: '{{ installPrompt }}'
+          capture:
+            - json: '$.installId'
+              as: 'installId'
+      - get:
+          url: '/api/pwa/status/{{ installId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Service Worker Tests'
+    weight: 20
+    flow:
+      - get:
+          url: '/sw.js'
+      - post:
+          url: '/api/pwa/service-worker/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            scope: '/'
+            updateViaCache: 'none'
+          capture:
+            - json: '$.registrationId'
+              as: 'registrationId'
+      - get:
+          url: '/api/pwa/service-worker/status/{{ registrationId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/service-worker/update'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            registrationId: '{{ registrationId }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Offline Functionality Tests'
+    weight: 25
+    flow:
+      - post:
+          url: '/api/pwa/offline/enable'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            simulateOffline: true
+      - get:
+          url: '/'
+      - get:
+          url: '/analytics'
+      - get:
+          url: '/import'
+      - get:
+          url: '/settings'
+      - post:
+          url: '/api/pwa/offline/disable'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'Cache Performance Tests'
+    weight: 15
+    flow:
+      - post:
+          url: '/api/pwa/cache/clear'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/cache/resources'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            resources:
+              - '/'
+              - '/analytics'
+              - '/import'
+              - '/settings'
+              - '/manifest.json'
+              - '/sw.js'
+      - get:
+          url: '/api/pwa/cache/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/pwa/cache/size'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Push Notification Tests'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/pwa/notifications/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            endpoint: 'https://example.com/push/{{ $randomString("", 10) }}'
+            keys:
+              p256dh: '{{ $randomString("", 64) }}'
+              auth: '{{ $randomString("", 32) }}'
+          capture:
+            - json: '$.subscriptionId'
+              as: 'subscriptionId'
+      - post:
+          url: '/api/pwa/notifications/send'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            subscriptionId: '{{ subscriptionId }}'
+            title: 'Test Notification {{ $randomString("", 8) }}'
+            body: 'This is a test notification'
+            icon: '/icon-192.png'
+            badge: '/badge-72.png'
+      - get:
+          url: '/api/pwa/notifications/status/{{ subscriptionId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Background Sync Tests'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/pwa/sync/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            tag: 'import-sync-{{ $randomString("", 8) }}'
+            data:
+              importId: 'import-{{ $randomInt(1, 1000) }}'
+              status: 'pending'
+          capture:
+            - json: '$.syncId'
+              as: 'syncId'
+      - post:
+          url: '/api/pwa/sync/process'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            syncId: '{{ syncId }}'
+      - get:
+          url: '/api/pwa/sync/status/{{ syncId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'App Update Tests'
+    weight: 8
+    flow:
+      - get:
+          url: '/api/pwa/updates/check'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/updates/install'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            version: '1.0.{{ $randomInt(1, 100) }}'
+      - get:
+          url: '/api/pwa/updates/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'App Shortcuts Tests'
+    weight: 5
+    flow:
+      - get:
+          url: '/api/pwa/shortcuts'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/shortcuts/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            shortcuts:
+              - name: 'Analytics'
+                short_name: 'Analytics'
+                url: '/analytics'
+                icon: '/icon-192.png'
+              - name: 'Import'
+                short_name: 'Import'
+                url: '/import'
+                icon: '/icon-192.png'
+      - get:
+          url: '/api/pwa/shortcuts/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Share Target Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/pwa/share/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            action: 'import-data'
+            method: 'POST'
+            enctype: 'multipart/form-data'
+            params:
+              title: 'title'
+              text: 'text'
+              url: 'url'
+          capture:
+            - json: '$.shareTargetId'
+              as: 'shareTargetId'
+      - post:
+          url: '/api/pwa/share/process'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            shareTargetId: '{{ shareTargetId }}'
+            title: 'Shared Data {{ $randomString("", 8) }}'
+            text: 'This is shared data'
+            url: 'https://example.com/data'
+      - get:
+          url: '/api/pwa/share/status/{{ shareTargetId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'File Handling Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/pwa/files/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            types: ['.json', '.csv', '.xlsx']
+          capture:
+            - json: '$.fileHandlerId'
+              as: 'fileHandlerId'
+      - post:
+          url: '/api/pwa/files/upload'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          formData:
+            file:
+              value: '{"test": "data"}'
+              options:
+                filename: 'test-{{ $randomString("", 8) }}.json'
+                contentType: 'application/json'
+      - get:
+          url: '/api/pwa/files/status/{{ fileHandlerId }}'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Protocol Handling Tests'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/pwa/protocol/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            protocol: 'mafia-insight'
+            url: 'mafia-insight://analytics?player={{ $randomInt(1, 1000) }}'
+      - post:
+          url: '/api/pwa/protocol/handle'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            protocol: 'mafia-insight'
+            url: 'mafia-insight://import?source=gomafia'
+      - get:
+          url: '/api/pwa/protocol/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Theme Handling Tests'
+    weight: 3
+    flow:
+      - get:
+          url: '/api/pwa/theme'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/theme'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            theme: '{{ $randomString("light", "dark", "system") }}'
+      - get:
+          url: '/api/pwa/theme/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Performance Monitoring Tests'
+    weight: 3
+    flow:
+      - get:
+          url: '/api/pwa/performance/metrics'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/performance/report'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            type: 'slow-load'
+            value: '{{ $randomInt(1000, 5000) }}'
+            threshold: 3000
+      - get:
+          url: '/api/pwa/performance/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Error Handling Tests'
+    weight: 2
+    flow:
+      - post:
+          url: '/api/pwa/error'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: 'Service worker failed to install'
+            stack: 'Error: Service worker failed to install\n    at install()'
+            timestamp: '{{ $isoTimestamp() }}'
+      - post:
+          url: '/api/pwa/offline/error'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            error: 'Network request failed'
+            url: '/api/analytics/players/{{ $randomInt(1, 1000) }}/stats'
+            timestamp: '{{ $isoTimestamp() }}'
+      - get:
+          url: '/api/pwa/error/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Storage Management Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/pwa/storage/quota'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/pwa/storage/usage'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/storage/clear'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/pwa/storage/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Accessibility Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/pwa/accessibility/features'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/accessibility/configure'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            highContrast: true
+            reducedMotion: false
+            screenReader: true
+      - get:
+          url: '/api/pwa/accessibility/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Security Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/pwa/security/headers'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/pwa/security/validate'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            manifest: true
+            serviceWorker: true
+            https: true
+      - get:
+          url: '/api/pwa/security/status'
+          headers:
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Concurrent PWA Tests'
+    weight: 2
+    flow:
+      - get:
+          url: '/'
+      - get:
+          url: '/analytics'
+      - get:
+          url: '/import'
+      - get:
+          url: '/settings'
+      - post:
+          url: '/api/pwa/install'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            prompt: 'concurrent-install'
+      - post:
+          url: '/api/pwa/service-worker/register'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            scope: '/'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'PWA Lifecycle Tests'
+    weight: 2
+    flow:
+      - post:
+          url: '/api/pwa/lifecycle/start'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            event: 'app-start'
+            timestamp: '{{ $isoTimestamp() }}'
+      - post:
+          url: '/api/pwa/lifecycle/visibility'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            event: 'visibility-change'
+            visibility: 'hidden'
+            timestamp: '{{ $isoTimestamp() }}'
+      - post:
+          url: '/api/pwa/lifecycle/visibility'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            event: 'visibility-change'
+            visibility: 'visible'
+            timestamp: '{{ $isoTimestamp() }}'
+      - post:
+          url: '/api/pwa/lifecycle/end'
+          headers:
+            'Content-Type': 'application/json'
+            'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
+          json:
+            event: 'app-end'
+            timestamp: '{{ $isoTimestamp() }}'
+      - think: '{{ $randomInt(5, 15) }}'

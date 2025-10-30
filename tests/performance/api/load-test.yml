@@ -1,0 +1,118 @@
+config:
+  target: http://localhost:3000
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: 'Warm-up'
+
+    # Gradual ramp-up
+    - duration: 120
+      arrivalRate: 10
+      name: 'Ramp-up'
+
+    # Sustained load
+    - duration: 180
+      arrivalRate: 20
+      name: 'Sustained load'
+
+    # Peak load
+    - duration: 60
+      arrivalRate: 50
+      name: 'Peak load'
+
+    # Cooldown
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cooldown'
+
+scenarios:
+  - name: 'Health Check'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/health'
+          expect:
+            - statusCode: 200
+
+  - name: 'Get Players'
+    weight: 30
+    flow:
+      - get:
+          url: '/api/players'
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - get:
+          url: '/api/players?page=1&limit=20'
+          expect:
+            - statusCode: 200
+
+  - name: 'Player CRUD Operations'
+    weight: 25
+    flow:
+      # Create
+      - post:
+          url: '/api/players'
+          json:
+            name: 'Load Test Player {{ $randomInt(1, 1000) }}'
+            email: 'loadtest{{ $randomInt(1, 1000) }}@example.com'
+            rating: 1500
+          expect:
+            - statusCode: 201
+
+      # Read
+      - get:
+          url: '/api/players'
+          capture:
+            - json: '$.players[0].id'
+              as: playerId
+          expect:
+            - statusCode: 200
+
+      # Update
+      - put:
+          url: '/api/players/{{ playerId }}'
+          json:
+            rating: 1600
+          expect:
+            - statusCode: 200
+
+      # Delete
+      - delete:
+          url: '/api/players/{{ playerId }}'
+          expect:
+            - statusCode: 204
+
+  - name: 'Analytics Endpoints'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/analytics/leaderboard'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/api/analytics/stats'
+          expect:
+            - statusCode: 200
+
+  - name: 'Authentication Flow'
+    weight: 15
+    flow:
+      - post:
+          url: '/api/auth/login'
+          json:
+            email: 'test@example.com'
+            password: 'password123'
+          capture:
+            - json: '$.token'
+              as: authToken
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: '/api/protected'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200

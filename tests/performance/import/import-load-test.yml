@@ -1,0 +1,462 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: 'Warm-up Phase'
+    - duration: 300
+      arrivalRate: 5
+      rampTo: 20
+      name: 'Ramp-up Import Load'
+    - duration: 600
+      arrivalRate: 20
+      name: 'Sustained Import Load'
+    - duration: 180
+      arrivalRate: 20
+      rampTo: 50
+      name: 'Peak Import Load'
+    - duration: 120
+      arrivalRate: 50
+      name: 'Stress Test'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cool-down Phase'
+
+scenarios:
+  - name: 'Start Import Process'
+    weight: 30
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(50, 200) }}'
+              concurrency: '{{ $randomInt(2, 10) }}'
+              retryAttempts: 3
+          capture:
+            - json: '$.importId'
+              as: 'importId'
+      - get:
+          url: '/api/import/status/{{ importId }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Monitor Import Progress'
+    weight: 25
+    flow:
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: '{{ $randomString("info", "error", "warning") }}'
+            limit: '{{ $randomInt(10, 100) }}'
+      - think: '{{ $randomInt(2, 8) }}'
+
+  - name: 'Control Import Process'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/import/pause/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(10, 30) }}'
+      - post:
+          url: '/api/import/resume/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Validate Import Data'
+    weight: 15
+    flow:
+      - post:
+          url: '/api/import/validate'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            data:
+              players:
+                - name: '{{ $randomString("Player-", 10) }}'
+                  email: '{{ $randomString("player", 8) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+                - name: '{{ $randomString("Player-", 10) }}'
+                  email: '{{ $randomString("player", 8) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+      - think: '{{ $randomInt(3, 10) }}'
+
+  - name: 'Get Import History'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/import/history'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            page: '{{ $randomInt(1, 10) }}'
+            limit: '{{ $randomInt(10, 50) }}'
+            status: '{{ $randomString("completed", "failed", "importing") }}'
+      - think: '{{ $randomInt(2, 5) }}'
+
+  - name: 'Error Recovery Scenarios'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/import/retry/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/import/stop/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(5, 20) }}'
+
+  - name: 'Concurrent Import Operations'
+    weight: 5
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(100, 500) }}'
+              concurrency: '{{ $randomInt(5, 20) }}'
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(100, 500) }}'
+              concurrency: '{{ $randomInt(5, 20) }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'Large Dataset Import'
+    weight: 3
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: 1000
+              concurrency: 10
+              retryAttempts: 5
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(30, 60) }}'
+
+  - name: 'Import with Errors'
+    weight: 2
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'error-source'
+            options:
+              batchSize: 100
+              concurrency: 5
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: 'error'
+            limit: 50
+      - think: '{{ $randomInt(15, 45) }}'
+
+  - name: 'Import Configuration Testing'
+    weight: 2
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(10, 50) }}'
+              concurrency: 1
+              retryAttempts: 1
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(200, 1000) }}'
+              concurrency: '{{ $randomInt(10, 50) }}'
+              retryAttempts: 10
+      - think: '{{ $randomInt(20, 60) }}'
+
+  - name: 'Import Monitoring and Analytics'
+    weight: 1
+    flow:
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: 'info'
+            limit: 100
+      - get:
+          url: '/api/import/history'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            page: 1
+            limit: 20
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Import Error Handling'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'invalid-source'
+            options:
+              batchSize: -1
+              concurrency: 0
+      - post:
+          url: '/api/import/validate'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            data:
+              players:
+                - name: ''
+                  email: 'invalid-email'
+                  rating: -100
+      - think: '{{ $randomInt(5, 15) }}'
+
+  - name: 'Import Resource Management'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: '{{ $randomInt(500, 2000) }}'
+              concurrency: '{{ $randomInt(20, 100) }}'
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/import/pause/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(30, 120) }}'
+      - post:
+          url: '/api/import/resume/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(60, 180) }}'
+
+  - name: 'Import Data Quality Testing'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/validate'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            data:
+              players:
+                - name: '{{ $randomString("Player-", 20) }}'
+                  email: '{{ $randomString("player", 15) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+                - name: '{{ $randomString("Player-", 20) }}'
+                  email: '{{ $randomString("player", 15) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+                - name: '{{ $randomString("Player-", 20) }}'
+                  email: '{{ $randomString("player", 15) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+      - think: '{{ $randomInt(10, 30) }}'
+
+  - name: 'Import Performance Monitoring'
+    weight: 1
+    flow:
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: '{{ $randomString("info", "error", "warning", "debug") }}'
+            limit: '{{ $randomInt(50, 200) }}'
+      - get:
+          url: '/api/import/history'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            page: '{{ $randomInt(1, 5) }}'
+            limit: '{{ $randomInt(10, 100) }}'
+      - think: '{{ $randomInt(5, 20) }}'
+
+  - name: 'Import Stress Testing'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: 2000
+              concurrency: 100
+              retryAttempts: 20
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: 'error'
+            limit: 1000
+      - think: '{{ $randomInt(60, 300) }}'
+
+  - name: 'Import Recovery Testing'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: 100
+              concurrency: 5
+      - post:
+          url: '/api/import/pause/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(30, 120) }}'
+      - post:
+          url: '/api/import/resume/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/import/stop/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/import/retry/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(60, 180) }}'
+
+  - name: 'Import End-to-End Testing'
+    weight: 1
+    flow:
+      - post:
+          url: '/api/import/validate'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            data:
+              players:
+                - name: '{{ $randomString("Player-", 15) }}'
+                  email: '{{ $randomString("player", 10) }}@example.com'
+                  rating: '{{ $randomInt(1000, 3000) }}'
+      - post:
+          url: '/api/import/start'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+            Content-Type: 'application/json'
+          json:
+            source: 'gomafia'
+            options:
+              batchSize: 100
+              concurrency: 5
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/logs/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            level: 'info'
+            limit: 50
+      - post:
+          url: '/api/import/pause/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - think: '{{ $randomInt(30, 90) }}'
+      - post:
+          url: '/api/import/resume/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/status/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - post:
+          url: '/api/import/stop/{{ $randomString("import-", 8) }}'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+      - get:
+          url: '/api/import/history'
+          headers:
+            Authorization: 'Bearer {{ $env.TEST_API_TOKEN }}'
+          qs:
+            page: 1
+            limit: 10
+      - think: '{{ $randomInt(60, 180) }}'

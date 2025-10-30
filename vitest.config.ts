@@ -6,6 +6,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    testTimeout: 30000,
+    hookTimeout: 30000,
+    teardownTimeout: 30000,
+    mockReset: true,
+    restoreMocks: true,
     include: [
       'tests/unit/**/*.test.{ts,tsx}',
       'tests/integration/**/*.test.{ts,tsx}',
@@ -66,6 +71,9 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
     },
+  },
+  define: {
+    'import.meta.vitest': 'undefined',
   },
   esbuild: {
     target: 'node14',

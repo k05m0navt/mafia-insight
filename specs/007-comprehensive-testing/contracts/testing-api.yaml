@@ -1,0 +1,1201 @@
+openapi: 3.0.3
+info:
+  title: Comprehensive Testing Framework API
+  description: API for managing and executing comprehensive user flow tests
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Testing Team
+    email: testing@mafiainsight.com
+
+servers:
+  - url: https://api.mafiainsight.com/testing
+    description: Production testing API
+  - url: https://staging-api.mafiainsight.com/testing
+    description: Staging testing API
+  - url: http://localhost:3000/api/testing
+    description: Local development API
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /test-suites:
+    get:
+      summary: List test suites
+      description: Retrieve all test suites with optional filtering
+      tags:
+        - Test Suites
+      parameters:
+        - name: category
+          in: query
+          description: Filter by test category
+          schema:
+            type: string
+            enum: [unit, integration, e2e, performance, security]
+        - name: priority
+          in: query
+          description: Filter by priority level
+          schema:
+            type: string
+            enum: [P1, P2, P3]
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [draft, active, deprecated]
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of test suites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestSuite'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create test suite
+      description: Create a new test suite
+      tags:
+        - Test Suites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestSuiteRequest'
+      responses:
+        '201':
+          description: Test suite created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuite'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Test suite with this name already exists
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-suites/{suiteId}:
+    get:
+      summary: Get test suite
+      description: Retrieve a specific test suite by ID
+      tags:
+        - Test Suites
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          description: Test suite ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test suite details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuite'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update test suite
+      description: Update an existing test suite
+      tags:
+        - Test Suites
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          description: Test suite ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTestSuiteRequest'
+      responses:
+        '200':
+          description: Test suite updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuite'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete test suite
+      description: Delete a test suite and all associated test cases
+      tags:
+        - Test Suites
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          description: Test suite ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Test suite deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-suites/{suiteId}/test-cases:
+    get:
+      summary: List test cases in suite
+      description: Retrieve all test cases for a specific test suite
+      tags:
+        - Test Cases
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          description: Test suite ID
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by test type
+          schema:
+            type: string
+            enum: [automated, manual, hybrid]
+        - name: priority
+          in: query
+          description: Filter by priority
+          schema:
+            type: string
+            enum: [critical, high, medium, low]
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [draft, ready, active, deprecated]
+      responses:
+        '200':
+          description: List of test cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  testCases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestCase'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create test case
+      description: Create a new test case in a test suite
+      tags:
+        - Test Cases
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          description: Test suite ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestCaseRequest'
+      responses:
+        '201':
+          description: Test case created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestCase'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-executions:
+    post:
+      summary: Execute test suite
+      description: Execute a test suite or specific test cases
+      tags:
+        - Test Executions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteTestRequest'
+      responses:
+        '202':
+          description: Test execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executionId:
+                    type: string
+                    description: Unique execution identifier
+                  status:
+                    type: string
+                    enum: [pending, running]
+                  estimatedDuration:
+                    type: integer
+                    description: Estimated duration in seconds
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-executions/{executionId}:
+    get:
+      summary: Get test execution status
+      description: Retrieve the status and results of a test execution
+      tags:
+        - Test Executions
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          description: Test execution ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test execution status and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestExecution'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-executions/{executionId}/results:
+    get:
+      summary: Get test execution results
+      description: Retrieve detailed results for a test execution
+      tags:
+        - Test Executions
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          description: Test execution ID
+          schema:
+            type: string
+        - name: format
+          in: query
+          description: Response format
+          schema:
+            type: string
+            enum: [json, html, pdf]
+            default: json
+      responses:
+        '200':
+          description: Test execution results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestExecutionResults'
+            text/html:
+              schema:
+                type: string
+                description: HTML report
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+                description: PDF report
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-data:
+    get:
+      summary: List test data sets
+      description: Retrieve available test data sets
+      tags:
+        - Test Data
+      parameters:
+        - name: type
+          in: query
+          description: Filter by data type
+          schema:
+            type: string
+            enum: [anonymized, synthetic, edge-case, production]
+        - name: category
+          in: query
+          description: Filter by data category
+          schema:
+            type: string
+        - name: anonymizationLevel
+          in: query
+          description: Filter by anonymization level
+          schema:
+            type: string
+            enum: [none, partial, full]
+      responses:
+        '200':
+          description: List of test data sets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dataSets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestData'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /test-reports:
+    get:
+      summary: List test reports
+      description: Retrieve test execution reports
+      tags:
+        - Test Reports
+      parameters:
+        - name: type
+          in: query
+          description: Filter by report type
+          schema:
+            type: string
+            enum: [execution, coverage, performance, security, compliance]
+        - name: startDate
+          in: query
+          description: Start date for report filtering
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date for report filtering
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of test reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestReport'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    TestSuite:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - category
+        - priority
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Human-readable name
+        description:
+          type: string
+          description: Purpose and scope
+        category:
+          type: string
+          enum: [unit, integration, e2e, performance, security]
+        priority:
+          type: string
+          enum: [P1, P2, P3]
+        status:
+          type: string
+          enum: [draft, active, deprecated]
+        userStoryId:
+          type: string
+          description: Reference to user story
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastRunAt:
+          type: string
+          format: date-time
+          nullable: true
+        passRate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Pass rate percentage
+
+    TestCase:
+      type: object
+      required:
+        - id
+        - suiteId
+        - name
+        - description
+        - type
+        - priority
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        suiteId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [automated, manual, hybrid]
+        priority:
+          type: string
+          enum: [critical, high, medium, low]
+        tags:
+          type: array
+          items:
+            type: string
+        preconditions:
+          type: array
+          items:
+            type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestStep'
+        expectedResults:
+          type: array
+          items:
+            type: string
+        dataRequirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataRequirement'
+        environment:
+          $ref: '#/components/schemas/EnvironmentConfig'
+        timeout:
+          type: integer
+          minimum: 1
+        retryCount:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [draft, ready, active, deprecated]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TestExecution:
+      type: object
+      required:
+        - id
+        - testCaseId
+        - suiteId
+        - executionId
+        - status
+        - startTime
+        - createdAt
+      properties:
+        id:
+          type: string
+        testCaseId:
+          type: string
+        suiteId:
+          type: string
+        executionId:
+          type: string
+        status:
+          type: string
+          enum: [passed, failed, skipped, error, timeout]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+        duration:
+          type: integer
+          description: Duration in milliseconds
+        environment:
+          $ref: '#/components/schemas/EnvironmentInfo'
+        browser:
+          type: string
+        device:
+          type: string
+        errorMessage:
+          type: string
+          nullable: true
+        errorStack:
+          type: string
+          nullable: true
+        screenshots:
+          type: array
+          items:
+            type: string
+        videos:
+          type: array
+          items:
+            type: string
+        logs:
+          type: array
+          items:
+            type: string
+        metrics:
+          $ref: '#/components/schemas/TestMetrics'
+        createdAt:
+          type: string
+          format: date-time
+
+    TestData:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - type
+        - category
+        - size
+        - format
+        - location
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [anonymized, synthetic, edge-case, production]
+        category:
+          type: string
+        size:
+          type: integer
+          minimum: 1
+        format:
+          type: string
+          enum: [json, csv, sql, xml]
+        location:
+          type: string
+        anonymizationLevel:
+          type: string
+          enum: [none, partial, full]
+        privacyCompliance:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        checksum:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TestReport:
+      type: object
+      required:
+        - id
+        - executionId
+        - name
+        - type
+        - status
+        - generatedAt
+      properties:
+        id:
+          type: string
+        executionId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [execution, coverage, performance, security, compliance]
+        status:
+          type: string
+          enum: [generating, completed, failed]
+        summary:
+          $ref: '#/components/schemas/TestSummary'
+        coverage:
+          $ref: '#/components/schemas/CoverageMetrics'
+        performance:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        security:
+          $ref: '#/components/schemas/SecurityMetrics'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+        generatedAt:
+          type: string
+          format: date-time
+        generatedBy:
+          type: string
+
+    TestStep:
+      type: object
+      required:
+        - stepNumber
+        - action
+        - expectedResult
+      properties:
+        stepNumber:
+          type: integer
+          minimum: 1
+        action:
+          type: string
+        target:
+          type: string
+        input:
+          type: string
+        expectedResult:
+          type: string
+        timeout:
+          type: integer
+          minimum: 1
+        retryCount:
+          type: integer
+          minimum: 0
+        isOptional:
+          type: boolean
+          default: false
+
+    DataRequirement:
+      type: object
+      required:
+        - dataType
+        - quantity
+        - quality
+      properties:
+        dataType:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        quality:
+          type: string
+          enum: [exact, approximate, any]
+        freshness:
+          type: string
+          enum: [current, historical, any]
+        anonymization:
+          type: string
+          enum: [none, partial, full]
+        relationships:
+          type: array
+          items:
+            type: string
+
+    EnvironmentConfig:
+      type: object
+      properties:
+        baseUrl:
+          type: string
+        browser:
+          type: string
+        device:
+          type: string
+        network:
+          type: string
+        security:
+          type: string
+        performance:
+          type: string
+
+    EnvironmentInfo:
+      type: object
+      properties:
+        os:
+          type: string
+        browser:
+          type: string
+        device:
+          type: string
+        screenResolution:
+          type: string
+        networkType:
+          type: string
+        timezone:
+          type: string
+        locale:
+          type: string
+
+    TestMetrics:
+      type: object
+      properties:
+        responseTime:
+          type: number
+          description: Average response time in ms
+        throughput:
+          type: number
+          description: Requests per second
+        memoryUsage:
+          type: number
+          description: Peak memory usage in MB
+        cpuUsage:
+          type: number
+          description: Peak CPU usage percentage
+        networkLatency:
+          type: number
+          description: Network latency in ms
+        errorRate:
+          type: number
+          description: Error rate percentage
+        successRate:
+          type: number
+          description: Success rate percentage
+
+    TestSummary:
+      type: object
+      properties:
+        totalTests:
+          type: integer
+        passedTests:
+          type: integer
+        failedTests:
+          type: integer
+        skippedTests:
+          type: integer
+        passRate:
+          type: number
+        executionTime:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+
+    CoverageMetrics:
+      type: object
+      properties:
+        lineCoverage:
+          type: number
+        branchCoverage:
+          type: number
+        functionCoverage:
+          type: number
+        statementCoverage:
+          type: number
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        averageResponseTime:
+          type: number
+        p95ResponseTime:
+          type: number
+        p99ResponseTime:
+          type: number
+        throughput:
+          type: number
+        errorRate:
+          type: number
+        resourceUtilization:
+          type: object
+          properties:
+            cpu:
+              type: number
+            memory:
+              type: number
+            disk:
+              type: number
+
+    SecurityMetrics:
+      type: object
+      properties:
+        vulnerabilitiesFound:
+          type: integer
+        criticalIssues:
+          type: integer
+        highIssues:
+          type: integer
+        mediumIssues:
+          type: integer
+        lowIssues:
+          type: integer
+        securityScore:
+          type: number
+
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [performance, security, coverage, reliability]
+        priority:
+          type: string
+          enum: [high, medium, low]
+        title:
+          type: string
+        description:
+          type: string
+        action:
+          type: string
+        impact:
+          type: string
+
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [screenshot, video, log, report, data]
+        format:
+          type: string
+        size:
+          type: integer
+        location:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    CreateTestSuiteRequest:
+      type: object
+      required:
+        - name
+        - description
+        - category
+        - priority
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [unit, integration, e2e, performance, security]
+        priority:
+          type: string
+          enum: [P1, P2, P3]
+        userStoryId:
+          type: string
+
+    UpdateTestSuiteRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [unit, integration, e2e, performance, security]
+        priority:
+          type: string
+          enum: [P1, P2, P3]
+        status:
+          type: string
+          enum: [draft, active, deprecated]
+        userStoryId:
+          type: string
+
+    CreateTestCaseRequest:
+      type: object
+      required:
+        - name
+        - description
+        - type
+        - priority
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [automated, manual, hybrid]
+        priority:
+          type: string
+          enum: [critical, high, medium, low]
+        tags:
+          type: array
+          items:
+            type: string
+        preconditions:
+          type: array
+          items:
+            type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestStep'
+        expectedResults:
+          type: array
+          items:
+            type: string
+        dataRequirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataRequirement'
+        environment:
+          $ref: '#/components/schemas/EnvironmentConfig'
+        timeout:
+          type: integer
+          minimum: 1
+        retryCount:
+          type: integer
+          minimum: 0
+
+    ExecuteTestRequest:
+      type: object
+      required:
+        - suiteIds
+      properties:
+        suiteIds:
+          type: array
+          items:
+            type: string
+        testCaseIds:
+          type: array
+          items:
+            type: string
+        environment:
+          type: string
+        parallel:
+          type: boolean
+          default: true
+        maxConcurrency:
+          type: integer
+          minimum: 1
+          default: 5
+        retryOnFailure:
+          type: boolean
+          default: false
+        generateReport:
+          type: boolean
+          default: true
+
+    TestExecutionResults:
+      type: object
+      properties:
+        executionId:
+          type: string
+        status:
+          type: string
+          enum: [completed, running, failed, cancelled]
+        summary:
+          $ref: '#/components/schemas/TestSummary'
+        testResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestExecution'
+        coverage:
+          $ref: '#/components/schemas/CoverageMetrics'
+        performance:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        security:
+          $ref: '#/components/schemas/SecurityMetrics'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 'VALIDATION_ERROR'
+            message: 'Invalid request parameters'
+            timestamp: '2025-01-27T10:00:00Z'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 'UNAUTHORIZED'
+            message: 'Authentication required'
+            timestamp: '2025-01-27T10:00:00Z'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 'NOT_FOUND'
+            message: 'Resource not found'
+            timestamp: '2025-01-27T10:00:00Z'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 'INTERNAL_ERROR'
+            message: 'An unexpected error occurred'
+            timestamp: '2025-01-27T10:00:00Z'
+
+tags:
+  - name: Test Suites
+    description: Operations for managing test suites
+  - name: Test Cases
+    description: Operations for managing test cases
+  - name: Test Executions
+    description: Operations for executing tests and retrieving results
+  - name: Test Data
+    description: Operations for managing test data sets
+  - name: Test Reports
+    description: Operations for generating and retrieving test reports

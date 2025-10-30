@@ -1,0 +1,74 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: 'Warm up'
+    - duration: 120
+      arrivalRate: 50
+      name: 'Load test'
+    - duration: 60
+      arrivalRate: 100
+      name: 'Stress test'
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+
+scenarios:
+  - name: 'Authentication Load Test'
+    weight: 100
+    flow:
+      - post:
+          url: '/api/auth/login'
+          json:
+            email: 'test@example.com'
+            password: 'password123'
+          capture:
+            - json: '$.token'
+              as: 'authToken'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'token'
+
+      - get:
+          url: '/api/auth/validate'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'user'
+
+      - post:
+          url: '/api/auth/logout'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'success'
+
+  - name: 'Registration Load Test'
+    weight: 30
+    flow:
+      - post:
+          url: '/api/auth/register'
+          json:
+            name: 'Load Test User {{ $randomInt(1, 1000) }}'
+            email: 'loadtest{{ $randomInt(1, 1000) }}@example.com'
+            password: 'password123'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'success'
+
+  - name: 'Password Reset Load Test'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/auth/forgot-password'
+          json:
+            email: 'test@example.com'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'success'

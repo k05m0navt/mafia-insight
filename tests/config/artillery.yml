@@ -1,0 +1,97 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: 'Warm up'
+    - duration: 120
+      arrivalRate: 10
+      name: 'Ramp up load'
+    - duration: 300
+      arrivalRate: 20
+      name: 'Sustained load'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Ramp down'
+  defaults:
+    headers:
+      User-Agent: 'Artillery Load Test'
+  plugins:
+    metrics-by-endpoint: {}
+    publish-metrics:
+      - type: datadog
+        prefix: 'mafia_insight'
+        tags:
+          - 'environment:test'
+      - type: cloudwatch
+        namespace: 'MafiaInsight/Performance'
+  variables:
+    baseUrl: 'http://localhost:3000'
+
+scenarios:
+  - name: 'Authentication Flow'
+    weight: 30
+    flow:
+      - get:
+          url: '/'
+          capture:
+            - json: '$.csrfToken'
+              as: 'csrfToken'
+      - post:
+          url: '/api/auth/signin'
+          json:
+            email: 'test@example.com'
+            password: 'testpassword'
+            csrfToken: '{{ csrfToken }}'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/dashboard'
+          expect:
+            - statusCode: 200
+
+  - name: 'Analytics Pages'
+    weight: 25
+    flow:
+      - get:
+          url: '/analytics/players'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/analytics/clubs'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/analytics/tournaments'
+          expect:
+            - statusCode: 200
+
+  - name: 'API Endpoints'
+    weight: 25
+    flow:
+      - get:
+          url: '/api/players'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/api/clubs'
+          expect:
+            - statusCode: 200
+      - get:
+          url: '/api/tournaments'
+          expect:
+            - statusCode: 200
+
+  - name: 'Data Import'
+    weight: 20
+    flow:
+      - get:
+          url: '/import'
+          expect:
+            - statusCode: 200
+      - post:
+          url: '/api/import/status'
+          json:
+            importId: 'test-import-{{ $randomString() }}'
+          expect:
+            - statusCode: 200
