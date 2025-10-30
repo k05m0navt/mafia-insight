@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { authService } from '@/services/AuthService';
 import { validateSignupCredentials } from '@/lib/auth';
 
 interface SignupFormProps {
@@ -10,7 +10,6 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
-  const { register, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -21,6 +20,7 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
     Record<string, string>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,18 +33,37 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
 
     // Clear auth error when user starts typing
     if (error) {
-      clearError();
+      setError(null);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Get form data from the form element itself as a fallback
+    const form = e.currentTarget;
+    const formElements = form.elements as typeof form.elements & {
+      name: HTMLInputElement;
+      email: HTMLInputElement;
+      password: HTMLInputElement;
+      confirmPassword: HTMLInputElement;
+    };
+
+    // Use form elements values if state is empty (fallback for testing tools)
+    const submitData = {
+      name: formData.name || formElements.name?.value || '',
+      email: formData.email || formElements.email?.value || '',
+      password: formData.password || formElements.password?.value || '',
+      confirmPassword:
+        formData.confirmPassword || formElements.confirmPassword?.value || '',
+    };
 
     // Clear previous validation errors
     setValidationErrors({});
 
     // Validate form data
-    const validation = validateSignupCredentials(formData);
+    const validation = validateSignupCredentials(submitData);
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
       return;
@@ -52,11 +71,25 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
 
     try {
       setIsSubmitting(true);
-      await register(formData);
-      onSuccess?.();
+      setError(null);
+
+      const result = await authService.register(submitData);
+
+      if (result.success) {
+        // Clear form on success
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        });
+        onSuccess?.();
+      } else {
+        setError(result.error || 'Registration failed');
+      }
     } catch (error) {
-      // Error is handled by the auth context
       console.error('Signup failed:', error);
+      setError(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -66,8 +99,7 @@ export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
     (error) => error
   );
   const hasError = error || hasValidationErrors;
-  const errorMessage =
-    error || Object.values(validationErrors)[0] || '';
+  const errorMessage = error || Object.values(validationErrors)[0] || '';
 
   return (
     <form

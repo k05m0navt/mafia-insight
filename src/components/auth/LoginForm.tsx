@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { authService } from '@/services/AuthService';
 import { validateLoginCredentials } from '@/lib/auth';
 
 interface LoginFormProps {
@@ -10,7 +10,6 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
-  const { login, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,6 +18,7 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
     Record<string, string>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,30 +31,60 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
 
     // Clear auth error when user starts typing
     if (error) {
-      clearError();
+      setError(null);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    console.log('LoginForm: handleSubmit called');
+
+    // Get form data from the form element itself as a fallback
+    const form = e.currentTarget;
+    const formElements = form.elements as typeof form.elements & {
+      email: HTMLInputElement;
+      password: HTMLInputElement;
+    };
+
+    // Use form elements values if state is empty (fallback for testing tools)
+    const submitData = {
+      email: formData.email || formElements.email?.value || '',
+      password: formData.password || formElements.password?.value || '',
+    };
+
+    console.log('LoginForm: submitData:', submitData);
 
     // Clear previous validation errors
     setValidationErrors({});
 
     // Validate form data
-    const validation = validateLoginCredentials(formData);
+    const validation = validateLoginCredentials(submitData);
     if (!validation.isValid) {
+      console.log('LoginForm: validation failed:', validation.errors);
       setValidationErrors(validation.errors);
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await login(formData);
-      onSuccess?.();
+      setError(null);
+
+      console.log('LoginForm: calling authService.login');
+      const result = await authService.login(submitData);
+      console.log('LoginForm: authService.login result:', result);
+
+      if (result.success) {
+        console.log('LoginForm: login successful, calling onSuccess');
+        onSuccess?.();
+      } else {
+        console.log('LoginForm: login failed:', result.error);
+        setError(result.error || 'Login failed');
+      }
     } catch (error) {
-      // Error is handled by the auth context
-      console.error('Login failed:', error);
+      console.error('LoginForm: login error:', error);
+      setError(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -64,8 +94,7 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
     (error) => error
   );
   const hasError = error || hasValidationErrors;
-  const errorMessage =
-    error || Object.values(validationErrors)[0] || '';
+  const errorMessage = error || Object.values(validationErrors)[0] || '';
 
   return (
     <form

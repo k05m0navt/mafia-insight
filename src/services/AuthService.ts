@@ -52,58 +52,97 @@ export class AuthService {
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      // Mock authentication - in real implementation, this would call an API
-      if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
-        this.token = 'mock-jwt-token-' + Date.now();
-        this.user = {
-          id: 'test-user-id',
-          email: credentials.email,
-          name: 'Test User',
-          role: 'user',
-          isActive: true,
-          lastLogin: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        
+      console.log('AuthService.login: starting login with credentials:', {
+        email: credentials.email,
+        password: '***',
+      });
+
+      // Validate required fields
+      if (!credentials.email || !credentials.password) {
+        console.log(
+          'AuthService.login: validation failed - missing email or password'
+        );
         return {
-          success: true,
-          user: this.user,
-          token: this.token,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          success: false,
+          error: 'Email and password are required',
         };
       }
 
-      // Mock admin authentication
-      if (credentials.email === 'admin@example.com' && credentials.password === 'admin123') {
-        this.token = 'mock-admin-token-' + Date.now();
-        this.user = {
-          id: 'admin-user-id',
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(credentials.email)) {
+        console.log(
+          'AuthService.login: validation failed - invalid email format'
+        );
+        return {
+          success: false,
+          error: 'Invalid email format',
+        };
+      }
+
+      console.log('AuthService.login: calling API endpoint /api/auth/login');
+      // Call the login API endpoint
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: credentials.email,
-          name: 'Admin User',
-          role: 'admin',
+          password: credentials.password,
+        }),
+      });
+
+      console.log(
+        'AuthService.login: API response status:',
+        response.status,
+        response.ok
+      );
+      const result = await response.json();
+      console.log('AuthService.login: API response data:', result);
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Login failed',
+        };
+      }
+
+      if (result.success) {
+        // Set user data from successful login
+        this.user = {
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role || 'user',
           isActive: true,
           lastLogin: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        
+
+        this.token = result.token;
+
         return {
           success: true,
           user: this.user,
           token: this.token,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          expiresAt: result.expiresAt
+            ? new Date(result.expiresAt)
+            : new Date(Date.now() + 24 * 60 * 60 * 1000),
+          message: result.message,
         };
       }
 
       return {
         success: false,
-        error: 'Invalid credentials',
+        error: result.error || 'Login failed',
       };
-    } catch (_error) {
+    } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
-        error: 'Login failed',
+        error: error instanceof Error ? error.message : 'Login failed',
       };
     }
   }
@@ -128,44 +167,69 @@ export class AuthService {
         };
       }
 
-      // Check if email already exists (mock implementation) - check this before password validation
-      if (userData.email === 'existing@example.com') {
-        return {
-          success: false,
-          error: 'Email already exists',
-        };
-      }
-
       // Validate password strength
-      if (userData.password.length < 6) {
+      if (userData.password.length < 8) {
         return {
           success: false,
-          error: 'Password must be at least 6 characters long',
+          error: 'Password must be at least 8 characters long',
         };
       }
 
-      // Mock registration - in real implementation, this would call an API
-      this.token = 'mock-jwt-token-' + Date.now();
-      this.user = {
-        id: 'new-user-id-' + Date.now(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role || 'user',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      // Call the signup API endpoint
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userData.email,
+          password: userData.password,
+          name: userData.name,
+          confirmPassword: userData.password, // For validation
+        }),
+      });
 
-      return {
-        success: true,
-        user: this.user,
-        token: this.token,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      };
-    } catch (_error) {
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Registration failed',
+        };
+      }
+
+      if (result.success) {
+        // Set user data from successful registration
+        this.user = {
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role || 'user',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Generate a mock token for now (until we implement proper JWT)
+        this.token = 'mock-jwt-token-' + Date.now();
+
+        return {
+          success: true,
+          user: this.user,
+          token: this.token,
+          message: result.message,
+        };
+      }
+
       return {
         success: false,
-        error: 'Registration failed',
+        error: result.error || 'Registration failed',
+      };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Registration failed',
       };
     }
   }
@@ -177,12 +241,18 @@ export class AuthService {
   }
 
   // Reset password
-  async resetPassword(emailOrData: string | { token: string; newPassword: string }): Promise<{ success: boolean; message?: string; error?: string }> {
+  async resetPassword(
+    emailOrData: string | { token: string; newPassword: string }
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       // If it's an object with token and newPassword, handle password reset with token
-      if (typeof emailOrData === 'object' && emailOrData.token && emailOrData.newPassword) {
+      if (
+        typeof emailOrData === 'object' &&
+        emailOrData.token &&
+        emailOrData.newPassword
+      ) {
         const { token, newPassword } = emailOrData;
-        
+
         if (!token) {
           return {
             success: false,
@@ -235,7 +305,10 @@ export class AuthService {
   }
 
   // Reset password with token
-  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       if (!token) {
         return {
@@ -273,7 +346,10 @@ export class AuthService {
   }
 
   // Confirm password reset
-  async confirmPasswordReset(_token: string, _newPassword: string): Promise<{ success: boolean; message: string }> {
+  async confirmPasswordReset(
+    _token: string,
+    _newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
     // Mock password reset confirmation - in real implementation, this would validate token
     return {
       success: true,
@@ -292,7 +368,7 @@ export class AuthService {
       }
 
       this.user = { ...this.user, ...profileData, updatedAt: new Date() };
-      
+
       return {
         success: true,
         user: this.user,
@@ -321,7 +397,9 @@ export class AuthService {
   }
 
   // Validate token (for testing compatibility)
-  async validateToken(token: string): Promise<{ success: boolean; user?: User; error?: string }> {
+  async validateToken(
+    token: string
+  ): Promise<{ success: boolean; user?: User; error?: string }> {
     if (!token) {
       return {
         success: false,
@@ -333,17 +411,17 @@ export class AuthService {
     try {
       // Simulate token validation
       const _mockDecoded = { userId: 1, email: 'test@example.com' };
-      
+
       // Check if token is blacklisted (mock)
       const blacklistResult = { rows: [] }; // Not blacklisted
-      
+
       if (blacklistResult.rows.length > 0) {
         return { success: false, error: 'Token has been revoked' };
       }
 
       // Check if user is still active (mock)
       const userResult = { rows: [{ id: 1, is_active: true }] };
-      
+
       if (userResult.rows.length === 0 || !userResult.rows[0].is_active) {
         return { success: false, error: 'User not found or inactive' };
       }
@@ -396,11 +474,17 @@ export class AuthService {
     };
 
     const userPermissions = permissions[this.user.role] || [];
-    return userPermissions.includes('*') || userPermissions.includes(permission);
+    return (
+      userPermissions.includes('*') || userPermissions.includes(permission)
+    );
   }
 
   // Get session
-  getSession(): { user: User | null; token: string | null; expiresAt: Date | null } {
+  getSession(): {
+    user: User | null;
+    token: string | null;
+    expiresAt: Date | null;
+  } {
     return {
       user: this.user,
       token: this.token,
@@ -423,7 +507,11 @@ export class AuthService {
   }
 
   // Handle authentication errors
-  handleAuthError(error: Error): { error: string; code: string; timestamp: Date } {
+  handleAuthError(error: Error): {
+    error: string;
+    code: string;
+    timestamp: Date;
+  } {
     return {
       error: error.message,
       code: 'AUTH_ERROR',
@@ -434,7 +522,7 @@ export class AuthService {
   // Check if token is expired
   private isTokenExpired(): boolean {
     if (!this.token) return true;
-    
+
     // Simple token expiration check - in real implementation, this would decode JWT
     // For now, assume tokens are valid for 24 hours
     return false;
