@@ -28,6 +28,7 @@ export interface AuthResponse {
   token?: string;
   expiresAt?: Date;
   error?: string;
+  message?: string;
 }
 
 export interface ValidationResult {
@@ -126,7 +127,7 @@ export class AuthService {
         return {
           success: true,
           user: this.user,
-          token: this.token,
+          token: this.token ?? undefined,
           expiresAt: result.expiresAt
             ? new Date(result.expiresAt)
             : new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -216,7 +217,7 @@ export class AuthService {
         return {
           success: true,
           user: this.user,
-          token: this.token,
+          token: this.token ?? undefined,
           message: result.message,
         };
       }
@@ -449,7 +450,7 @@ export class AuthService {
       this.token = 'refreshed-token-' + Date.now();
       return {
         success: true,
-        token: this.token,
+        token: this.token ?? undefined,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
     }
