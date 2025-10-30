@@ -72,6 +72,7 @@ export function ImportProgressCard({
   };
 
   const formatDuration = (startTime: Date, endTime?: Date) => {
+    if (!startTime) return '0s';
     const end = endTime || new Date();
     const duration = end.getTime() - startTime.getTime();
     const seconds = Math.floor(duration / 1000);
@@ -175,8 +176,8 @@ export function ImportProgressCard({
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Records</span>
             <span className="font-medium">
-              {progress.processedRecords.toLocaleString()} /{' '}
-              {progress.totalRecords.toLocaleString()}
+              {progress.processedRecords?.toLocaleString() || '0'} /{' '}
+              {progress.totalRecords?.toLocaleString() || '0'}
             </span>
           </div>
           {progress.errors > 0 && (

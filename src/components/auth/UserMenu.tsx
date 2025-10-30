@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   User,
@@ -29,8 +29,7 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ className = '' }) => {
-  const { authState, logout } = useAuth();
-  const { user, isLoading: loading } = authState;
+  const { user, isLoading: loading, logout } = useAuth();
   const { isAdmin, isAuthenticated } = useRole();
 
   if (loading) {
@@ -73,7 +72,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({ className = '' }) => {
           className={`flex items-center gap-2 ${className}`}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
             <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
           <div className="hidden sm:block text-left">

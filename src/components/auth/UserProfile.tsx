@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
   User,
@@ -38,10 +38,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   showActions = true,
   className = '',
 }) => {
-  const { authState } = useAuth();
-  const { user, isLoading: loading } = authState;
+  const { user, isLoading: loading } = useAuth();
   const { description, isAdmin, isAuthenticated } = useRole();
-  const { session, isSessionValid, getTimeUntilExpiry } = useSession();
+  const { token, expiresAt, isValid: isSessionValid, isExpired: isExpiredFn } = useSession();
 
   if (loading) {
     return (
@@ -78,16 +77,21 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       .slice(0, 2);
   };
 
+  const getTimeUntilExpiry = () => {
+    if (!expiresAt) return 0;
+    return Math.max(0, expiresAt.getTime() - new Date().getTime());
+  };
+
   const getSessionStatus = () => {
-    if (!session) return null;
+    if (!token || !expiresAt) return null;
 
     const timeUntilExpiry = getTimeUntilExpiry();
-    const isValid = isSessionValid();
+    const isValid = isSessionValid && !isExpiredFn();
 
     if (isValid) {
       return (
         <div className="text-sm text-green-600">
-          Session expires in {Math.floor(timeUntilExpiry / 60)} minutes
+          Session expires in {Math.floor(timeUntilExpiry / 60000)} minutes
         </div>
       );
     }
@@ -99,7 +103,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     return (
       <div className={`flex items-center gap-3 ${className}`}>
         <Avatar className="h-10 w-10">
-          <AvatarImage src={user.avatar} alt={user.name} />
           <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
@@ -138,7 +141,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatar} alt={user.name} />
               <AvatarFallback className="text-lg">
                 {getInitials(user.name)}
               </AvatarFallback>
@@ -183,13 +185,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             </div>
 
-            {user.lastLoginAt && (
+            {user.lastLogin && (
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Last login</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(user.lastLoginAt, { addSuffix: true })}
+                    {formatDistanceToNow(user.lastLogin, { addSuffix: true })}
                   </p>
                 </div>
               </div>
@@ -249,7 +251,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={user.avatar} alt={user.name} />
             <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">

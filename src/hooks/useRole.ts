@@ -14,8 +14,7 @@ import {
 import type { UserRole } from '@/types/navigation';
 
 export const useRole = () => {
-  const { authState } = useAuth();
-  const { user } = authState;
+  const { user } = useAuth();
 
   const role = useMemo(() => {
     if (!user) {
@@ -61,7 +60,7 @@ export const useRole = () => {
         case 'data_export':
           return user.role === 'admin';
         default:
-          return user.role !== 'guest';
+          return true; // Any authenticated user can access default features
       }
     };
   }, [user]);
@@ -83,6 +82,6 @@ export const useRole = () => {
     ...role,
     canAccessFeature,
     getRoleLevel,
-    isGuest: user?.role === 'guest',
+    isGuest: !user, // No user means guest
   };
 };
