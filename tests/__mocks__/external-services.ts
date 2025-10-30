@@ -19,28 +19,33 @@ export const externalServices = {
         };
       }),
 
-      signInWithPassword: jest.fn().mockImplementation(async (credentials: any) => {
-        if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
+      signInWithPassword: jest
+        .fn()
+        .mockImplementation(async (credentials: any) => {
+          if (
+            credentials.email === 'test@example.com' &&
+            credentials.password === 'password123'
+          ) {
+            return {
+              data: {
+                user: {
+                  id: 'mock-supabase-user-id',
+                  email: credentials.email,
+                },
+                session: {
+                  access_token: 'mock-supabase-token',
+                  refresh_token: 'mock-supabase-refresh-token',
+                },
+              },
+              error: null,
+            };
+          }
+
           return {
-            data: {
-              user: {
-                id: 'mock-supabase-user-id',
-                email: credentials.email,
-              },
-              session: {
-                access_token: 'mock-supabase-token',
-                refresh_token: 'mock-supabase-refresh-token',
-              },
-            },
-            error: null,
+            data: null,
+            error: { message: 'Invalid credentials' },
           };
-        }
-        
-        return {
-          data: null,
-          error: { message: 'Invalid credentials' },
-        };
-      }),
+        }),
 
       signOut: jest.fn().mockImplementation(async () => {
         return {
@@ -61,15 +66,17 @@ export const externalServices = {
         };
       }),
 
-      resetPasswordForEmail: jest.fn().mockImplementation(async (email: string) => {
-        return {
-          data: null,
-          error: null,
-        };
-      }),
+      resetPasswordForEmail: jest
+        .fn()
+        .mockImplementation(async (_email: string) => {
+          return {
+            data: null,
+            error: null,
+          };
+        }),
     },
 
-    from: jest.fn().mockImplementation((table: string) => ({
+    from: jest.fn().mockImplementation((_table: string) => ({
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
@@ -107,21 +114,27 @@ export const externalServices = {
       return mockData[key] || null;
     }),
 
-    set: jest.fn().mockImplementation(async (key: string, value: string, options?: any) => {
-      return 'OK';
-    }),
+    set: jest
+      .fn()
+      .mockImplementation(
+        async (_key: string, _value: string, _options?: unknown) => {
+          return 'OK';
+        }
+      ),
 
-    del: jest.fn().mockImplementation(async (key: string) => {
+    del: jest.fn().mockImplementation(async (_key: string) => {
       return 1;
     }),
 
-    exists: jest.fn().mockImplementation(async (key: string) => {
+    exists: jest.fn().mockImplementation(async (_key: string) => {
       return 1;
     }),
 
-    expire: jest.fn().mockImplementation(async (key: string, seconds: number) => {
-      return 1;
-    }),
+    expire: jest
+      .fn()
+      .mockImplementation(async (_key: string, _seconds: number) => {
+        return 1;
+      }),
 
     ping: jest.fn().mockImplementation(async () => {
       return 'PONG';
@@ -130,7 +143,7 @@ export const externalServices = {
 
   // Mock Gomafia API
   gomafiaApi: {
-    getGames: jest.fn().mockImplementation(async (params: any) => {
+    getGames: jest.fn().mockImplementation(async (_params: unknown) => {
       return {
         data: [
           {
@@ -191,31 +204,39 @@ export const externalServices = {
 
   // Mock email service
   emailService: {
-    sendEmail: jest.fn().mockImplementation(async (options: {
-      to: string;
-      subject: string;
-      text?: string;
-      html?: string;
-    }) => {
-      return {
-        success: true,
-        messageId: 'mock-message-id',
-      };
-    }),
+    sendEmail: jest
+      .fn()
+      .mockImplementation(
+        async (_options: {
+          to: string;
+          subject: string;
+          text?: string;
+          html?: string;
+        }) => {
+          return {
+            success: true,
+            messageId: 'mock-message-id',
+          };
+        }
+      ),
 
-    sendPasswordResetEmail: jest.fn().mockImplementation(async (email: string, token: string) => {
-      return {
-        success: true,
-        messageId: 'mock-password-reset-message-id',
-      };
-    }),
+    sendPasswordResetEmail: jest
+      .fn()
+      .mockImplementation(async (_email: string, _token: string) => {
+        return {
+          success: true,
+          messageId: 'mock-password-reset-message-id',
+        };
+      }),
 
-    sendWelcomeEmail: jest.fn().mockImplementation(async (email: string, name: string) => {
-      return {
-        success: true,
-        messageId: 'mock-welcome-message-id',
-      };
-    }),
+    sendWelcomeEmail: jest
+      .fn()
+      .mockImplementation(async (_email: string, _name: string) => {
+        return {
+          success: true,
+          messageId: 'mock-welcome-message-id',
+        };
+      }),
   },
 
   // Mock file storage service
@@ -228,59 +249,69 @@ export const externalServices = {
       };
     }),
 
-    delete: jest.fn().mockImplementation(async (key: string) => {
+    delete: jest.fn().mockImplementation(async (_key: string) => {
       return {
         success: true,
         message: 'File deleted successfully',
       };
     }),
 
-    getUrl: jest.fn().mockImplementation(async (key: string) => {
-      return `https://mock-storage.com/${key}`;
+    getUrl: jest.fn().mockImplementation(async (_key: string) => {
+      return 'https://mock-storage.com/test';
     }),
   },
 
   // Mock analytics service
   analytics: {
-    track: jest.fn().mockImplementation(async (event: string, properties: any) => {
-      return {
-        success: true,
-        eventId: 'mock-event-id',
-      };
-    }),
+    track: jest
+      .fn()
+      .mockImplementation(async (_event: string, _properties: unknown) => {
+        return {
+          success: true,
+          eventId: 'mock-event-id',
+        };
+      }),
 
-    identify: jest.fn().mockImplementation(async (userId: string, traits: any) => {
-      return {
-        success: true,
-        userId,
-      };
-    }),
+    identify: jest
+      .fn()
+      .mockImplementation(async (userId: string, _traits: unknown) => {
+        return {
+          success: true,
+          userId,
+        };
+      }),
 
-    page: jest.fn().mockImplementation(async (pageName: string, properties: any) => {
-      return {
-        success: true,
-        pageId: 'mock-page-id',
-      };
-    }),
+    page: jest
+      .fn()
+      .mockImplementation(async (_pageName: string, _properties: unknown) => {
+        return {
+          success: true,
+          pageId: 'mock-page-id',
+        };
+      }),
   },
 
   // Mock monitoring service
   monitoring: {
-    captureException: jest.fn().mockImplementation(async (error: Error, context: any) => {
-      return {
-        success: true,
-        eventId: 'mock-exception-id',
-      };
-    }),
+    captureException: jest
+      .fn()
+      .mockImplementation(async (_error: Error, _context: unknown) => {
+        return {
+          success: true,
+          eventId: 'mock-exception-id',
+        };
+      }),
 
-    captureMessage: jest.fn().mockImplementation(async (message: string, level: string) => {
-      return {
-        success: true,
-        eventId: 'mock-message-id',
-      };
-    }),
+    captureMessage: jest
+      .fn()
+      .mockImplementation(async (_message: string, _level: string) => {
+        return {
+          success: true,
+          eventId: 'mock-message-id',
+        };
+      }),
 
-    addBreadcrumb: jest.fn().mockImplementation((breadcrumb: any) => {
+    addBreadcrumb: jest.fn().mockImplementation((_breadcrumb: unknown) => {
       return true;
     }),
   },

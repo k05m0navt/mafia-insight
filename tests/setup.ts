@@ -53,17 +53,28 @@ vi.mock('@prisma/client', () => {
 vi.mock('@/lib/db', () => {
   const mockPrisma = {
     user: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-user-id',
-          email: data.data.email,
-          name: data.data.name,
-          role: data.data.role || 'user',
-          isActive: data.data.isActive !== false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      create: vi
+        .fn()
+        .mockImplementation(
+          async (data: {
+            data: {
+              email?: string;
+              name?: string;
+              role?: string;
+              isActive?: boolean;
+            };
+          }) => {
+            return {
+              id: 'mock-user-id',
+              email: data.data.email,
+              name: data.data.name,
+              role: data.data.role || 'user',
+              isActive: data.data.isActive !== false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+        ),
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
@@ -88,49 +99,90 @@ vi.mock('@/lib/db', () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
-      upsert: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          isRunning: query.data.isRunning || false,
-          progress: query.data.progress || 0,
-          currentOperation: query.data.currentOperation || null,
-          lastError: query.data.lastError || null,
-          lastSyncTime: query.data.lastSyncTime || null,
-          lastSyncType: query.data.lastSyncType || null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      upsert: vi
+        .fn()
+        .mockImplementation(
+          async (query: {
+            where: { id: string };
+            data: {
+              isRunning?: boolean;
+              progress?: number;
+              currentOperation?: string | null;
+              lastError?: string | null;
+              lastSyncTime?: Date | null;
+              progressPercentage?: number;
+            };
+          }) => {
+            return {
+              id: query.where.id,
+              isRunning: query.data.isRunning || false,
+              progress: query.data.progress || 0,
+              currentOperation: query.data.currentOperation || null,
+              lastError: query.data.lastError || null,
+              lastSyncTime: query.data.lastSyncTime || null,
+              lastSyncType: query.data.lastSyncType || null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+        ),
     },
     syncLog: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-sync-log-id',
-          type: data.data.type || 'FULL',
-          status: data.data.status || 'RUNNING',
-          startTime: data.data.startTime || new Date(),
-          endTime: data.data.endTime || null,
-          recordsProcessed: data.data.recordsProcessed || 0,
-          errors: data.data.errors || null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      create: vi
+        .fn()
+        .mockImplementation(
+          async (data: {
+            data: {
+              type?: string;
+              status?: string;
+              startTime?: Date;
+              endTime?: Date | null;
+              recordsProcessed?: number;
+              errors?: unknown;
+            };
+          }) => {
+            return {
+              id: 'mock-sync-log-id',
+              type: data.data.type || 'FULL',
+              status: data.data.status || 'RUNNING',
+              startTime: data.data.startTime || new Date(),
+              endTime: data.data.endTime || null,
+              recordsProcessed: data.data.recordsProcessed || 0,
+              errors: data.data.errors || null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+        ),
       findUnique: vi.fn(),
       findMany: vi.fn(),
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          type: query.data.type || 'FULL',
-          status: query.data.status || 'COMPLETED',
-          startTime: query.data.startTime || new Date(),
-          endTime: query.data.endTime || new Date(),
-          recordsProcessed: query.data.recordsProcessed || 0,
-          errors: query.data.errors || null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      update: vi
+        .fn()
+        .mockImplementation(
+          async (query: {
+            where: { id: string };
+            data: {
+              type?: string;
+              status?: string;
+              startTime?: Date;
+              endTime?: Date;
+              recordsProcessed?: number;
+              errors?: unknown;
+            };
+          }) => {
+            return {
+              id: query.where.id,
+              type: query.data.type || 'FULL',
+              status: query.data.status || 'COMPLETED',
+              startTime: query.data.startTime || new Date(),
+              endTime: query.data.endTime || new Date(),
+              recordsProcessed: query.data.recordsProcessed || 0,
+              errors: query.data.errors || null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+        ),
       delete: vi.fn(),
     },
     $connect: vi.fn(),
@@ -266,19 +318,28 @@ vi.mock('@/services/AuthService', () => ({
 
 // Mock gomafiaParser
 vi.mock('@/lib/parsers/gomafiaParser', () => ({
-  parsePlayerList: vi.fn().mockImplementation(async (data: any) => {
-    return data || [];
-  }),
-  parsePlayer: vi.fn().mockImplementation((playerData: any) => {
-    return {
-      id: playerData.id || 'mock-player-id',
-      name: playerData.name || 'Mock Player',
-      gameId: playerData.gameId || 'mock-game-id',
-      userId: playerData.userId || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }),
+  parsePlayerList: vi
+    .fn()
+    .mockImplementation(async (data: unknown) => data || []),
+  parsePlayer: vi
+    .fn()
+    .mockImplementation(
+      (playerData: {
+        id?: string;
+        name?: string;
+        gameId?: string;
+        userId?: string | null;
+      }) => {
+        return {
+          id: playerData.id || 'mock-player-id',
+          name: playerData.name || 'Mock Player',
+          gameId: playerData.gameId || 'mock-game-id',
+          userId: playerData.userId || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+    ),
   cleanup: vi.fn().mockImplementation(async () => {
     return Promise.resolve();
   }),
@@ -300,6 +361,44 @@ vi.mock('@/lib/validation', () => ({
   sanitizeName: vi.fn((name) => name),
   validationRules: {},
 }));
+
+// Mock auth module validation functions (used by LoginForm and SignupForm)
+vi.mock('@/lib/auth', async () => {
+  const actual = await vi.importActual('@/lib/auth');
+  return {
+    ...actual,
+    validateEmail: vi.fn((email: string) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ),
+    validatePassword: vi.fn((password: string) => ({
+      isValid: password.length >= 6,
+      errors:
+        password.length < 6 ? ['Password must be at least 6 characters'] : [],
+    })),
+    validateLoginCredentials: vi.fn(
+      (credentials: { email?: string; password?: string }) => ({
+        isValid: !!(credentials?.email && credentials?.password),
+        errors:
+          credentials?.email && credentials?.password
+            ? {}
+            : { email: 'Email is required', password: 'Password is required' },
+      })
+    ),
+    validateSignupCredentials: vi.fn(
+      (userData: { email?: string; password?: string; name?: string }) => ({
+        isValid: !!(userData?.email && userData?.password && userData?.name),
+        errors:
+          userData?.email && userData?.password && userData?.name
+            ? {}
+            : {
+                email: 'Email is required',
+                password: 'Password is required',
+                name: 'Name is required',
+              },
+      })
+    ),
+  };
+});
 
 // Mock AuthProvider
 vi.mock('@/components/auth/AuthProvider', () => ({
@@ -354,7 +453,7 @@ vi.mock('@/hooks/useSession', () => ({
 // Mock window.matchMedia for accessibility tests
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,

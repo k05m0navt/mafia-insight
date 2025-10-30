@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Coverage and reports
+coverage/
+playwright-report/
+.test-results/
+
+# Caches
+.eslintcache
+
+# Generated files
+*.generated.*
+*.min.js
+*.d.ts
+next-env.d.ts
+
+# Public assets
+public/
+
+# Prisma migrations (generated)
+prisma/migrations/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~

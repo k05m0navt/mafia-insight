@@ -40,7 +40,7 @@ export const gomafiaParser = {
   }),
 
   // Mock validateGameData function
-  validateGameData: vi.fn().mockImplementation((gameData: any) => {
+  validateGameData: vi.fn().mockImplementation((_gameData: unknown) => {
     return {
       isValid: true,
       errors: [],
@@ -49,7 +49,7 @@ export const gomafiaParser = {
   }),
 
   // Mock validatePlayerData function
-  validatePlayerData: vi.fn().mockImplementation((playerData: any) => {
+  validatePlayerData: vi.fn().mockImplementation((_playerData: unknown) => {
     return {
       isValid: true,
       errors: [],

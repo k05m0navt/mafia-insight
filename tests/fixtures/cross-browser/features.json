@@ -1,0 +1,89 @@
+{
+  "css": {
+    "grid": {
+      "name": "CSS Grid",
+      "support": {
+        "chrome": { "min": 57 },
+        "firefox": { "min": 52 },
+        "safari": { "min": 10.1 },
+        "edge": { "min": 16 }
+      }
+    },
+    "flexbox": {
+      "name": "Flexbox",
+      "support": {
+        "chrome": { "min": 29 },
+        "firefox": { "min": 28 },
+        "safari": { "min": 9 },
+        "edge": { "min": 12 }
+      }
+    },
+    "variables": {
+      "name": "CSS Variables",
+      "support": {
+        "chrome": { "min": 49 },
+        "firefox": { "min": 31 },
+        "safari": { "min": 9.1 },
+        "edge": { "min": 15 }
+      }
+    }
+  },
+  "javascript": {
+    "es6": {
+      "name": "ES6 Support",
+      "support": {
+        "chrome": { "min": 51 },
+        "firefox": { "min": 54 },
+        "safari": { "min": 10 },
+        "edge": { "min": 14 }
+      }
+    },
+    "async": {
+      "name": "Async/Await",
+      "support": {
+        "chrome": { "min": 55 },
+        "firefox": { "min": 52 },
+        "safari": { "min": 10.1 },
+        "edge": { "min": 14 }
+      }
+    },
+    "modules": {
+      "name": "ES Modules",
+      "support": {
+        "chrome": { "min": 61 },
+        "firefox": { "min": 60 },
+        "safari": { "min": 10.1 },
+        "edge": { "min": 16 }
+      }
+    }
+  },
+  "webAPIs": {
+    "webgl": {
+      "name": "WebGL",
+      "support": {
+        "chrome": { "min": 25 },
+        "firefox": { "min": 4 },
+        "safari": { "min": 5.1 },
+        "edge": { "min": 13 }
+      }
+    },
+    "webrtc": {
+      "name": "WebRTC",
+      "support": {
+        "chrome": { "min": 56 },
+        "firefox": { "min": 22 },
+        "safari": { "min": 11 },
+        "edge": { "min": 79 }
+      }
+    },
+    "serviceWorker": {
+      "name": "Service Workers",
+      "support": {
+        "chrome": { "min": 45 },
+        "firefox": { "min": 44 },
+        "safari": { "min": 11.1 },
+        "edge": { "min": 17 }
+      }
+    }
+  }
+}

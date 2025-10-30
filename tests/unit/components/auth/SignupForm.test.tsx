@@ -4,14 +4,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { SignupForm } from '@/components/auth/SignupForm';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 
-// Mock the auth service
-vi.mock('@/lib/auth', () => ({
-  authService: {
-    signup: vi.fn(),
-  },
-  validateSignupCredentials: vi.fn(),
-}));
-
 const MockedAuthProvider = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
 );

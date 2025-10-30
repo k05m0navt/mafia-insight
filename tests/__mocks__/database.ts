@@ -68,9 +68,9 @@ export const database = {
         };
       }),
 
-      delete: vi.fn().mockImplementation(async (query: any) => {
+      delete: vi.fn().mockImplementation(async (_query: unknown) => {
         return {
-          id: query.where.id,
+          id: 'deleted-id',
           email: 'deleted@example.com',
           name: 'Deleted User',
           role: 'user',
@@ -373,11 +373,11 @@ export const database = {
     }),
 
     // Mock raw query operations
-    $executeRaw: vi.fn().mockImplementation(async (query: any) => {
+    $executeRaw: vi.fn().mockImplementation(async (_query: unknown) => {
       return { count: 1 };
     }),
 
-    $queryRaw: vi.fn().mockImplementation(async (query: any) => {
+    $queryRaw: vi.fn().mockImplementation(async (_query: unknown) => {
       return [];
     }),
 
@@ -439,7 +439,7 @@ export const database = {
         });
       }
     });
-    
+
     Object.values(database.utils).forEach((fn) => {
       if (typeof fn === 'function' && 'mockReset' in fn) {
         fn.mockReset();

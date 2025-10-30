@@ -2,31 +2,38 @@
 export const authService = {
   // Mock authentication state
   isAuthenticated: jest.fn().mockReturnValue(false),
-  
+
   // Mock login function
-  login: jest.fn().mockImplementation(async (credentials: { email: string; password: string }) => {
-    // Mock successful login for test credentials
-    if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
-      return {
-        success: true,
-        user: {
-          id: 'test-user-id',
-          email: credentials.email,
-          name: 'Test User',
-          role: 'user',
-          isActive: true,
-        },
-        token: 'mock-jwt-token',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      };
-    }
-    
-    // Mock failed login
-    return {
-      success: false,
-      error: 'Invalid credentials',
-    };
-  }),
+  login: jest
+    .fn()
+    .mockImplementation(
+      async (credentials: { email: string; password: string }) => {
+        // Mock successful login for test credentials
+        if (
+          credentials.email === 'test@example.com' &&
+          credentials.password === 'password123'
+        ) {
+          return {
+            success: true,
+            user: {
+              id: 'test-user-id',
+              email: credentials.email,
+              name: 'Test User',
+              role: 'user',
+              isActive: true,
+            },
+            token: 'mock-jwt-token',
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          };
+        }
+
+        // Mock failed login
+        return {
+          success: false,
+          error: 'Invalid credentials',
+        };
+      }
+    ),
 
   // Mock logout function
   logout: jest.fn().mockImplementation(() => {
@@ -37,35 +44,39 @@ export const authService = {
   }),
 
   // Mock register function
-  register: jest.fn().mockImplementation(async (userData: {
-    email: string;
-    password: string;
-    name: string;
-    role?: string;
-  }) => {
-    // Mock successful registration
-    if (userData.email && userData.password && userData.name) {
-      return {
-        success: true,
-        user: {
-          id: 'new-user-id',
-          email: userData.email,
-          name: userData.name,
-          role: userData.role || 'user',
-          isActive: true,
-        },
-        message: 'User registered successfully',
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Registration failed',
-    };
-  }),
+  register: jest
+    .fn()
+    .mockImplementation(
+      async (userData: {
+        email: string;
+        password: string;
+        name: string;
+        role?: string;
+      }) => {
+        // Mock successful registration
+        if (userData.email && userData.password && userData.name) {
+          return {
+            success: true,
+            user: {
+              id: 'new-user-id',
+              email: userData.email,
+              name: userData.name,
+              role: userData.role || 'user',
+              isActive: true,
+            },
+            message: 'User registered successfully',
+          };
+        }
+
+        return {
+          success: false,
+          error: 'Registration failed',
+        };
+      }
+    ),
 
   // Mock password reset function
-  resetPassword: jest.fn().mockImplementation(async (email: string) => {
+  resetPassword: jest.fn().mockImplementation(async (_email: string) => {
     return {
       success: true,
       message: 'Password reset email sent',
@@ -73,12 +84,14 @@ export const authService = {
   }),
 
   // Mock confirm password reset function
-  confirmPasswordReset: jest.fn().mockImplementation(async (token: string, newPassword: string) => {
-    return {
-      success: true,
-      message: 'Password reset successfully',
-    };
-  }),
+  confirmPasswordReset: jest
+    .fn()
+    .mockImplementation(async (_token: string, _newPassword: string) => {
+      return {
+        success: true,
+        message: 'Password reset successfully',
+      };
+    }),
 
   // Mock get current user function
   getCurrentUser: jest.fn().mockImplementation(() => {
@@ -118,7 +131,7 @@ export const authService = {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
     }
-    
+
     return {
       valid: false,
       error: 'Invalid token',
@@ -140,7 +153,7 @@ export const authService = {
     if (user.role === 'admin') {
       return true;
     }
-    
+
     const userPermissions = ['read:profile', 'update:profile'];
     return userPermissions.includes(permission);
   }),
