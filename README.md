@@ -72,6 +72,13 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 - **Jest** - Unit testing
 - **Playwright** - E2E testing
 
+## 📚 Documentation
+
+- **[Routes Documentation](./ROUTES.md)** - Complete guide to all routes, authentication requirements, and access control
+- **[API Documentation](./API.md)** - Comprehensive API reference
+- **[Deployment Guide](./docs/deployment/VERCEL-SETUP.md)** - Deploy to production
+- **[Testing Guide](./docs/testing/README.md)** - Testing strategy and guides
+
 ## 📦 Installation
 
 ### Prerequisites

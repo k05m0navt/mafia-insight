@@ -1,0 +1,560 @@
+openapi: 3.0.3
+info:
+  title: Mafia Insight - Data Synchronization API
+  version: 1.0.0
+  description: |
+    API endpoints for data synchronization, status monitoring, and integrity verification.
+    Part of Feature 009: First Production Release Preparation.
+
+servers:
+  - url: https://mafiainsight.com/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Sync Management
+    description: Data synchronization control and monitoring
+  - name: Sync Status
+    description: Real-time sync status and progress
+  - name: Data Integrity
+    description: Data verification and quality checks
+  - name: Notifications
+    description: Admin notifications about sync operations
+
+paths:
+  /gomafia-sync/sync/status:
+    get:
+      tags: [Sync Status]
+      summary: Get current sync status
+      description: Retrieve real-time sync operation status and progress
+      operationId: getSyncStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sync status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /gomafia-sync/sync/trigger:
+    post:
+      tags: [Sync Management]
+      summary: Trigger manual sync
+      description: Manually initiate incremental data synchronization (admin only)
+      operationId: triggerSync
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [FULL, INCREMENTAL]
+                  default: INCREMENTAL
+                  description: Type of sync to perform
+      responses:
+        '202':
+          description: Sync initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Sync initiated successfully'
+                  syncLog:
+                    $ref: '#/components/schemas/SyncLog'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Sync already running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Conflict'
+                  message:
+                    type: string
+                    example: 'Sync operation already in progress'
+
+  /gomafia-sync/sync/cancel:
+    post:
+      tags: [Sync Management]
+      summary: Cancel running sync
+      description: Cancel currently running sync operation (admin only)
+      operationId: cancelSync
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sync cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Sync operation cancelled successfully'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No sync running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Not Found'
+                  message:
+                    type: string
+                    example: 'No sync operation currently running'
+
+  /gomafia-sync/sync/logs:
+    get:
+      tags: [Sync Management]
+      summary: Get sync operation logs
+      description: Retrieve historical sync operation logs with pagination
+      operationId: getSyncLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [RUNNING, COMPLETED, FAILED, CANCELLED]
+          description: Filter by sync status
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [FULL, INCREMENTAL]
+          description: Filter by sync type
+      responses:
+        '200':
+          description: Sync logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncLog'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /gomafia-sync/integrity/verify:
+    post:
+      tags: [Data Integrity]
+      summary: Trigger data integrity check
+      description: Manually initiate data integrity verification (admin only)
+      operationId: verifyIntegrity
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sampleSize:
+                  type: number
+                  format: float
+                  minimum: 0.01
+                  maximum: 10
+                  default: 1.0
+                  description: Percentage of records to verify (0.01-10%)
+      responses:
+        '202':
+          description: Integrity verification initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Data integrity verification initiated'
+                  reportId:
+                    type: string
+                    format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /gomafia-sync/integrity/reports:
+    get:
+      tags: [Data Integrity]
+      summary: Get integrity reports
+      description: Retrieve historical data integrity verification reports
+      operationId: getIntegrityReports
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Integrity reports retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DataIntegrityReport'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      description: Retrieve notifications for authenticated user (admins get sync notifications)
+      operationId: getNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unreadCount:
+                    type: integer
+                    example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      operationId: markNotificationRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SyncStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'current'
+        lastSyncTime:
+          type: string
+          format: date-time
+          nullable: true
+        lastSyncType:
+          type: string
+          enum: [FULL, INCREMENTAL]
+          nullable: true
+        isRunning:
+          type: boolean
+          example: false
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        currentOperation:
+          type: string
+          nullable: true
+          example: 'Importing players: 500/1000'
+        lastError:
+          type: string
+          nullable: true
+        validationRate:
+          type: number
+          format: float
+          nullable: true
+          example: 98.5
+        totalRecordsProcessed:
+          type: integer
+          nullable: true
+        validRecords:
+          type: integer
+          nullable: true
+        invalidRecords:
+          type: integer
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    SyncLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [FULL, INCREMENTAL]
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED, CANCELLED]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+        recordsProcessed:
+          type: integer
+          nullable: true
+        errors:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    DataIntegrityReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        overallAccuracy:
+          type: number
+          format: float
+          example: 99.2
+        entities:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: 'PLAYER'
+              sampleSize:
+                type: integer
+                example: 100
+              totalRecords:
+                type: integer
+                example: 10000
+              matches:
+                type: integer
+                example: 99
+              accuracy:
+                type: number
+                format: float
+                example: 99.0
+              discrepancies:
+                type: integer
+                example: 1
+        sampleStrategy:
+          type: string
+          example: '1_percent'
+        triggerType:
+          type: string
+          enum: [POST_IMPORT, SCHEDULED, MANUAL]
+        status:
+          type: string
+          enum: [IN_PROGRESS, COMPLETED, FAILED]
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [SYNC_FAILURE, SYNC_SUCCESS, SYSTEM_ALERT, USER_ACTION]
+        title:
+          type: string
+          example: 'Data Sync Failed'
+        message:
+          type: string
+          example: 'The scheduled data sync failed at 2:00 AM UTC'
+        details:
+          type: object
+          nullable: true
+        read:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+
+    NotFound:
+      description: Not found - resource doesn't exist
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string

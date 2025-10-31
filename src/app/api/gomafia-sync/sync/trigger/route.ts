@@ -5,6 +5,8 @@ import {
   notifySyncStart,
   notifySyncCompletion,
 } from '@/lib/notifications/syncNotifications';
+import { runDataVerification } from '@/services/sync/verificationService';
+import { sendAdminAlerts } from '@/services/sync/notificationService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +112,31 @@ export async function POST(request: NextRequest) {
           result.recordsProcessed,
           result.errors
         );
+
+        // Run automatic data verification after successful syncs
+        if (result.success && type === 'FULL') {
+          console.log('[Sync] Running automatic data verification...');
+          try {
+            const verificationReport = await runDataVerification('SCHEDULED');
+
+            // Alert if accuracy is below threshold
+            if (verificationReport.overallAccuracy < 95) {
+              await sendAdminAlerts({
+                type: 'SYSTEM_ALERT',
+                title: 'Data Integrity Warning',
+                message: `Post-sync verification showed ${verificationReport.overallAccuracy.toFixed(2)}% accuracy (below 95% threshold)`,
+                details: {
+                  syncLogId: syncLog.id,
+                  overallAccuracy: verificationReport.overallAccuracy,
+                  status: verificationReport.status,
+                },
+              });
+            }
+          } catch (verificationError) {
+            console.error('[Sync] Verification failed:', verificationError);
+            // Don't fail the sync if verification fails
+          }
+        }
       })
       .catch(async (error) => {
         console.error('Sync failed:', error);

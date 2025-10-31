@@ -1,0 +1,236 @@
+# Vercel Cron Jobs Configuration
+# Feature: 009-first-release-prep
+# Purpose: Configure automated 24-hour data synchronization
+
+# This file documents the Vercel Cron configuration
+# Actual configuration goes in vercel.json at repository root
+
+---
+configuration:
+  format: vercel.json
+  location: /vercel.json (repository root)
+
+cron_jobs:
+  - name: daily-data-sync
+    description: Automated 24-hour data synchronization from gomafia.pro
+    path: /api/cron/daily-sync
+    schedule: '0 2 * * *' # Every day at 2:00 AM UTC
+    timezone: UTC
+
+    # Security
+    authentication:
+      method: Bearer token
+      header: Authorization
+      value: 'Bearer ${CRON_SECRET}'
+      environment_variable: CRON_SECRET
+
+    # Configuration
+    timeout: 300 # 5 minutes (Vercel max for cron)
+    retry:
+      enabled: true
+      attempts: 2
+      interval: 300 # 5 minutes between retries
+
+    # Monitoring
+    logging:
+      enabled: true
+      location: Vercel Dashboard > Deployments > Functions
+
+    # Expected behavior
+    triggers:
+      - Incremental sync (INCREMENTAL type)
+      - Fetches new data since last sync
+      - Updates existing records if changed
+      - Creates admin notifications on failure
+      - Sends email alerts to admins on failure
+
+    # Success criteria
+    success_conditions:
+      - HTTP 200 response
+      - recordsProcessed > 0
+      - No errors in response
+      - Sync status updated
+
+    # Failure handling
+    failure_conditions:
+      - HTTP 4xx/5xx response
+      - Timeout (> 5 minutes)
+      - gomafia.pro unavailable
+      - Database connection failure
+
+    failure_notifications:
+      - In-app notification for all admin users
+      - Email alert to all admin users
+      - Error logged to SyncLog table
+      - Retry attempt scheduled if transient failure
+
+---
+implementation:
+  # vercel.json configuration
+  example: |
+    {
+      "crons": [{
+        "path": "/api/cron/daily-sync",
+        "schedule": "0 2 * * *"
+      }]
+    }
+
+  # API Route implementation
+  route_file: src/app/api/cron/daily-sync/route.ts
+
+  handler_example: |
+    // src/app/api/cron/daily-sync/route.ts
+    import { NextRequest, NextResponse } from 'next/server';
+    import { syncService } from '@/services/sync/syncService';
+    import { notificationService } from '@/services/sync/notificationService';
+
+    export async function GET(request: NextRequest) {
+      // 1. Verify request is from Vercel Cron
+      const authHeader = request.headers.get('authorization');
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      
+      try {
+        // 2. Run incremental sync
+        const result = await syncService.runIncrementalSync();
+        
+        // 3. Send success notification (optional)
+        if (result.status === 'COMPLETED') {
+          await notificationService.notifyAdmins({
+            type: 'SYNC_SUCCESS',
+            title: 'Data Sync Completed',
+            message: `Successfully synced ${result.recordsProcessed} records`,
+            details: result
+          });
+        }
+        
+        // 4. Return success response
+        return NextResponse.json({
+          success: true,
+          result
+        });
+        
+      } catch (error) {
+        // 5. Handle failure
+        console.error('Cron sync failed:', error);
+        
+        // 6. Send failure notifications
+        await notificationService.notifyAdmins({
+          type: 'SYNC_FAILURE',
+          title: 'Data Sync Failed',
+          message: error.message,
+          details: { error: error.stack }
+        });
+        
+        // 7. Send email alerts
+        await notificationService.sendAdminAlerts({
+          subject: 'Data Sync Failed',
+          error: error.message
+        });
+        
+        // 8. Return error response
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: 500 }
+        );
+      }
+    }
+---
+environment_variables:
+  required:
+    - name: CRON_SECRET
+      description: Secret token for authenticating Vercel Cron requests
+      example: 'cron_secret_xyz123'
+      generation: |
+        # Generate secure random token
+        node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+    - name: DATABASE_URL
+      description: PostgreSQL connection string for database access
+
+    - name: NEXT_PUBLIC_SUPABASE_URL
+      description: Supabase project URL
+
+    - name: SUPABASE_SERVICE_ROLE_KEY
+      description: Supabase service role key for server-side operations
+
+    - name: RESEND_API_KEY
+      description: Resend.com API key for email notifications
+---
+testing:
+  local_testing:
+    method: Direct HTTP request
+    command: |
+      curl -X GET http://localhost:3000/api/cron/daily-sync \
+        -H "Authorization: Bearer your-cron-secret"
+
+  vercel_testing:
+    method: Manual trigger from Vercel Dashboard
+    steps:
+      - Navigate to Vercel Dashboard > Project > Cron Jobs
+      - Click "Trigger" on daily-data-sync job
+      - Monitor execution in Deployments > Functions
+      - Verify sync status in application /admin/sync page
+
+  automated_testing:
+    test_file: tests/integration/api/cron/daily-sync.test.ts
+    test_cases:
+      - Unauthorized requests are rejected (401)
+      - Valid requests trigger sync successfully (200)
+      - Sync failures send notifications
+      - Sync failures send email alerts
+      - Concurrent sync requests are handled (409)
+---
+monitoring:
+  vercel_dashboard:
+    location: Deployments > Functions > /api/cron/daily-sync
+    metrics:
+      - Execution count
+      - Success rate
+      - Average duration
+      - Error rate
+
+  application_monitoring:
+    location: /admin/sync (admin panel)
+    metrics:
+      - Last sync time
+      - Sync status (running/completed/failed)
+      - Records processed
+      - Validation rate
+      - Error logs
+
+  alerts:
+    - Email alerts to admins on failure
+    - In-app notifications on failure
+    - Vercel function errors (automatic)
+---
+maintenance:
+  schedule_updates:
+    procedure: |
+      1. Update "schedule" in vercel.json
+      2. Commit and push to trigger redeployment
+      3. Verify new schedule in Vercel Dashboard
+
+  secret_rotation:
+    procedure: |
+      1. Generate new CRON_SECRET
+      2. Update in Vercel Environment Variables
+      3. Redeploy application
+      4. Verify cron still authenticates successfully
+
+  troubleshooting:
+    common_issues:
+      - Cron not executing: Check schedule syntax, verify deployment
+      - Authentication failing: Verify CRON_SECRET matches
+      - Timeout errors: Reduce sync batch size or increase timeout
+      - Missing notifications: Check email service configuration
+---
+documentation_references:
+  - Vercel Cron Jobs: https://vercel.com/docs/cron-jobs
+  - Cron Expression Syntax: https://crontab.guru/
+  - Next.js Route Handlers: https://nextjs.org/docs/app/building-your-application/routing/route-handlers
+  - Environment Variables: https://vercel.com/docs/projects/environment-variables

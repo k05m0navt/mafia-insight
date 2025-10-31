@@ -1,11 +1,32 @@
 import { NextRequest } from 'next/server';
-import { withAuth } from '@/lib/apiAuth';
 import { importProgressManager } from '@/lib/importProgress';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('USER')(request);
+    // Check authentication via cookie
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      // Return error as SSE
+      const errorStream = new ReadableStream({
+        start(controller) {
+          const errorData = `data: ${JSON.stringify({
+            error: 'Authentication required',
+            message: 'Please sign in to view import progress',
+          })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(errorData));
+          controller.close();
+        },
+      });
+
+      return new Response(errorStream, {
+        status: 401,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
 
     // Create Server-Sent Events stream
     const stream = new ReadableStream({

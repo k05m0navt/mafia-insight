@@ -1,0 +1,517 @@
+openapi: 3.0.3
+info:
+  title: Mafia Insight - Admin Management API
+  version: 1.0.0
+  description: |
+    API endpoints for administrator management, including bootstrap and user administration.
+    Part of Feature 009: First Production Release Preparation.
+
+servers:
+  - url: https://mafiainsight.com/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Admin Bootstrap
+    description: First administrator account creation
+  - name: Admin Management
+    description: Administrator user management
+
+paths:
+  /admin/bootstrap/check:
+    get:
+      tags: [Admin Bootstrap]
+      summary: Check if bootstrap is available
+      description: Verify if admin bootstrap can be performed (no existing admins)
+      operationId: checkBootstrapAvailable
+      responses:
+        '200':
+          description: Bootstrap availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Bootstrap available - no admin users exist'
+        '403':
+          description: Bootstrap not available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Admin users already exist'
+
+  /admin/bootstrap:
+    post:
+      tags: [Admin Bootstrap]
+      summary: Create first admin user
+      description: Bootstrap first administrator account (only works when no admins exist)
+      operationId: bootstrapAdmin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 255
+                  example: 'System Administrator'
+                email:
+                  type: string
+                  format: email
+                  example: 'admin@mafiainsight.com'
+                password:
+                  type: string
+                  format: password
+                  minLength: 12
+                  description: Minimum 12 characters for admin accounts
+      responses:
+        '201':
+          description: First admin created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'First administrator account created successfully'
+                  admin:
+                    $ref: '#/components/schemas/AdminUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Bootstrap not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Bootstrap not available'
+                  message:
+                    type: string
+                    example: 'Admin users already exist. Use admin panel to create additional admins.'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /admin/users:
+    get:
+      tags: [Admin Management]
+      summary: List all users
+      description: Retrieve paginated list of all users (admin only)
+      operationId: listUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [guest, user, moderator, admin]
+          description: Filter by role
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or email
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUser'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Admin Management]
+      summary: Create new admin user
+      description: Create new administrator account (admin only)
+      operationId: createAdmin
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 255
+                  example: 'New Administrator'
+                email:
+                  type: string
+                  format: email
+                  example: 'newadmin@mafiainsight.com'
+                sendInvite:
+                  type: boolean
+                  default: true
+                  description: Send invitation email with setup link
+      responses:
+        '201':
+          description: Admin user created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Administrator account created. Invitation email sent.'
+                  admin:
+                    $ref: '#/components/schemas/AdminUser'
+                  inviteLink:
+                    type: string
+                    format: uri
+                    description: Setup link (included if email fails)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Conflict'
+                  message:
+                    type: string
+                    example: 'User with this email already exists'
+
+  /admin/users/{userId}:
+    get:
+      tags: [Admin Management]
+      summary: Get user details
+      description: Retrieve detailed information about a specific user (admin only)
+      operationId: getUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Admin Management]
+      summary: Update user role
+      description: Update user's role (admin only)
+      operationId: updateUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [guest, user, moderator, admin]
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'User role updated successfully'
+                  user:
+                    $ref: '#/components/schemas/AdminUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Admin Management]
+      summary: Delete user
+      description: Permanently delete user account (admin only, cannot delete own account)
+      operationId: deleteUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'User account deleted successfully'
+        '400':
+          description: Cannot delete own account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Bad Request'
+                  message:
+                    type: string
+                    example: 'You cannot delete your own account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          type: string
+          enum: [guest, user, moderator, admin]
+        subscriptionTier:
+          type: string
+          enum: [FREE, PREMIUM, CLUB, ENTERPRISE]
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - email
+        - name
+        - role
+
+    AdminUserDetail:
+      allOf:
+        - $ref: '#/components/schemas/AdminUser'
+        - type: object
+          properties:
+            themePreference:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time
+            stats:
+              type: object
+              properties:
+                playersCount:
+                  type: integer
+                clubsCount:
+                  type: integer
+                tournamentsCount:
+                  type: integer
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Unauthorized'
+              message:
+                type: string
+                example: 'You must be logged in to access this resource'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Forbidden'
+              message:
+                type: string
+                example: "You don't have permission to perform this action"
+
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Bad Request'
+              message:
+                type: string
+                example: 'Invalid input data'
+
+    NotFound:
+      description: Not found - resource doesn't exist
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Not Found'
+              message:
+                type: string
+                example: 'User not found'
+
+    TooManyRequests:
+      description: Too many requests - rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Too Many Requests'
+              message:
+                type: string
+                example: 'Rate limit exceeded. Please try again later.'

@@ -8,6 +8,7 @@ import { useMobileMenu } from '@/hooks/useMobileMenu';
 import { NavItem } from './NavItem';
 import { ThemeToggle } from './ThemeToggle';
 import { AuthControls } from './AuthControls';
+import { SyncNotifications } from '@/components/sync/SyncNotifications';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -30,7 +31,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ className = '' }: NavbarProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { canAccessPage } = usePermissions();
   const {
     isOpen: isMobileMenuOpen,
@@ -171,6 +172,7 @@ export function Navbar({ className = '' }: NavbarProps) {
           {/* Right side controls - Desktop */}
           <div className="hidden md:flex items-center space-x-2 ml-auto">
             <ThemeToggle />
+            {isAuthenticated && user?.role === 'admin' && <SyncNotifications />}
             <AuthControls />
           </div>
 

@@ -3,6 +3,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  avatar?: string;
   role: 'admin' | 'user' | 'moderator';
   isActive: boolean;
   lastLogin?: Date;
@@ -40,14 +41,102 @@ export class AuthService {
   private token: string | null = null;
   private user: User | null = null;
 
+  // Initialize from cookies (call on page load)
+  private initializeFromCookies(): void {
+    if (typeof document === 'undefined') return;
+
+    const authToken = this.getCookie('auth-token');
+    const userRole = this.getCookie('user-role');
+
+    if (authToken && userRole) {
+      this.token = authToken;
+      // Restore minimal user object from cookies
+      // Full user data can be fetched later if needed
+      this.user = {
+        id: '', // Will be populated from token if needed
+        email: '',
+        name: 'User',
+        role: userRole as 'user' | 'admin',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+  }
+
+  // Helper to get cookie value
+  private getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
+  }
+
   // Check if user is authenticated
   isAuthenticated(): boolean {
+    // Check cookies first if not already initialized
+    if (!this.token) {
+      this.initializeFromCookies();
+    }
     return !!this.token && !this.isTokenExpired();
   }
 
   // Get current user
   getCurrentUser(): User | null {
+    // Check cookies first if not already initialized
+    if (!this.user) {
+      this.initializeFromCookies();
+    }
     return this.user;
+  }
+
+  // Trigger auth change event for UI updates
+  private triggerAuthChange(): void {
+    if (typeof window !== 'undefined') {
+      // Dispatch immediately
+      window.dispatchEvent(new Event('auth-change'));
+      console.log('[AuthService] auth-change event dispatched');
+
+      // Also dispatch after a slight delay to catch any late listeners
+      setTimeout(() => {
+        window.dispatchEvent(new Event('auth-change'));
+        console.log('[AuthService] auth-change event dispatched (delayed)');
+      }, 100);
+    }
+  }
+
+  // Set authentication cookie
+  private setAuthCookie(token: string, expiresAt: Date): void {
+    if (typeof document !== 'undefined') {
+      const expires = expiresAt.toUTCString();
+      document.cookie = `auth-token=${token}; expires=${expires}; path=/; SameSite=Lax`;
+      // Trigger auth change event
+      this.triggerAuthChange();
+    }
+  }
+
+  // Set user role cookie
+  private setRoleCookie(role: string, expiresAt: Date): void {
+    if (typeof document !== 'undefined') {
+      const expires = expiresAt.toUTCString();
+      document.cookie = `user-role=${role}; expires=${expires}; path=/; SameSite=Lax`;
+    }
+  }
+
+  // Clear authentication cookies
+  private clearAuthCookies(): void {
+    if (typeof document !== 'undefined') {
+      document.cookie =
+        'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie =
+        'user-role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      // Trigger auth change event
+      this.triggerAuthChange();
+    }
   }
 
   // Login user
@@ -101,6 +190,10 @@ export class AuthService {
       );
       const result = await response.json();
       console.log('AuthService.login: API response data:', result);
+      console.log(
+        'AuthService.login: API response user role:',
+        result.user?.role
+      );
 
       if (!response.ok) {
         return {
@@ -124,13 +217,21 @@ export class AuthService {
 
         this.token = result.token;
 
+        // Set authentication cookies for middleware
+        const expiresAt = result.expiresAt
+          ? new Date(result.expiresAt)
+          : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        if (this.token) {
+          this.setAuthCookie(this.token, expiresAt);
+          this.setRoleCookie(this.user.role, expiresAt);
+        }
+
         return {
           success: true,
           user: this.user,
           token: this.token ?? undefined,
-          expiresAt: result.expiresAt
-            ? new Date(result.expiresAt)
-            : new Date(Date.now() + 24 * 60 * 60 * 1000),
+          expiresAt,
           message: result.message,
         };
       }
@@ -212,12 +313,23 @@ export class AuthService {
         };
 
         // Generate a mock token for now (until we implement proper JWT)
-        this.token = 'mock-jwt-token-' + Date.now();
+        this.token = result.token || 'mock-jwt-token-' + Date.now();
+
+        // Set authentication cookies for middleware
+        const expiresAt = result.expiresAt
+          ? new Date(result.expiresAt)
+          : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        if (this.token) {
+          this.setAuthCookie(this.token, expiresAt);
+          this.setRoleCookie(this.user.role, expiresAt);
+        }
 
         return {
           success: true,
           user: this.user,
           token: this.token ?? undefined,
+          expiresAt,
           message: result.message,
         };
       }
@@ -239,6 +351,7 @@ export class AuthService {
   logout(): void {
     this.token = null;
     this.user = null;
+    this.clearAuthCookies();
   }
 
   // Reset password

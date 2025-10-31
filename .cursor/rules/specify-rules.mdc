@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - PostgreSQL (test database), Redis (test cache), Local storage (PWA testing) (007-comprehensive-testing)
 - TypeScript 5.x, Node.js 18+ + Next.js, Prisma, Vitest, React Testing Library, Playwrigh (008-fix-critical-issues)
 - PostgreSQL (via Prisma ORM) (008-fix-critical-issues)
+- TypeScript 5.x with Next.js 14 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Supabase (Auth & Storage), TanStack Query, Zustand, ShadCN/UI, Playwright, Vites (009-first-release-prep)
+- PostgreSQL (Supabase) for primary database, Supabase Storage for user avatars (009-first-release-prep)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -36,9 +38,9 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 009-first-release-prep: Added TypeScript 5.x with Next.js 14 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Supabase (Auth & Storage), TanStack Query, Zustand, ShadCN/UI, Playwright, Vites
 - 008-fix-critical-issues: Added TypeScript 5.x, Node.js 18+ + Next.js, Prisma, Vitest, React Testing Library, Playwrigh
 - 007-comprehensive-testing: Added TypeScript 5.x, JavaScript ES2022, Node.js 18+ + Playwright, Jest, Vitest, Cypress, Artillery, Lighthouse, OWASP ZAP
-- 006-browser-testing-auth: Added TypeScript 5.x, Next.js 14.x, React 18.x + Playwright, Next.js, React, Tailwind CSS, Prisma, Supabase
 
 
 <!-- MANUAL ADDITIONS START -->

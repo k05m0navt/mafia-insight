@@ -26,6 +26,7 @@ model User {
   players         Player[]
   clubs           Club[]
   tournaments     Tournament[]
+  notifications   Notification[]
   
   @@map("users")
 }
@@ -366,4 +367,62 @@ enum ImportStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  details   Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  expiresAt DateTime?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  SYNC_FAILURE
+  SYNC_SUCCESS
+  SYSTEM_ALERT
+  USER_ACTION
+}
+
+model DataIntegrityReport {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  overallAccuracy Float
+  entities        Json
+  discrepancies   Json?
+  sampleStrategy  String   @default("1_percent")
+  triggerType     String
+  status          String
+  completedAt     DateTime?
+  
+  @@index([timestamp])
+  @@index([status])
+  @@map("data_integrity_reports")
+}
+
+model EmailLog {
+  id          String   @id @default(uuid())
+  to          String[]
+  subject     String
+  type        String
+  status      String
+  sentAt      DateTime?
+  error       String?
+  retryCount  Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  @@index([status, createdAt])
+  @@index([type])
+  @@map("email_logs")
 }

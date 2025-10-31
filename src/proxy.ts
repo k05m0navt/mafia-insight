@@ -1,66 +1,84 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
 /**
- * Route protection proxy
+ * Route protection proxy with cookie-based authentication
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
-    '/api/auth',
-    '/api/search',
-    '/api/regions',
-    '/api/theme',
-  ];
-
-  // Admin routes that require admin role
-  const adminRoutes = ['/admin', '/api/admin', '/import'];
-
-  // Check if route is public
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  // Allow API routes, static files, and _next files
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  // Get token
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  // Define protected routes that require authentication
+  const protectedRoutes = [
+    '/players',
+    '/games',
+    '/tournaments',
+    '/clubs',
+    '/profile',
+    '/settings',
+    '/import-progress',
+    '/sync-status',
+    '/admin',
+  ];
 
-  // If no token and trying to access protected route
-  if (!token) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+  // Define admin-only routes
+  const adminRoutes = ['/admin', '/(admin)'];
 
-    // Redirect to login for page routes
-    const loginUrl = new URL('/api/auth/signin', request.url);
-    loginUrl.searchParams.set('callbackUrl', request.url);
-    return NextResponse.redirect(loginUrl);
+  // Define public routes (don't need authentication)
+  const publicRoutes = [
+    '/',
+    '/login',
+    '/signup',
+    '/error',
+    '/expired',
+    '/unauthorized',
+    '/network-error',
+    '/access-denied',
+    '/admin/bootstrap', // Allow access to bootstrap page
+  ];
+
+  // Check if route is public
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route)
+  );
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
-  // Check admin routes
-  if (adminRoutes.some((route) => pathname.startsWith(route))) {
-    const userRole = token.role || 'user';
+  // Check authentication by looking for auth token in cookies
+  const authToken = request.cookies.get('auth-token')?.value;
+  const userRole = request.cookies.get('user-role')?.value;
 
-    if (userRole !== 'admin') {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        );
-      }
+  // Check if route needs authentication
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
-      // Redirect to access denied page
-      return NextResponse.redirect(new URL('/access-denied', request.url));
-    }
+  if (isProtectedRoute && !authToken) {
+    // Redirect to login with return URL
+    const url = new URL('/login', request.url);
+    url.searchParams.set('from', pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Check if route is admin-only
+  const isAdminRoute = adminRoutes.some(
+    (route) =>
+      pathname.startsWith(route) && !pathname.startsWith('/admin/bootstrap')
+  );
+
+  if (isAdminRoute && userRole !== 'admin') {
+    // Redirect to unauthorized page
+    return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
   return NextResponse.next();

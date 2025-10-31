@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { authService } from '@/services/AuthService';
 import { validateLoginCredentials } from '@/lib/auth';
+import { useToast } from '@/components/hooks/use-toast';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -10,6 +12,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -77,7 +81,24 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
 
       if (result.success) {
         console.log('LoginForm: login successful, calling onSuccess');
-        onSuccess?.();
+
+        // Show success toast notification
+        toast({
+          title: 'Login Successful',
+          description:
+            result.message || `Welcome back, ${result.user?.name || 'User'}!`,
+          variant: 'default',
+        });
+
+        // Call success callback or redirect
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Default redirect to dashboard/players page
+          setTimeout(() => {
+            router.push('/players');
+          }, 500);
+        }
       } else {
         console.log('LoginForm: login failed:', result.error);
         setError(result.error || 'Login failed');

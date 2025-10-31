@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchQuerySchema } from '@/lib/validations';
 import { prisma } from '@/lib/db';
-import { withAuth } from '@/lib/apiAuth';
 import { formatErrorResponse } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('GUEST')(request);
-
     const { searchParams } = new URL(request.url);
 
     // Parse and validate query parameters
@@ -21,6 +17,10 @@ export async function GET(request: NextRequest) {
       page: parseInt(searchParams.get('page') || '1'),
       limit: parseInt(searchParams.get('limit') || '10'),
     };
+
+    // Get sortBy and sortOrder (not in base schema)
+    const sortBy = searchParams.get('sortBy') || 'name';
+    const sortOrder = searchParams.get('sortOrder') || 'asc';
 
     const validatedQuery = searchQuerySchema.parse(query);
 
@@ -59,14 +59,28 @@ export async function GET(request: NextRequest) {
     // Execute search
     const startTime = Date.now();
 
+    // Build orderBy clause
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
+    const validSortFields = [
+      'name',
+      'eloRating',
+      'totalGames',
+      'wins',
+      'losses',
+      'lastSyncAt',
+    ];
+    if (validSortFields.includes(sortBy)) {
+      orderBy[sortBy] = sortOrder === 'desc' ? 'desc' : 'asc';
+    } else {
+      orderBy['name'] = 'asc'; // Default
+    }
+
     const [players, total] = await Promise.all([
       prisma.player.findMany({
         where,
         skip: (validatedQuery.page - 1) * validatedQuery.limit,
         take: validatedQuery.limit,
-        orderBy: {
-          name: 'asc',
-        },
+        orderBy,
         select: {
           id: true,
           gomafiaId: true,

@@ -1,116 +1,119 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
-const BootstrapAdminSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  name: z
-    .string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name must be less than 100 characters'),
-});
+// Bootstrap schema
+const BootstrapSchema = z
+  .object({
+    email: z.string().email('Invalid email format'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 /**
  * POST /api/admin/bootstrap
- * Create the first admin user when no admins exist
+ * Create the first admin user (only works if no admins exist)
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const data = BootstrapAdminSchema.parse(body);
-
-    // Check if any admin users exist
-    const adminCount = await prisma.user.count({
+    // Check if any admin users already exist
+    const existingAdmins = await prisma.user.count({
       where: { role: 'admin' },
     });
 
-    if (adminCount > 0) {
+    if (existingAdmins > 0) {
       return NextResponse.json(
         {
-          error:
-            'Admin users already exist. Use the regular user creation endpoint.',
+          error: 'Admin users already exist. Bootstrap is no longer available.',
         },
+        { status: 403 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const data = BootstrapSchema.parse(body);
+
+    // Initialize Supabase client with service role
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true, // Auto-confirm email for first admin
+        user_metadata: {
+          name: data.name,
+        },
+      });
+
+    if (authError) {
+      console.error('Supabase auth error:', authError);
+      return NextResponse.json(
+        { error: authError.message || 'Failed to create admin user' },
         { status: 400 }
       );
     }
 
-    // Check if email is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
-
-    if (existingUser) {
+    if (!authData.user) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
+        { error: 'Failed to create admin user' },
+        { status: 500 }
       );
     }
 
-    // Create the first admin user
-    const adminUser = await prisma.user.create({
+    // Create user profile in database with admin role
+    const profile = await prisma.user.create({
       data: {
+        id: authData.user.id,
         email: data.email,
         name: data.name,
         role: 'admin',
-        subscriptionTier: 'PREMIUM',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        subscriptionTier: 'FREE',
+        themePreference: 'system',
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
       },
     });
 
-    return NextResponse.json(
-      {
-        message: 'First admin user created successfully',
-        user: {
-          id: adminUser.id,
-          email: adminUser.email,
-          name: adminUser.name,
-          role: adminUser.role,
-        },
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'First admin user created successfully',
+      user: profile,
+    });
   } catch (error) {
-    console.error('Error creating first admin:', error);
+    console.error('Bootstrap error:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
+        {
+          error: 'Validation failed',
+          details: error.issues,
+        },
         { status: 400 }
       );
     }
 
-    if (error instanceof Error) {
-      if (error.message.includes('already exists')) {
-        return NextResponse.json({ error: error.message }, { status: 409 });
-      }
-    }
-
     return NextResponse.json(
-      { error: 'Failed to create first admin user' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * GET /api/admin/bootstrap
- * Check if admin bootstrap is needed
- */
-export async function GET() {
-  try {
-    const adminCount = await prisma.user.count({
-      where: { role: 'admin' },
-    });
-
-    return NextResponse.json({
-      needsBootstrap: adminCount === 0,
-      adminCount,
-    });
-  } catch (error) {
-    console.error('Error checking admin status:', error);
-    return NextResponse.json(
-      { error: 'Failed to check admin status' },
+      { error: 'Failed to create admin user' },
       { status: 500 }
     );
   }
