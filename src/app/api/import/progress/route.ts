@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/apiAuth';
 import { formatErrorResponse } from '@/lib/errors';
 import { importProgressManager } from '@/lib/importProgress';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('USER')(request);
+    // Check authentication via cookie
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'Please sign in to view import progress',
+        },
+        { status: 401 }
+      );
+    }
 
     // Get current progress
     const progress = importProgressManager.getCurrentProgress();
@@ -41,8 +49,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('USER')(request);
+    // Check authentication via cookie
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'Please sign in to start import',
+        },
+        { status: 401 }
+      );
+    }
 
     const body = await request.json();
     const { operation, totalRecords } = body;
@@ -83,8 +100,17 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('USER')(request);
+    // Check authentication via cookie
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'Please sign in to update progress',
+        },
+        { status: 401 }
+      );
+    }
 
     const body = await request.json();
     const { processedRecords, errors } = body;
@@ -128,8 +154,17 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Authenticate request
-    await withAuth('USER')(request);
+    // Check authentication via cookie
+    const authToken = request.cookies.get('auth-token')?.value;
+    if (!authToken) {
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'Please sign in to modify import',
+        },
+        { status: 401 }
+      );
+    }
 
     const body = await request.json();
     const { action } = body;

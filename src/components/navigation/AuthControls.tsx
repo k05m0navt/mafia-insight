@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { ProfileDropdown } from '@/components/layout/ProfileDropdown';
 
 interface AuthControlsProps {
   className?: string;
@@ -14,7 +15,7 @@ export function AuthControls({
   mobile = false,
 }: AuthControlsProps) {
   const { user, isAuthenticated, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [_isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -70,143 +71,86 @@ export function AuthControls({
   if (mobile) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="px-4 py-4 bg-muted/50 rounded-xl">
+        {/* User Info Card */}
+        <div className="px-4 py-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">
-                👤
+            <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center shadow-md">
+              <span className="text-primary-foreground font-bold text-xl">
+                {user?.name ? user.name.charAt(0).toUpperCase() : '👤'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.email}
+              <p className="text-base font-semibold text-foreground truncate">
+                {user?.name || user?.email || 'Guest'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {user?.email || 'Not signed in'}
               </p>
               <p
-                className="text-xs text-muted-foreground"
+                className="text-xs font-medium text-primary capitalize mt-1"
                 data-testid="user-role"
               >
-                {user?.role || 'guest'}
+                {user?.role === 'admin' ? '⭐ Admin' : user?.role || 'Guest'}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-1">
+        {/* Action Buttons */}
+        <div className="space-y-2">
           <Link
             href="/profile"
-            className="flex items-center px-4 py-4 rounded-xl text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 active:scale-95"
+            className="flex items-center px-4 py-3 rounded-lg text-sm font-medium bg-muted/50 hover:bg-muted text-foreground transition-all duration-200 active:scale-[0.98]"
             onClick={() => setIsMenuOpen(false)}
           >
-            Profile
+            <span className="mr-3 text-lg">👤</span>
+            View Profile
           </Link>
 
           <Link
             href="/settings"
-            className="flex items-center px-4 py-4 rounded-xl text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 active:scale-95"
+            className="flex items-center px-4 py-3 rounded-lg text-sm font-medium bg-muted/50 hover:bg-muted text-foreground transition-all duration-200 active:scale-[0.98]"
             onClick={() => setIsMenuOpen(false)}
           >
+            <span className="mr-3 text-lg">⚙️</span>
             Settings
           </Link>
 
+          {user?.role === 'admin' && (
+            <Link
+              href="/admin"
+              className="flex items-center px-4 py-3 rounded-lg text-sm font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-200 active:scale-[0.98]"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <span className="mr-3 text-lg">⚡</span>
+              Admin Dashboard
+            </Link>
+          )}
+
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-4 rounded-xl text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 active:scale-95"
+            className="flex items-center w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 active:scale-[0.98]"
             data-testid="logout-button"
           >
-            Logout
+            <span className="mr-3 text-lg">🚪</span>
+            Sign Out
           </button>
         </div>
       </div>
     );
   }
 
+  // Use ProfileDropdown for desktop
   return (
-    <div className={`relative ${className}`}>
-      <button
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="flex items-center space-x-2 p-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
-        data-testid="user-menu"
-        aria-expanded={isMenuOpen}
-        aria-haspopup="true"
-      >
-        <span className="text-lg" aria-hidden="true">
-          👤
-        </span>
-        <span className="hidden sm:block">{user?.email}</span>
-        <span
-          className="text-xs text-gray-500 dark:text-gray-400"
-          data-testid="user-role"
-        >
-          {user?.role || 'guest'}
-        </span>
-        <svg
-          className={`h-4 w-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-
-      {isMenuOpen && (
-        <div
-          className="absolute right-0 mt-2 w-48 bg-popover rounded-md shadow-lg py-1 z-50 border border-border"
-          data-testid="user-menu-dropdown"
-          role="menu"
-          aria-orientation="vertical"
-        >
-          <div className="px-4 py-2 text-sm text-popover-foreground border-b border-border">
-            <div className="font-medium">{user?.email}</div>
-            <div className="text-xs text-muted-foreground">
-              Role: {user?.role || 'guest'}
-            </div>
-          </div>
-
-          <Link
-            href="/profile"
-            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
-            role="menuitem"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Profile
-          </Link>
-
-          <Link
-            href="/settings"
-            className="block px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
-            role="menuitem"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Settings
-          </Link>
-
-          <button
-            onClick={handleLogout}
-            className="block w-full text-left px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
-            role="menuitem"
-            data-testid="logout-button"
-          >
-            Logout
-          </button>
-        </div>
-      )}
-
-      {/* Overlay to close menu when clicking outside */}
-      {isMenuOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsMenuOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+    <div className={className}>
+      <ProfileDropdown
+        user={{
+          name: user?.name,
+          email: user?.email,
+          avatar: user?.avatar,
+          role: user?.role,
+        }}
+      />
     </div>
   );
 }

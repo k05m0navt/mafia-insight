@@ -1,8 +1,8 @@
-# Deployment Checklist: GoMafia Data Import Feature
+# Deployment Checklist: First Production Release
 
-**Feature**: 003-gomafia-data-import  
-**Date**: October 26, 2025  
-**Target**: Production deployment with comprehensive data import capability
+**Feature**: 009-first-release-prep  
+**Date**: October 30, 2025  
+**Target**: Production deployment with complete authentication, sync automation, and data verification
 
 ## Pre-Deployment Verification
 
@@ -46,6 +46,20 @@
 
   ```
   GOMAFIA_BASE_URL="https://gomafia.pro"
+  ```
+
+- [ ] **Verify CRON_SECRET for Vercel Cron authentication**
+
+  ```
+  CRON_SECRET="<32-byte-hex-string>"
+  ```
+
+  Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+
+- [ ] **Verify RESEND_API_KEY for admin email alerts**
+
+  ```
+  RESEND_API_KEY="re_xxxxxxxxxxxx"
   ```
 
 - [ ] **Verify monitoring/error tracking**

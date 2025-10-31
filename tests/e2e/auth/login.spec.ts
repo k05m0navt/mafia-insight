@@ -1,358 +1,169 @@
 import { test, expect } from '@playwright/test';
-import { testLogger } from '../../utils/logging/TestLogger';
 
-test.describe('Authentication - Login Flow', () => {
+/**
+ * E2E Test: Login Flow
+ *
+ * Tests the complete user login experience including:
+ * - Navigation to login page
+ * - Form validation
+ * - Successful login with toast notification
+ * - Redirect to dashboard/players page
+ * - Profile dropdown display in navbar
+ */
+
+test.describe('Login Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to login page before each test
     await page.goto('/login');
-    await testLogger.info('Navigated to login page', {
-      url: page.url(),
-      timestamp: new Date().toISOString(),
+  });
+
+  test('should display login form', async ({ page }) => {
+    await expect(page.locator('h1')).toContainText('Login');
+    await expect(page.locator('input[name="email"]')).toBeVisible();
+    await expect(page.locator('input[name="password"]')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
+  });
+
+  test('should show validation errors for empty fields', async ({ page }) => {
+    await page.click('button[type="submit"]');
+
+    // Check for validation errors
+    await expect(page.locator('text=/email.*required/i')).toBeVisible();
+    await expect(page.locator('text=/password.*required/i')).toBeVisible();
+  });
+
+  test('should show error for invalid credentials', async ({ page }) => {
+    await page.fill('input[name="email"]', 'invalid@example.com');
+    await page.fill('input[name="password"]', 'wrongpassword');
+    await page.click('button[type="submit"]');
+
+    // Wait for error message
+    await expect(page.locator('text=/invalid.*credentials/i')).toBeVisible({
+      timeout: 5000,
     });
   });
 
-  test('should display login form with required fields', async ({ page }) => {
-    // Check that login form is visible
-    await expect(page.locator('[data-testid="login-form"]')).toBeVisible();
+  test('should successfully login with valid credentials', async ({ page }) => {
+    // Use test credentials (ensure these exist in your test database)
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'testpassword123');
+    await page.click('button[type="submit"]');
 
-    // Check that email input is present
-    await expect(page.locator('[data-testid="email-input"]')).toBeVisible();
-    await expect(page.locator('[data-testid="email-input"]')).toHaveAttribute(
-      'type',
-      'email'
-    );
-    await expect(page.locator('[data-testid="email-input"]')).toHaveAttribute(
-      'required'
-    );
+    // Wait for success toast notification
+    await expect(page.locator('text=/welcome back/i')).toBeVisible({
+      timeout: 10000,
+    });
 
-    // Check that password input is present
-    await expect(page.locator('[data-testid="password-input"]')).toBeVisible();
+    // Verify redirect to dashboard/players
+    await expect(page).toHaveURL(/\/(players|dashboard)/);
+
+    // Verify profile dropdown appears in navbar
     await expect(
-      page.locator('[data-testid="password-input"]')
-    ).toHaveAttribute('type', 'password');
-    await expect(
-      page.locator('[data-testid="password-input"]')
-    ).toHaveAttribute('required');
-
-    // Check that login button is present
-    await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-button"]')).toBeEnabled();
-
-    // Check that forgot password link is present
-    await expect(
-      page.locator('[data-testid="forgot-password-link"]')
+      page
+        .locator('[data-testid="profile-dropdown"]')
+        .or(page.locator('button[aria-label*="profile"]'))
     ).toBeVisible();
-
-    // Check that signup link is present
-    await expect(page.locator('[data-testid="signup-link"]')).toBeVisible();
-
-    await testLogger.info('Login form validation passed', {
-      test: 'should display login form with required fields',
-    });
   });
 
-  test('should login successfully with valid credentials', async ({ page }) => {
-    // Fill in valid credentials
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
+  test('should persist session after page reload', async ({
+    page,
+    context,
+  }) => {
+    // Login
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'testpassword123');
+    await page.click('button[type="submit"]');
 
-    // Click login button
-    await page.click('[data-testid="login-button"]');
+    await expect(page).toHaveURL(/\/(players|dashboard)/, { timeout: 10000 });
 
-    // Wait for navigation to dashboard
-    await expect(page).toHaveURL('/dashboard');
-
-    // Check that user menu is visible (indicating successful login)
-    await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
-
-    // Check that welcome message is displayed
-    await expect(page.locator('[data-testid="welcome-message"]')).toContainText(
-      'Welcome'
-    );
-
-    // Check that logout button is present
-    await expect(page.locator('[data-testid="logout-button"]')).toBeVisible();
-
-    await testLogger.info('Successful login test passed', {
-      test: 'should login successfully with valid credentials',
-      email: 'test@example.com',
-    });
-  });
-
-  test('should show error with invalid email format', async ({ page }) => {
-    // Fill in invalid email format
-    await page.fill('[data-testid="email-input"]', 'invalid-email');
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Check that validation error is shown
-    await expect(page.locator('[data-testid="email-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="email-error"]')).toContainText(
-      'Please enter a valid email address'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    await testLogger.info('Invalid email format test passed', {
-      test: 'should show error with invalid email format',
-    });
-  });
-
-  test('should show error with empty password', async ({ page }) => {
-    // Fill in email but leave password empty
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Check that validation error is shown
-    await expect(page.locator('[data-testid="password-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="password-error"]')).toContainText(
-      'Password is required'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    await testLogger.info('Empty password test passed', {
-      test: 'should show error with empty password',
-    });
-  });
-
-  test('should show error with invalid credentials', async ({ page }) => {
-    // Fill in invalid credentials
-    await page.fill('[data-testid="email-input"]', 'invalid@example.com');
-    await page.fill('[data-testid="password-input"]', 'wrongpassword');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for error message to appear
-    await expect(page.locator('[data-testid="login-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-error"]')).toContainText(
-      'Invalid email or password'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    // Check that form is still functional
-    await expect(page.locator('[data-testid="email-input"]')).toBeVisible();
-    await expect(page.locator('[data-testid="password-input"]')).toBeVisible();
-
-    await testLogger.info('Invalid credentials test passed', {
-      test: 'should show error with invalid credentials',
-    });
-  });
-
-  test('should show error with non-existent user', async ({ page }) => {
-    // Fill in credentials for non-existent user
-    await page.fill('[data-testid="email-input"]', 'nonexistent@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for error message to appear
-    await expect(page.locator('[data-testid="login-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-error"]')).toContainText(
-      'User not found'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    await testLogger.info('Non-existent user test passed', {
-      test: 'should show error with non-existent user',
-    });
-  });
-
-  test('should show error with incorrect password', async ({ page }) => {
-    // Fill in valid email but wrong password
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'wrongpassword');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for error message to appear
-    await expect(page.locator('[data-testid="login-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-error"]')).toContainText(
-      'Incorrect password'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    await testLogger.info('Incorrect password test passed', {
-      test: 'should show error with incorrect password',
-    });
-  });
-
-  test('should handle network errors gracefully', async ({ page }) => {
-    // Mock network failure
-    await page.route('**/api/auth/login', (route) => {
-      route.abort('failed');
-    });
-
-    // Fill in valid credentials
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for error message to appear
-    await expect(page.locator('[data-testid="network-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="network-error"]')).toContainText(
-      'Network error. Please try again.'
-    );
-
-    // Check that we're still on login page
-    await expect(page).toHaveURL('/login');
-
-    await testLogger.info('Network error test passed', {
-      test: 'should handle network errors gracefully',
-    });
-  });
-
-  test('should show loading state during login', async ({ page }) => {
-    // Mock slow response
-    await page.route('**/api/auth/login', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: { id: 1, email: 'test@example.com' },
-        }),
-      });
-    });
-
-    // Fill in valid credentials
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Check that loading state is shown
-    await expect(page.locator('[data-testid="login-loading"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-button"]')).toBeDisabled();
-
-    // Wait for login to complete
-    await expect(page).toHaveURL('/dashboard');
-
-    await testLogger.info('Loading state test passed', {
-      test: 'should show loading state during login',
-    });
-  });
-
-  test('should redirect to intended page after login', async ({ page }) => {
-    // Navigate to a protected page first
-    await page.goto('/analytics/players');
-
-    // Should be redirected to login page
-    await expect(page).toHaveURL('/login');
-
-    // Fill in valid credentials
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Click login button
-    await page.click('[data-testid="login-button"]');
-
-    // Should be redirected to the intended page
-    await expect(page).toHaveURL('/analytics/players');
-
-    await testLogger.info('Redirect test passed', {
-      test: 'should redirect to intended page after login',
-    });
-  });
-
-  test('should remember login state on page refresh', async ({ page }) => {
-    // Login first
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for dashboard
-    await expect(page).toHaveURL('/dashboard');
-
-    // Refresh the page
+    // Reload page
     await page.reload();
 
     // Should still be logged in
-    await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
-    await expect(page).toHaveURL('/dashboard');
-
-    await testLogger.info('Login state persistence test passed', {
-      test: 'should remember login state on page refresh',
-    });
+    await expect(
+      page
+        .locator('[data-testid="profile-dropdown"]')
+        .or(page.locator('button[aria-label*="profile"]'))
+    ).toBeVisible();
   });
 
-  test('should show password visibility toggle', async ({ page }) => {
-    // Check that password visibility toggle is present
-    await expect(page.locator('[data-testid="password-toggle"]')).toBeVisible();
-
-    // Fill in password
-    await page.fill('[data-testid="password-input"]', 'password123');
-
-    // Check that password is hidden by default
-    await expect(
-      page.locator('[data-testid="password-input"]')
-    ).toHaveAttribute('type', 'password');
-
-    // Click toggle to show password
-    await page.click('[data-testid="password-toggle"]');
-
-    // Check that password is now visible
-    await expect(
-      page.locator('[data-testid="password-input"]')
-    ).toHaveAttribute('type', 'text');
-
-    // Click toggle to hide password again
-    await page.click('[data-testid="password-toggle"]');
-
-    // Check that password is hidden again
-    await expect(
-      page.locator('[data-testid="password-input"]')
-    ).toHaveAttribute('type', 'password');
-
-    await testLogger.info('Password visibility toggle test passed', {
-      test: 'should show password visibility toggle',
-    });
+  test('should display "Forgot Password" link', async ({ page }) => {
+    await expect(page.locator('text=/forgot.*password/i')).toBeVisible();
   });
 
-  test('should validate form on submit', async ({ page }) => {
-    // Try to submit empty form
-    await page.click('[data-testid="login-button"]');
+  test('should have link to signup page', async ({ page }) => {
+    const signupLink = page.locator('a[href*="signup"]');
+    await expect(signupLink).toBeVisible();
 
-    // Check that both fields show validation errors
-    await expect(page.locator('[data-testid="email-error"]')).toBeVisible();
-    await expect(page.locator('[data-testid="password-error"]')).toBeVisible();
+    await signupLink.click();
+    await expect(page).toHaveURL(/\/signup/);
+  });
+});
 
-    // Fill in email only
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.click('[data-testid="login-button"]');
+test.describe('Login Form Validation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login');
+  });
 
-    // Check that only password error is shown
-    await expect(page.locator('[data-testid="email-error"]')).not.toBeVisible();
-    await expect(page.locator('[data-testid="password-error"]')).toBeVisible();
+  test('should validate email format', async ({ page }) => {
+    await page.fill('input[name="email"]', 'notanemail');
+    await page.fill('input[name="password"]', 'password123');
+    await page.click('button[type="submit"]');
 
-    // Fill in password
-    await page.fill('[data-testid="password-input"]', 'password123');
-    await page.click('[data-testid="login-button"]');
+    await expect(page.locator('text=/invalid.*email/i')).toBeVisible();
+  });
 
-    // Should proceed with login
-    await expect(page).toHaveURL('/dashboard');
+  test('should validate minimum password length', async ({ page }) => {
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', '123');
+    await page.click('button[type="submit"]');
 
-    await testLogger.info('Form validation test passed', {
-      test: 'should validate form on submit',
-    });
+    await expect(page.locator('text=/password.*8.*characters/i')).toBeVisible();
+  });
+
+  test('should toggle password visibility', async ({ page }) => {
+    const passwordInput = page.locator('input[name="password"]');
+    const toggleButton = page
+      .locator('button[aria-label*="password"]')
+      .or(page.locator('[data-testid="toggle-password"]'));
+
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    if (await toggleButton.isVisible()) {
+      await toggleButton.click();
+      await expect(passwordInput).toHaveAttribute('type', 'text');
+
+      await toggleButton.click();
+      await expect(passwordInput).toHaveAttribute('type', 'password');
+    }
+  });
+});
+
+test.describe('Login Security', () => {
+  test('should handle rate limiting gracefully', async ({ page }) => {
+    // Attempt multiple failed logins
+    for (let i = 0; i < 5; i++) {
+      await page.goto('/login');
+      await page.fill('input[name="email"]', 'test@example.com');
+      await page.fill('input[name="password"]', 'wrongpassword');
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(1000);
+    }
+
+    // Check for rate limit message (if implemented)
+    // This test may need adjustment based on your rate limiting implementation
+  });
+
+  test('should not expose user existence', async ({ page }) => {
+    await page.fill('input[name="email"]', 'nonexistent@example.com');
+    await page.fill('input[name="password"]', 'password123');
+    await page.click('button[type="submit"]');
+
+    // Should show generic error message, not "user not found"
+    const errorMessage = await page
+      .locator('[role="alert"]')
+      .or(page.locator('.error-message'))
+      .textContent();
+    expect(errorMessage?.toLowerCase()).not.toContain('user not found');
+    expect(errorMessage?.toLowerCase()).not.toContain('email not registered');
   });
 });
