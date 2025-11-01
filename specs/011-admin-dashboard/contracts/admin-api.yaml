@@ -1,0 +1,392 @@
+openapi: 3.0.3
+info:
+  title: Mafia Insight - Admin Dashboard & Import Control API
+  version: 1.0.0
+  description: |
+    API endpoints for admin dashboard metrics, import cancellation, and database management.
+    Part of Feature 011: Admin Dashboard & Import Controls.
+
+servers:
+  - url: https://mafiainsight.com/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Admin Dashboard
+    description: System health metrics and data volume statistics
+  - name: Import Controls
+    description: Import cancellation and database management operations
+  - name: System Health
+    description: System health monitoring and status checks
+
+security:
+  - AdminAuth: []
+
+paths:
+  /admin/dashboard:
+    get:
+      tags: [Admin Dashboard]
+      summary: Get dashboard metrics
+      description: Retrieve system health metrics, data volumes, and recent activity for admin dashboard
+      operationId: getDashboardMetrics
+      responses:
+        '200':
+          description: Dashboard metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/import/stop:
+    post:
+      tags: [Import Controls]
+      summary: Stop running import
+      description: Cancel a currently running import operation gracefully with checkpoint preservation
+      operationId: stopImport
+      responses:
+        '200':
+          description: Import cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Import cancelled successfully'
+                  cancelledAt:
+                    type: string
+                    format: date-time
+                    example: '2025-01-27T12:00:00Z'
+                  checkpoint:
+                    type: object
+                    properties:
+                      phase:
+                        type: string
+                        example: 'PLAYERS'
+                      batch:
+                        type: integer
+                        example: 45
+                      progress:
+                        type: integer
+                        example: 45
+        '400':
+          description: No import currently running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    example: 'No import operation currently running'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/import/clear-db:
+    post:
+      tags: [Import Controls]
+      summary: Clear imported game data
+      description: Clear all imported game data from database while preserving user accounts and system configuration
+      operationId: clearDatabase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirm:
+                  type: boolean
+                  required: true
+                  example: true
+                  description: Must be true to confirm database clear operation
+                reason:
+                  type: string
+                  maxLength: 500
+                  example: 'Data corruption detected, starting fresh import'
+      responses:
+        '200':
+          description: Database cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Database cleared successfully'
+                  clearedAt:
+                    type: string
+                    format: date-time
+                  tablesDeleted:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      [
+                        'Player',
+                        'Game',
+                        'Tournament',
+                        'Club',
+                        'GameParticipation',
+                        'PlayerRoleStats',
+                        'PlayerYearStats',
+                        'PlayerTournament',
+                        'Analytics',
+                      ]
+                  tablesPreserved:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      [
+                        'User',
+                        'SyncLog',
+                        'SyncStatus',
+                        'ImportCheckpoint',
+                        'ImportProgress',
+                        'Region',
+                        'Notification',
+                        'DataIntegrityReport',
+                        'EmailLog',
+                      ]
+                  recordCounts:
+                    type: object
+                    properties:
+                      players:
+                        type: integer
+                      games:
+                        type: integer
+                      tournaments:
+                        type: integer
+                      clubs:
+                        type: integer
+        '400':
+          description: Invalid request or import is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Cannot clear database while import is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    example: 'Cannot clear database while import is running. Please stop the import first.'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/health:
+    get:
+      tags: [System Health]
+      summary: Check system health
+      description: Quick health check endpoint for system status
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+        '503':
+          description: Service degraded or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+
+components:
+  schemas:
+    DashboardMetrics:
+      type: object
+      properties:
+        dataVolumes:
+          type: object
+          properties:
+            players:
+              type: integer
+              example: 12450
+            games:
+              type: integer
+              example: 52300
+            tournaments:
+              type: integer
+              example: 890
+            clubs:
+              type: integer
+              example: 156
+          required: [players, games, tournaments, clubs]
+        importStatus:
+          type: object
+          properties:
+            isRunning:
+              type: boolean
+            progress:
+              type: integer
+              minimum: 0
+              maximum: 100
+            currentPhase:
+              type: string
+              nullable: true
+              example: 'GAMES'
+            lastSyncTime:
+              type: string
+              format: date-time
+              nullable: true
+            lastSyncType:
+              type: string
+              nullable: true
+            nextSyncTime:
+              type: string
+              format: date-time
+              nullable: true
+          required: [isRunning]
+        systemHealth:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [healthy, degraded, critical]
+              example: 'healthy'
+            importErrorCount:
+              type: integer
+              minimum: 0
+            lastError:
+              type: string
+              nullable: true
+          required: [database, importErrorCount]
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: 'import'
+              description:
+                type: string
+                example: 'Import completed successfully'
+              timestamp:
+                type: string
+                format: date-time
+              severity:
+                type: string
+                enum: [info, warning, error]
+              example: 'info'
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        [dataVolumes, importStatus, systemHealth, recentActivity, updatedAt]
+
+    SystemHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, critical]
+          example: 'healthy'
+        database:
+          type: object
+          properties:
+            connected:
+              type: boolean
+              example: true
+            latency:
+              type: integer
+              description: Database connection latency in milliseconds
+              example: 15
+          required: [connected]
+        imports:
+          type: object
+          properties:
+            active:
+              type: boolean
+              example: false
+            errors24h:
+              type: integer
+              example: 0
+          required: [active, errors24h]
+      required: [status, database, imports]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'Error message'
+        code:
+          type: string
+          example: 'ERROR_CODE'
+        details:
+          type: object
+      required: [error]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                example: 'Unauthorized'
+              code:
+                example: 'UNAUTHORIZED'
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                example: 'Forbidden - Admin access required'
+              code:
+                example: 'FORBIDDEN'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                example: 'Internal server error'
+              code:
+                example: 'INTERNAL_ERROR'
+
+  securitySchemes:
+    AdminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT token in Authorization header

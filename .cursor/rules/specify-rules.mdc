@@ -21,6 +21,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - PostgreSQL (Supabase) for primary database, Supabase Storage for user avatars (009-first-release-prep)
 - TypeScript 5.0+ + Next.js 16.0, React 19.2, @supabase/supabase-js 2.38.0, @supabase/ssr 0.1.0, next-auth 4.24.12 (010-fix-navbar-auth)
 - Supabase (PostgreSQL), Cookie-based session storage (auth-token cookie) (010-fix-navbar-auth)
+- TypeScript 5.x with Next.js 16 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Tailwind CSS, ShadCN/UI, TanStack Query, Zustand (011-admin-dashboard)
+- PostgreSQL (Supabase) with Prisma ORM (011-admin-dashboard)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -40,9 +42,9 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 011-admin-dashboard: Added TypeScript 5.x with Next.js 16 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Tailwind CSS, ShadCN/UI, TanStack Query, Zustand
 - 010-fix-navbar-auth: Added TypeScript 5.0+ + Next.js 16.0, React 19.2, @supabase/supabase-js 2.38.0, @supabase/ssr 0.1.0, next-auth 4.24.12
 - 009-first-release-prep: Added TypeScript 5.x with Next.js 14 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Supabase (Auth & Storage), TanStack Query, Zustand, ShadCN/UI, Playwright, Vites
-- 008-fix-critical-issues: Added TypeScript 5.x, Node.js 18+ + Next.js, Prisma, Vitest, React Testing Library, Playwrigh
 
 
 <!-- MANUAL ADDITIONS START -->
