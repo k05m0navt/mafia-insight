@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { setAuthTokenCookie, setUserRoleCookie } from '@/lib/utils/apiAuth';
 
 // Signup request body schema
 const SignupSchema = z
@@ -77,7 +78,13 @@ export async function POST(request: NextRequest) {
       // The user can still sign in and we can create the profile later
     }
 
-    return NextResponse.json({
+    // Create response
+    const token = authData.session?.access_token || 'mock-token-' + Date.now();
+    const expiresAt = authData.session?.expires_at
+      ? new Date(authData.session.expires_at * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const response = NextResponse.json({
       success: true,
       user: {
         id: authData.user.id,
@@ -85,9 +92,17 @@ export async function POST(request: NextRequest) {
         name: data.name,
         role: 'user',
       },
+      token,
+      expiresAt,
       message:
         'Account created successfully. Please check your email to verify your account.',
     });
+
+    // Set auth-token and user-role cookies server-side
+    setAuthTokenCookie(response, token, expiresAt);
+    setUserRoleCookie(response, 'user', expiresAt);
+
+    return response;
   } catch (error) {
     console.error('Signup error:', error);
 

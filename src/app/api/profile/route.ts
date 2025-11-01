@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { requireAuthCookie } from '@/lib/utils/apiAuth';
 
 // Profile update schema
 const ProfileUpdateSchema = z.object({
@@ -13,8 +14,15 @@ const ProfileUpdateSchema = z.object({
  * GET /api/profile
  * Get current user's profile
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
+    // Check auth-token cookie first (primary auth method)
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
+    // Also verify with Supabase for user data
     const supabase = await createRouteHandlerClient();
     const {
       data: { user: authUser },
@@ -59,6 +67,13 @@ export async function GET(_request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    // Check auth-token cookie first (primary auth method)
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
+    // Also verify with Supabase for user data
     const supabase = await createRouteHandlerClient();
     const {
       data: { user: authUser },
