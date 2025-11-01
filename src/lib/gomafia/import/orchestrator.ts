@@ -164,10 +164,36 @@ export class ImportOrchestrator {
   }
 
   private notifyProgress(importProgress: ImportProgress): void {
-    // In a real implementation, this would send updates via WebSockets or SSE
-    // For now, we'll just log the progress
+    // Enhanced logging with readable format
+    const statusEmoji =
+      {
+        PENDING: '⏳',
+        RUNNING: '🔄',
+        COMPLETED: '✅',
+        FAILED: '❌',
+        CANCELLED: '⏸️',
+      }[importProgress.status] || '❓';
+
+    const duration = importProgress.startTime
+      ? Math.round(
+          (Date.now() - new Date(importProgress.startTime).getTime()) / 1000
+        )
+      : 0;
+    const durationStr =
+      duration > 60
+        ? `${Math.floor(duration / 60)}m ${duration % 60}s`
+        : `${duration}s`;
+
     console.log(
-      `Import ${importProgress.id} progress: ${importProgress.progress}%`
+      `\n${statusEmoji} [IMPORT] ${importProgress.operation}`,
+      `\n   ID: ${importProgress.id}`,
+      `\n   Progress: ${importProgress.progress}% (${importProgress.processedRecords}/${importProgress.totalRecords} records)`,
+      `\n   Status: ${importProgress.status}`,
+      `\n   Errors: ${importProgress.errors}`,
+      `\n   Duration: ${durationStr}`,
+      importProgress.estimatedCompletion
+        ? `\n   ETA: ${new Date(importProgress.estimatedCompletion).toLocaleTimeString()}`
+        : ''
     );
   }
 

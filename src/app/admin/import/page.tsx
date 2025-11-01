@@ -68,9 +68,19 @@ export default function ImportManagementPage() {
         throw new Error('Failed to fetch imports');
       }
       const data = await response.json();
-      setImports(data.imports || []);
+
+      // Handle both old format (progress only) and new format (with imports array)
+      if (data.imports && Array.isArray(data.imports)) {
+        setImports(data.imports);
+      } else if (data.progress) {
+        // Legacy format - wrap in array
+        setImports([data.progress]);
+      } else {
+        setImports([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load imports');
+      setImports([]);
     } finally {
       setLoading(false);
     }

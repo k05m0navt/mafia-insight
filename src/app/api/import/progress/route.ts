@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formatErrorResponse } from '@/lib/errors';
-import { importProgressManager } from '@/lib/importProgress';
+import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,17 +16,34 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current progress
-    const progress = importProgressManager.getCurrentProgress();
+    // Get all imports from database
+    const allImports = await importOrchestrator.getImportHistory(50);
 
-    if (!progress) {
-      return NextResponse.json({
-        message: 'No import operation in progress',
-        progress: null,
-      });
-    }
+    // Also get active imports from memory
+    const activeImports = importOrchestrator.getActiveImports();
 
-    return NextResponse.json(progress);
+    // Merge and deduplicate (active imports take precedence)
+    const importMap = new Map<string, (typeof allImports)[0]>();
+
+    // Add all from database
+    allImports.forEach((imp) => importMap.set(imp.id, imp));
+
+    // Override with active imports (they have latest state)
+    activeImports.forEach((imp) => importMap.set(imp.id, imp));
+
+    const imports = Array.from(importMap.values()).sort(
+      (a, b) =>
+        new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+
+    // For backward compatibility, also return single progress if there's only one active
+    const activeImport =
+      activeImports.find((imp) => imp.status === 'RUNNING') || null;
+
+    return NextResponse.json({
+      progress: activeImport,
+      imports: imports,
+    });
   } catch (error) {
     console.error('Import progress error:', error);
 
@@ -74,8 +91,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start new import
-    const progress = importProgressManager.startImport(operation, totalRecords);
+    // Start new import using orchestrator
+    const importId = await importOrchestrator.startImport(
+      operation,
+      totalRecords
+    );
+    const progress = await importOrchestrator.getImport(importId);
+
+    if (!progress) {
+      return NextResponse.json(
+        {
+          error: 'Failed to create import',
+          message: 'Could not retrieve import progress',
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(progress, { status: 201 });
   } catch (error) {
@@ -113,19 +144,31 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { processedRecords, errors } = body;
+    const { importId, processedRecords, errors } = body;
 
-    // Update progress
-    const progress = importProgressManager.updateProgress(
-      processedRecords,
-      errors
+    if (!importId) {
+      return NextResponse.json(
+        {
+          error: 'Missing importId',
+          message: 'importId is required to update progress',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update progress using orchestrator
+    await importOrchestrator.updateProgress(
+      importId,
+      processedRecords || 0,
+      errors || 0
     );
+    const progress = await importOrchestrator.getImport(importId);
 
     if (!progress) {
       return NextResponse.json(
         {
           error: 'No active import',
-          message: 'No import operation in progress',
+          message: 'Import not found',
         },
         { status: 404 }
       );
@@ -167,18 +210,31 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { action } = body;
+    const { importId, action } = body;
+
+    if (!importId) {
+      return NextResponse.json(
+        {
+          error: 'Missing importId',
+          message: 'importId is required',
+        },
+        { status: 400 }
+      );
+    }
 
     let progress;
     switch (action) {
       case 'complete':
-        progress = importProgressManager.completeImport();
+        await importOrchestrator.completeImport(importId);
+        progress = await importOrchestrator.getImport(importId);
         break;
       case 'fail':
-        progress = importProgressManager.failImport();
+        await importOrchestrator.failImport(importId);
+        progress = await importOrchestrator.getImport(importId);
         break;
       case 'cancel':
-        progress = importProgressManager.cancelImport();
+        await importOrchestrator.cancelImport(importId);
+        progress = await importOrchestrator.getImport(importId);
         break;
       default:
         return NextResponse.json(
@@ -194,7 +250,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'No active import',
-          message: 'No import operation in progress',
+          message: 'Import not found',
         },
         { status: 404 }
       );

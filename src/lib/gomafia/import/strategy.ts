@@ -138,6 +138,14 @@ export class DataImportStrategy {
           processedRecords,
           errors
         );
+
+        // Log progress in a readable format
+        const progress = Math.round((processedRecords / data.length) * 100);
+        const batchNum = Math.ceil(processedRecords / strategy.batchSize);
+        const totalBatches = Math.ceil(data.length / strategy.batchSize);
+        console.log(
+          `✓ [${strategy.name}] Batch ${batchNum}/${totalBatches}: ${processedRecords}/${data.length} records (${progress}%)`
+        );
       } catch (error) {
         console.error(`Error processing batch for ${strategy.name}:`, error);
         errors += batch.length;
