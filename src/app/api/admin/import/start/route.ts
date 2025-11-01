@@ -1,31 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dataImportStrategy } from '@/lib/gomafia/import/strategy';
+import { chromium, Browser } from 'playwright';
+import { ImportOrchestrator } from '@/lib/gomafia/import/import-orchestrator';
+import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
+import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
+import { prisma as db } from '@/lib/db';
 import { z } from 'zod';
 
+// Strategy to Phase mapping
+import { ClubsPhase } from '@/lib/gomafia/import/phases/clubs-phase';
+import { PlayersPhase } from '@/lib/gomafia/import/phases/players-phase';
+import { TournamentsPhase } from '@/lib/gomafia/import/phases/tournaments-phase';
+import { GamesPhase } from '@/lib/gomafia/import/phases/games-phase';
+import { PlayerYearStatsPhase } from '@/lib/gomafia/import/phases/player-year-stats-phase';
+import { PlayerTournamentPhase } from '@/lib/gomafia/import/phases/player-tournament-phase';
+
 const requestSchema = z.object({
-  strategy: z.string().min(1),
-  data: z.array(z.any()).optional(),
+  strategy: z.enum([
+    'players',
+    'clubs',
+    'tournaments',
+    'games',
+    'player_stats',
+    'tournament_results',
+  ]),
 });
 
 export async function POST(request: NextRequest) {
+  let browser: Browser | null = null;
+
   try {
     const body = await request.json();
-    const { strategy, data } = requestSchema.parse(body);
+    const { strategy } = requestSchema.parse(body);
 
-    // For demo purposes, create some sample data
-    const sampleData = data || generateSampleData(strategy);
+    // Create advisory lock manager
+    const lockManager = new AdvisoryLockManager(db);
 
-    const importId = await dataImportStrategy.executeImport(
+    // Try to acquire lock
+    const lockAcquired = await lockManager.acquireLock();
+    if (!lockAcquired) {
+      return NextResponse.json(
+        { error: 'Import already in progress', code: 'ADVISORY_LOCK_HELD' },
+        { status: 409 }
+      );
+    }
+
+    // Launch browser for scraping
+    browser = await chromium.launch({ headless: true });
+
+    // Create ImportOrchestrator (7-phase) with browser
+    const orchestrator = new ImportOrchestrator(db, browser);
+
+    // Get corresponding Phase class for strategy
+    const PhaseClass = getPhaseClass(strategy);
+    if (!PhaseClass) {
+      throw new Error(`Unknown strategy: ${strategy}`);
+    }
+
+    // Create phase instance
+    const phase = new PhaseClass(orchestrator);
+
+    // Start progress tracking in ImportOrchestrator (singleton)
+    const importId = await importOrchestrator.startImport(
       strategy,
-      sampleData
+      100 // Estimate, will be updated by phase
     );
+
+    // Execute phase in background (non-blocking)
+    executePhaseInBackground(
+      phase,
+      importId,
+      lockManager,
+      browser,
+      orchestrator
+    ).catch((error) => {
+      console.error(`[AdminImport] Phase execution failed:`, error);
+      importOrchestrator.failImport(importId);
+    });
 
     return NextResponse.json({
       importId,
       message: `Import started for strategy: ${strategy}`,
     });
   } catch (error) {
-    console.error('Error starting import:', error);
+    console.error('Error starting admin import:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -34,149 +91,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Clean up browser if launched
+    if (browser) {
+      await browser.close();
+    }
+
     return NextResponse.json(
-      { error: 'Failed to start import' },
+      {
+        error: 'Failed to start import',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     );
   }
 }
 
-interface SamplePlayer {
-  id: string;
-  name: string;
-  eloRating: number;
-  totalGames: number;
-  wins: number;
-  losses: number;
-  region: string;
+function getPhaseClass(strategy: string) {
+  const map = {
+    players: PlayersPhase,
+    clubs: ClubsPhase,
+    tournaments: TournamentsPhase,
+    games: GamesPhase,
+    player_stats: PlayerYearStatsPhase,
+    tournament_results: PlayerTournamentPhase,
+  };
+  return map[strategy as keyof typeof map];
 }
 
-interface SampleTournament {
-  id: string;
-  name: string;
-  date: Date;
-  prizeMoney: number;
-  maxPlayers: number;
-  region: string;
+interface PhaseInstance {
+  execute(): Promise<void>;
 }
 
-interface SampleGame {
-  id: string;
-  date: Date;
-  durationMinutes: number;
-  winner: string;
-  region: string;
-}
+async function executePhaseInBackground(
+  phase: PhaseInstance,
+  importId: string,
+  lockManager: AdvisoryLockManager,
+  browser: Browser,
+  orchestrator: ImportOrchestrator
+): Promise<void> {
+  try {
+    // Execute phase
+    await phase.execute();
 
-interface SampleClub {
-  id: string;
-  name: string;
-  region: string;
-  memberCount: number;
-}
+    // Get metrics from orchestrator
+    const metrics = orchestrator.getValidationMetrics();
 
-interface SamplePlayerStats {
-  playerId: string;
-  year: number;
-  totalGames: number;
-  donGames: number;
-  mafiaGames: number;
-  wins: number;
-  losses: number;
-  winRate: number;
-}
+    // Update progress based on actual results
+    await importOrchestrator.updateProgress(importId, metrics.validRecords, 0);
 
-interface SampleTournamentResult {
-  playerId: string;
-  tournamentId: string;
-  position: number;
-  points: number;
-  gamesPlayed: number;
-}
+    // Mark as completed
+    await importOrchestrator.completeImport(importId);
 
-interface SampleHistoricalData {
-  id: string;
-  type: string;
-  data: Record<string, unknown>;
-  timestamp: Date;
-}
-
-type SampleData =
-  | SamplePlayer
-  | SampleTournament
-  | SampleGame
-  | SampleClub
-  | SamplePlayerStats
-  | SampleTournamentResult
-  | SampleHistoricalData;
-
-function generateSampleData(strategy: string): SampleData[] {
-  switch (strategy) {
-    case 'players':
-      return Array.from({ length: 100 }, (_, i) => ({
-        id: `player_${i + 1}`,
-        name: `Player ${i + 1}`,
-        eloRating: 1000 + Math.floor(Math.random() * 500),
-        totalGames: Math.floor(Math.random() * 100),
-        wins: Math.floor(Math.random() * 50),
-        losses: Math.floor(Math.random() * 50),
-        region: ['US', 'CA', 'GB', 'DE', 'FR'][Math.floor(Math.random() * 5)],
-      }));
-
-    case 'tournaments':
-      return Array.from({ length: 50 }, (_, i) => ({
-        id: `tournament_${i + 1}`,
-        name: `Tournament ${i + 1}`,
-        date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000),
-        prizeMoney: Math.floor(Math.random() * 10000),
-        maxPlayers: 16 + Math.floor(Math.random() * 32),
-        region: ['US', 'CA', 'GB', 'DE', 'FR'][Math.floor(Math.random() * 5)],
-      }));
-
-    case 'games':
-      return Array.from({ length: 200 }, (_, i) => ({
-        id: `game_${i + 1}`,
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-        durationMinutes: 30 + Math.floor(Math.random() * 120),
-        winner: ['BLACK', 'RED'][Math.floor(Math.random() * 2)],
-        region: ['US', 'CA', 'GB', 'DE', 'FR'][Math.floor(Math.random() * 5)],
-      }));
-
-    case 'clubs':
-      return Array.from({ length: 25 }, (_, i) => ({
-        id: `club_${i + 1}`,
-        name: `Club ${i + 1}`,
-        region: ['US', 'CA', 'GB', 'DE', 'FR'][Math.floor(Math.random() * 5)],
-        memberCount: 10 + Math.floor(Math.random() * 100),
-      }));
-
-    case 'player_stats':
-      return Array.from({ length: 100 }, (_, i) => {
-        const totalGames = Math.floor(Math.random() * 50);
-        const wins = Math.floor(Math.random() * totalGames);
-        const losses = totalGames - wins;
-        return {
-          playerId: `player_${i + 1}`,
-          year: 2024,
-          totalGames,
-          donGames: Math.floor(Math.random() * 10),
-          mafiaGames: Math.floor(Math.random() * 20),
-          wins,
-          losses,
-          winRate: totalGames > 0 ? wins / totalGames : 0,
-        };
-      });
-
-    case 'tournament_results':
-      return Array.from({ length: 100 }, (_, i) => ({
-        playerId: `player_${i + 1}`,
-        tournamentId: `tournament_${Math.floor(Math.random() * 50) + 1}`,
-        position: Math.floor(Math.random() * 32) + 1,
-        points: Math.floor(Math.random() * 1000),
-        gamesPlayed: Math.floor(Math.random() * 20) + 1,
-      }));
-
-    default:
-      return [];
+    console.log(`[AdminImport] Import ${importId} completed successfully`);
+  } catch (error) {
+    console.error(`[AdminImport] Import ${importId} failed:`, error);
+    await importOrchestrator.failImport(importId);
+    throw error;
+  } finally {
+    // Always clean up browser and release lock
+    if (browser) {
+      await browser.close();
+    }
+    await lockManager.releaseLock();
   }
 }

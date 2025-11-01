@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Admin Import API
+  description: API endpoints for admin-initiated data imports from gomafia.pro using real scrapers
+  version: 1.0.0
+  contact:
+    name: Mafia Insight Development Team
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://mafia-insight.vercel.app/api
+    description: Production
+
+tags:
+  - name: Admin Import
+    description: Admin-initiated data import operations
+
+paths:
+  /admin/import/start:
+    post:
+      summary: Start admin-initiated import
+      description: |
+        Start a data import operation for a specific strategy (Players, Clubs, Tournaments, etc.)
+        using real Playwright-based scrapers from gomafia.pro. Each strategy runs its corresponding
+        Phase class with actual data scraping, validation, and progress tracking.
+      operationId: startAdminImport
+      tags:
+        - Admin Import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                strategy:
+                  type: string
+                  enum:
+                    - players
+                    - clubs
+                    - tournaments
+                    - games
+                    - player_stats
+                    - tournament_results
+                  description: The data type to import
+                  example: players
+              required:
+                - strategy
+      responses:
+        '200':
+          description: Import started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  importId:
+                    type: string
+                    description: Unique identifier for tracking this import
+                    example: 'import_1706389823456_abc123xyz'
+                  message:
+                    type: string
+                    example: 'Import started for strategy: players'
+        '409':
+          description: Another import is already running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Import already in progress'
+                code: 'ADVISORY_LOCK_HELD'
+                details:
+                  importId: 'import_1706389823456_xyz789'
+                  strategy: 'clubs'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Invalid request data'
+                code: 'VALIDATION_ERROR'
+                details:
+                  - field: 'strategy'
+                    message: 'Invalid strategy value'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Failed to start import'
+                code: 'INTERNAL_ERROR'
+                details: 'Browser launch failed or scraper initialization error'
+
+  /admin/import/stop:
+    post:
+      summary: Stop running import
+      description: |
+        Stop a running admin import operation. The import will terminate gracefully,
+        releasing locks and cleaning up browser resources.
+      operationId: stopAdminImport
+      tags:
+        - Admin Import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                importId:
+                  type: string
+                  description: ID of the import to stop
+                  example: 'import_1706389823456_abc123xyz'
+              required:
+                - importId
+      responses:
+        '200':
+          description: Import stopped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Import stopped successfully'
+                  importId:
+                    type: string
+                    example: 'import_1706389823456_abc123xyz'
+        '404':
+          description: Import not found or not running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Import not found or already completed'
+                code: 'IMPORT_NOT_FOUND'
+
+  /admin/import/progress:
+    get:
+      summary: Get admin import history
+      description: |
+        Retrieve history of admin-initiated imports with their status and progress.
+        Returns all imports sorted by start time.
+      operationId: getAdminImportProgress
+      tags:
+        - Admin Import
+      parameters:
+        - name: importId
+          in: query
+          schema:
+            type: string
+          description: Optional import ID to get specific import details
+      responses:
+        '200':
+          description: Import history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imports:
+                    type: array
+                    description: All imports (active and completed)
+                    items:
+                      $ref: '#/components/schemas/ImportProgress'
+                  progress:
+                    type: object
+                    description: Currently running import (if any)
+                    nullable: true
+                    $ref: '#/components/schemas/ImportProgress'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    ImportProgress:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique import identifier
+          example: 'import_1706389823456_abc123xyz'
+        operation:
+          type: string
+          description: Strategy name (players, clubs, tournaments, etc.)
+          example: 'players'
+        progress:
+          type: integer
+          description: Completion percentage (0-100)
+          minimum: 0
+          maximum: 100
+          example: 75
+        totalRecords:
+          type: integer
+          description: Total records to process
+          example: 1000
+        processedRecords:
+          type: integer
+          description: Number of records processed so far
+          example: 750
+        errors:
+          type: integer
+          description: Number of errors encountered
+          example: 5
+        startTime:
+          type: string
+          format: date-time
+          description: When the import started
+          example: '2025-01-27T10:00:00Z'
+        estimatedCompletion:
+          type: string
+          format: date-time
+          nullable: true
+          description: Estimated completion time
+          example: '2025-01-27T10:05:00Z'
+        status:
+          type: string
+          enum:
+            - PENDING
+            - RUNNING
+            - COMPLETED
+            - FAILED
+            - CANCELLED
+          description: Current import status
+          example: 'RUNNING'
+      required:
+        - id
+        - operation
+        - progress
+        - totalRecords
+        - processedRecords
+        - errors
+        - startTime
+        - status
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: 'Import failed to start'
+        code:
+          type: string
+          description: Machine-readable error code
+          example: 'BROWSER_LAUNCH_ERROR'
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+          example:
+            strategy: 'players'
+            reason: 'Playwright browser launch timeout'
+      required:
+        - error

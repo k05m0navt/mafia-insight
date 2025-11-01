@@ -5,11 +5,17 @@
 **Status**: Draft  
 **Input**: User description: "Right now, the app use mock scrapers, there is need to remoe them and use real scrapers:"
 
+## Clarifications
+
+### Session 2025-01-27
+
+- Q: Should admin imports run all 7 phases together or only the selected strategy's phase? → A: Individual strategy phases only - each admin strategy button runs its corresponding phase with real scrapers
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Admin Manual Import Uses Real Scrapers (Priority: P1)
 
-When an admin manually triggers an import operation from the admin dashboard, the system fetches data from gomafia.pro using the real Playwright-based scrapers instead of generating mock/sample data. The import progresses through all 7 phases (Clubs, Players, Player Year Stats, Tournaments, Player Tournament History, Games, Statistics) using actual scraped data from the live website.
+When an admin manually triggers an import operation from the admin dashboard, the system fetches data from gomafia.pro using the real Playwright-based scrapers instead of generating mock/sample data. Each admin strategy button (Players, Clubs, Tournaments, Games, etc.) runs its corresponding phase with actual scraped data from the live website.
 
 **Why this priority**: This is the core functionality - admin imports should use real data sources, not test data. Without this, the admin dashboard is useless for real operations.
 
@@ -37,7 +43,7 @@ When an admin manually triggers an import operation from the admin dashboard, th
 
 - **FR-001**: System MUST use real scraper implementations (PlayersScraper, ClubsScraper, TournamentsScraper, etc.) when admin triggers imports from `/admin/import`
 - **FR-002**: System MUST remove mock data generation functions (generateSampleData) from admin import endpoint
-- **FR-003**: System MUST integrate ImportOrchestrator with 7-phase scraping workflow into admin import flow
+- **FR-003**: System MUST integrate individual Phase classes (PlayersPhase, ClubsPhase, etc.) with ImportOrchestrator's infrastructure (rate limiter, batch processor, checkpoint manager) for individual strategy imports
 - **FR-004**: System MUST display accurate progress metrics (players scraped, clubs scraped, etc.) during admin imports
 - **FR-005**: System MUST handle scraper errors gracefully with retry logic and proper error reporting
 - **FR-006**: System MUST enforce rate limiting (2 seconds between requests) during admin imports
@@ -58,7 +64,7 @@ When an admin manually triggers an import operation from the admin dashboard, th
 
 - **SC-001**: 100% of admin-initiated imports use real scrapers from gomafia.pro, with zero mock data generation
 - **SC-002**: Import operations complete successfully with ≥95% data validation rate (valid records / total scraped)
-- **SC-003**: System processes full player/club/tournament imports in ≤30 minutes for typical dataset sizes
+- **SC-003**: System processes individual phase imports (e.g., 100 players or 50 clubs) in ≤5 minutes for typical dataset sizes
 - **SC-004**: Admin dashboard shows accurate real-time progress with phase names and record counts during imports
 - **SC-005**: Failed imports can resume from checkpoint with ≤5% duplicate records created
 - **SC-006**: All imported players have valid gomafiaId values that match records on gomafia.pro website
