@@ -7,6 +7,7 @@ import {
 } from '@/services/auth/adminService';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { requireAuthCookie } from '@/lib/utils/apiAuth';
 
 // Create admin schema
 const CreateAdminSchema = z
@@ -27,6 +28,13 @@ const CreateAdminSchema = z
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check auth-token cookie first (primary auth method)
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
+    // Also verify with Supabase for user data
     const supabase = await createRouteHandlerClient();
     const {
       data: { user: authUser },
@@ -75,6 +83,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check auth-token cookie first (primary auth method)
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
+    // Also verify with Supabase for user data
     const supabase = await createRouteHandlerClient();
     const {
       data: { user: authUser },

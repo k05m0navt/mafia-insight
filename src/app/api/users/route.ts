@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userService } from '@/lib/users/user-service';
 import { z } from 'zod';
+import { requireAuthCookie } from '@/lib/utils/apiAuth';
 
 // Query parameters validation schema
 const UsersQuerySchema = z.object({
@@ -27,6 +28,12 @@ const CreateUserSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
     const { searchParams } = new URL(request.url);
     const query = UsersQuerySchema.parse(Object.fromEntries(searchParams));
 
@@ -56,6 +63,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication (admin only - but checking for any auth first)
+    const authError = requireAuthCookie(request);
+    if (authError) {
+      return authError;
+    }
+
     const body = await request.json();
     const data = CreateUserSchema.parse(body);
 

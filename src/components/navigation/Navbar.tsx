@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMobileMenu } from '@/hooks/useMobileMenu';
 import { NavItem } from './NavItem';
@@ -31,7 +31,8 @@ interface NavbarProps {
 }
 
 export function Navbar({ className = '' }: NavbarProps) {
-  const { isAuthenticated, user } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
   const { canAccessPage } = usePermissions();
   const {
     isOpen: isMobileMenuOpen,
@@ -196,13 +197,13 @@ export function Navbar({ className = '' }: NavbarProps) {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 sm:w-96">
+              <SheetContent side="right" className="w-80 sm:w-96 flex flex-col">
                 <VisuallyHidden>
                   <SheetTitle>Navigation Menu</SheetTitle>
                 </VisuallyHidden>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                   {/* Mobile Header */}
-                  <div className="flex items-center p-6 border-b border-border">
+                  <div className="flex items-center p-6 border-b border-border flex-shrink-0">
                     <Link
                       href="/"
                       className="flex items-center gap-3 text-xl font-bold text-foreground"
@@ -217,8 +218,8 @@ export function Navbar({ className = '' }: NavbarProps) {
                     </Link>
                   </div>
 
-                  {/* Mobile Navigation Items */}
-                  <nav className="flex-1 px-6 py-8 space-y-1">
+                  {/* Mobile Navigation Items - Scrollable */}
+                  <nav className="flex-1 px-6 py-8 space-y-1 overflow-y-auto min-h-0">
                     {visibleItems.map((item) => {
                       if (!item.path) {
                         console.error(
@@ -242,7 +243,7 @@ export function Navbar({ className = '' }: NavbarProps) {
                   </nav>
 
                   {/* Mobile Controls */}
-                  <div className="p-6 border-t border-border space-y-6">
+                  <div className="p-6 border-t border-border space-y-6 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
                         Theme

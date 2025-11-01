@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 import { ProfileDropdown } from '@/components/layout/ProfileDropdown';
+
+// AuthControls component for navigation bar
 
 interface AuthControlsProps {
   className?: string;
@@ -14,7 +16,9 @@ export function AuthControls({
   className = '',
   mobile = false,
 }: AuthControlsProps) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const [_isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {

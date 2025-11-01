@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { authService } from '@/services/AuthService';
+import { useAuthStore } from '@/store/authStore';
 
 interface ProfileDropdownProps {
   user: {
@@ -25,10 +25,11 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ user }: ProfileDropdownProps) {
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
+      await logout();
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);

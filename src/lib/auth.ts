@@ -149,6 +149,55 @@ export class AuthService {
     return response.permissions;
   }
 
+  async refreshToken(): Promise<{
+    success: boolean;
+    token?: string;
+    expiresAt?: Date;
+    error?: string;
+  }> {
+    try {
+      const response = await this.makeRequest<{
+        success: boolean;
+        token?: string;
+        expiresAt?: string;
+        message?: string;
+      }>('/refresh', {
+        method: 'POST',
+      });
+
+      if (response.success && response.token) {
+        this.token = response.token;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_token', response.token);
+        }
+
+        return {
+          success: true,
+          token: response.token,
+          expiresAt: response.expiresAt
+            ? new Date(response.expiresAt)
+            : undefined,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Token refresh failed',
+      };
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+      return {
+        success: false,
+        error: 'Token refresh failed',
+      };
+    }
+  }
+
   isAuthenticated(): boolean {
     return !!this.token;
   }

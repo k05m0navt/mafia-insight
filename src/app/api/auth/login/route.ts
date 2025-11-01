@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db';
+import { setAuthTokenCookie, setUserRoleCookie } from '@/lib/utils/apiAuth';
 
 // Login request body schema
 const LoginSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(1, 'Password is required'),
 });
-
-// Initialize Supabase client with service role for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * POST /api/auth/login
@@ -24,6 +18,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const data = LoginSchema.parse(body);
+
+    // Create Supabase client with SSR cookie support for session management
+    const supabase = await createRouteHandlerClient();
 
     // Sign in user with Supabase Auth
     const { data: authData, error: authError } =
@@ -125,9 +122,9 @@ export async function POST(request: NextRequest) {
 
     // TEMPORARY FIX: Force query database directly with service role
     // Check if profile query failed and retry with direct query
-    let userRole = userProfile?.role;
+    let userRole: string = userProfile?.role || 'user';
 
-    if (!userRole) {
+    if (!userProfile?.role) {
       console.log(
         '[LOGIN API] Profile role missing, querying database directly'
       );
@@ -150,7 +147,13 @@ export async function POST(request: NextRequest) {
       finalRole: userRole,
     });
 
-    return NextResponse.json({
+    // Create response
+    const token = authData.session?.access_token || 'mock-token-' + Date.now();
+    const expiresAt = authData.session?.expires_at
+      ? new Date(authData.session.expires_at * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const response = NextResponse.json({
       success: true,
       user: {
         id: authData.user.id,
@@ -159,12 +162,16 @@ export async function POST(request: NextRequest) {
         role: userRole,
         avatar: userProfile?.avatar,
       },
-      token: authData.session?.access_token || 'mock-token-' + Date.now(),
-      expiresAt: authData.session?.expires_at
-        ? new Date(authData.session.expires_at * 1000)
-        : new Date(Date.now() + 24 * 60 * 60 * 1000),
+      token,
+      expiresAt,
       message: `Welcome back, ${userName}!`,
     });
+
+    // Set auth-token and user-role cookies server-side
+    setAuthTokenCookie(response, token, expiresAt);
+    setUserRoleCookie(response, userRole, expiresAt);
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
 

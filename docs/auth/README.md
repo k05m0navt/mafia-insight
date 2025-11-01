@@ -249,11 +249,78 @@ The **Admin Bootstrap** system provides a secure way to create the first adminis
 
 ## Authentication Utilities
 
-### Client-Side
+### Client-Side State Management
 
-**`useAuth` Hook**:
+**Zustand Store (Recommended)**:
+
+The application uses **Zustand** with persist middleware for client-side authentication state management. This provides:
+
+- Automatic cross-tab synchronization
+- localStorage persistence
+- React reactivity (components auto-update on state changes)
+- Type-safe selectors
+
+**Usage Pattern**:
 
 ```typescript
+import { useAuthStore, useIsAuthenticated, useCurrentUser } from '@/store/authStore';
+
+// In components - use selectors for reactive updates
+function MyComponent() {
+  const isAuthenticated = useIsAuthenticated();
+  const user = useCurrentUser();
+  const { login, logout, checkAuthStatus } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <div>Please sign in</div>;
+  }
+
+  return <div>Welcome, {user?.name}</div>;
+}
+```
+
+**Available Selectors**:
+
+```typescript
+// Boolean authentication state
+const isAuthenticated = useIsAuthenticated();
+
+// Current user object (null if not authenticated)
+const user = useCurrentUser();
+
+// User role
+const role = useUserRole();
+
+// Admin check
+const isAdmin = useIsAdmin();
+
+// Loading state
+const isLoading = useIsLoading();
+
+// Error state
+const error = useAuthError();
+
+// All auth actions
+const { login, logout, signup, checkAuthStatus } = useAuthActions();
+
+// Complete state (use sparingly - prefer selectors)
+const { isAuthenticated, user, isLoading, error } = useAuthState();
+```
+
+**Initialization**:
+
+The store is automatically initialized on page load and navigation via `AuthInitializer` in the Layout component. State is synced with cookies (source of truth for SSR/API).
+
+**Cross-Tab Synchronization**:
+
+Zustand's persist middleware automatically handles cross-tab synchronization via StorageEvent API. When auth state changes in one tab, other tabs automatically update.
+
+**Legacy `useAuth` Hook**:
+
+The `useAuth` hook is still available but is deprecated in favor of the Zustand store. Migration to Zustand is recommended for better cross-tab sync and performance.
+
+```typescript
+// Deprecated - prefer Zustand store
 import { useAuth } from '@/hooks/useAuth';
 
 const { user, isAuthenticated, isLoading, logout } = useAuth();
