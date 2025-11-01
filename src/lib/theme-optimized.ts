@@ -180,6 +180,12 @@ class OptimizedThemeManager {
     });
   }
 
+  private resolveTheme(): void {
+    // Update resolvedTheme to match the current theme
+    // In the future, this could handle 'system' theme detection
+    this.state.resolvedTheme = this.state.theme;
+  }
+
   /**
    * Set the theme
    */
