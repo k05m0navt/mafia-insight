@@ -12,15 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import {
-  User,
-  Mail,
-  Calendar,
-  Shield,
-  Settings,
-  Edit,
-  Loader2,
-} from 'lucide-react';
+import { User, Mail, Calendar, Shield, Settings, Edit } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { useSession } from '@/hooks/useSession';
@@ -40,17 +33,40 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 }) => {
   const { user, isLoading: loading } = useAuth();
   const { description, isAdmin, isAuthenticated } = useRole();
-  const { token, expiresAt, isValid: isSessionValid, isExpired: isExpiredFn } = useSession();
+  const {
+    token,
+    expiresAt,
+    isValid: isSessionValid,
+    isExpired: isExpiredFn,
+  } = useSession();
 
   if (loading) {
+    if (variant === 'compact') {
+      return (
+        <div className={`flex items-center gap-3 ${className}`}>
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <Card className={className}>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="text-sm text-muted-foreground">
-              Loading profile...
-            </span>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-48 mt-2" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-16 w-16 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-5 w-20" />
+            </div>
           </div>
         </CardContent>
       </Card>

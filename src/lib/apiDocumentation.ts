@@ -672,7 +672,7 @@ export class APIDocumentationGenerator {
       ThemeConfiguration: {
         type: 'object',
         properties: {
-          theme: { type: 'string', enum: ['light', 'dark', 'system'] },
+          theme: { type: 'string', enum: ['light', 'dark'] },
           customColors: { type: 'object' },
           lastUpdated: { type: 'string', format: 'date-time' },
         },

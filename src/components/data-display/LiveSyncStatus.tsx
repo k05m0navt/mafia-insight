@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface LiveSyncStatusProps {
   className?: string;
@@ -69,12 +70,26 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
   if (!syncStatus) {
     return (
       <Card className={className}>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Loading sync status...
-            </p>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-9 w-20" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-full" />
           </div>
         </CardContent>
       </Card>

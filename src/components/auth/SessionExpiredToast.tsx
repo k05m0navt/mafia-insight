@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/hooks/use-toast';
 import { useAuthStore } from '@/store/authStore';
-import { authService } from '@/lib/auth';
+import { authService } from '@/services/AuthService';
 import { Button } from '@/components/ui/button';
 import { ToastAction } from '@/components/ui/toast';
 import { RefreshCw } from 'lucide-react';

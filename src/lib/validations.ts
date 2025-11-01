@@ -17,7 +17,7 @@ export const searchQuerySchema = z.object({
 export const userRoleSchema = z.enum(['GUEST', 'USER', 'ADMIN']);
 
 // Theme validation
-export const themeSchema = z.enum(['light', 'dark', 'system']);
+export const themeSchema = z.enum(['light', 'dark']);
 
 export const themeUpdateSchema = z.object({
   theme: themeSchema,

@@ -14,9 +14,19 @@ export async function GET(
   try {
     const { id } = GameParamsSchema.parse(await params);
 
+    // Use select instead of include for better performance
     const game = await db.game.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        gomafiaId: true,
+        date: true,
+        durationMinutes: true,
+        winnerTeam: true,
+        status: true,
+        lastSyncAt: true,
+        syncStatus: true,
+        tournamentId: true,
         tournament: {
           select: {
             id: true,
@@ -26,7 +36,11 @@ export async function GET(
           },
         },
         participations: {
-          include: {
+          select: {
+            id: true,
+            role: true,
+            team: true,
+            isWinner: true,
             player: {
               select: {
                 id: true,

@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { authService } from '@/services/AuthService';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { authService, User } from '@/services/AuthService';
 
 // Auth state interface
 interface AuthState {
-  user: any | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -12,7 +18,7 @@ interface AuthState {
 // Auth actions
 type AuthAction =
   | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: any }
+  | { type: 'AUTH_SUCCESS'; payload: User }
   | { type: 'AUTH_FAIL'; payload: string }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'CLEAR_ERROR' };
@@ -90,12 +96,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authService.isAuthenticated()) {
         try {
           dispatch({ type: 'AUTH_START' });
-          const user = authService.getCurrentUser();
+          const user = await authService.getCurrentUser();
           if (user) {
             dispatch({ type: 'AUTH_SUCCESS', payload: user });
           }
-        } catch (error: any) {
-          dispatch({ type: 'AUTH_FAIL', payload: error.message || 'Authentication check failed' });
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Authentication check failed';
+          dispatch({ type: 'AUTH_FAIL', payload: message });
         }
       }
     };

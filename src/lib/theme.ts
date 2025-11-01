@@ -25,7 +25,7 @@ const THEME_CONFIG: ThemeConfig = {
 
 export class ThemeService {
   private static instance: ThemeService;
-  private currentTheme: Theme = 'system';
+  private currentTheme: Theme = 'light';
   private listeners: Set<(theme: Theme) => void> = new Set();
 
   static getInstance(): ThemeService {
@@ -38,49 +38,33 @@ export class ThemeService {
   private constructor() {
     if (typeof window !== 'undefined') {
       this.initializeTheme();
-      this.setupSystemPreferenceListener();
     }
   }
 
   private initializeTheme(): void {
     const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme;
-    if (storedTheme && ['light', 'dark', 'system'].includes(storedTheme)) {
+    if (storedTheme && ['light', 'dark'].includes(storedTheme)) {
       this.currentTheme = storedTheme;
     } else {
-      this.currentTheme = 'system';
+      this.currentTheme = 'light';
     }
 
     this.applyTheme();
-  }
-
-  private setupSystemPreferenceListener(): void {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-      const handleChange = () => {
-        if (this.currentTheme === 'system') {
-          this.applyTheme();
-        }
-      };
-
-      mediaQuery.addEventListener('change', handleChange);
-    }
   }
 
   private applyTheme(): void {
     if (typeof window === 'undefined') return;
 
     const root = document.documentElement;
-    const effectiveTheme = this.getEffectiveTheme();
 
     // Remove existing theme classes
     root.classList.remove('light', 'dark');
 
     // Add new theme class
-    root.classList.add(effectiveTheme);
+    root.classList.add(this.currentTheme);
 
     // Apply CSS custom properties
-    const themeConfig = THEME_CONFIG[effectiveTheme];
+    const themeConfig = THEME_CONFIG[this.currentTheme];
     Object.entries(themeConfig).forEach(([property, value]) => {
       root.style.setProperty(property, value);
     });
@@ -94,7 +78,7 @@ export class ThemeService {
   }
 
   setTheme(theme: Theme): void {
-    if (!['light', 'dark', 'system'].includes(theme)) {
+    if (!['light', 'dark'].includes(theme)) {
       throw new ThemeError('Invalid theme');
     }
 
@@ -110,34 +94,17 @@ export class ThemeService {
   toggleTheme(): void {
     if (this.currentTheme === 'light') {
       this.setTheme('dark');
-    } else if (this.currentTheme === 'dark') {
-      this.setTheme('light');
     } else {
-      // If system, toggle to opposite of current effective theme
-      const effectiveTheme = this.getEffectiveTheme();
-      this.setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
+      this.setTheme('light');
     }
   }
 
   isDark(): boolean {
-    return this.getEffectiveTheme() === 'dark';
+    return this.currentTheme === 'dark';
   }
 
   isLight(): boolean {
-    return this.getEffectiveTheme() === 'light';
-  }
-
-  isSystem(): boolean {
-    return this.currentTheme === 'system';
-  }
-
-  getEffectiveTheme(): 'light' | 'dark' {
-    return this.currentTheme === 'system'
-      ? typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : (this.currentTheme as 'light' | 'dark');
+    return this.currentTheme === 'light';
   }
 
   addListener(listener: (theme: Theme) => void): () => void {
@@ -191,7 +158,7 @@ export class ThemeService {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.theme && ['light', 'dark', 'system'].includes(data.theme)) {
+        if (data.theme && ['light', 'dark'].includes(data.theme)) {
           this.setTheme(data.theme);
         }
       }
@@ -206,27 +173,14 @@ export class ThemeService {
   }
 
   getCurrentThemeConfig(): Record<string, string> {
-    return THEME_CONFIG[this.getEffectiveTheme()];
-  }
-
-  resetToSystem(): void {
-    this.setTheme('system');
+    return THEME_CONFIG[this.currentTheme];
   }
 }
 
 export const themeService = ThemeService.getInstance();
 
 export const validateTheme = (theme: string): theme is Theme => {
-  return ['light', 'dark', 'system'].includes(theme);
-};
-
-export const getSystemTheme = (): 'light' | 'dark' => {
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-  }
-  return 'light';
+  return ['light', 'dark'].includes(theme);
 };
 
 export const createThemeTransition = (duration: number = 300): string => {

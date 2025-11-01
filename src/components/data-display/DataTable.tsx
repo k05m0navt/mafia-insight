@@ -21,6 +21,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Search, Filter, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Column {
   key: string;
@@ -102,9 +103,15 @@ export function DataTable({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <RefreshCw className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading...</span>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex space-x-4">
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 w-24" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

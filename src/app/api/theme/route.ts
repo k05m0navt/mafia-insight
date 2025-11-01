@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const themeSchema = z.object({
-  theme: z.enum(['light', 'dark', 'system']),
+  theme: z.enum(['light', 'dark']),
   customColors: z.record(z.string(), z.string()).optional(),
 });
 
@@ -12,7 +12,7 @@ export async function GET() {
     // For now, return default theme configuration
     // In a real implementation, this would fetch from the database based on user session
     const response = {
-      theme: 'system' as const,
+      theme: 'light' as const,
       customColors: {},
       lastUpdated: new Date().toISOString(),
     };

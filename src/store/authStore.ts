@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, AuthState } from '@/types/auth';
-import { authService } from '@/lib/auth';
+import { authService } from '@/services/AuthService';
 import { permissionService } from '@/lib/permissions';
 import { getAuthTokenCookie, hasAuthTokenCookie } from '@/lib/utils/auth';
 

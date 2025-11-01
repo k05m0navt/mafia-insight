@@ -1,46 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
-import { z } from 'zod';
+import { authenticateRequest } from '@/lib/apiAuth';
+import { cancelImport } from '@/lib/admin/import-control-service';
 
-const requestSchema = z.object({
-  importId: z.string().min(1),
-});
-
+/**
+ * POST /api/admin/import/stop
+ * Cancel a running import operation
+ */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { importId } = requestSchema.parse(body);
+    // Authenticate and authorize request
+    const { user, role } = await authenticateRequest(request);
 
-    // Check if import exists and is running
-    const importProgress = importOrchestrator.getImport(importId);
-    if (!importProgress) {
-      return NextResponse.json({ error: 'Import not found' }, { status: 404 });
+    // Check if user has admin role
+    if (role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
-    if (importProgress.status !== 'RUNNING') {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Import is not running' },
-        { status: 400 }
+        { error: 'User authentication required' },
+        { status: 401 }
       );
     }
 
     // Cancel the import
-    await importOrchestrator.cancelImport(importId);
+    await cancelImport(user.id);
 
     return NextResponse.json({
-      message: 'Import cancelled successfully',
-      importId,
+      success: true,
+      message: 'Import stopped successfully',
     });
-  } catch (error) {
-    console.error('Error stopping import:', error);
+  } catch (error: unknown) {
+    console.error('Stop import API error:', error);
 
-    if (error instanceof z.ZodError) {
+    // Handle specific errors
+    if (
+      error instanceof Error &&
+      error.message?.includes('No import operation')
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // Handle authentication errors
+    if (error instanceof Error && error.message?.includes('Authentication')) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
+        { error: 'Authentication required' },
+        { status: 401 }
       );
     }
 
+    // Handle authorization errors
+    if (error instanceof Error && error.message?.includes('Role')) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    // Generic error response
     return NextResponse.json(
       { error: 'Failed to stop import' },
       { status: 500 }

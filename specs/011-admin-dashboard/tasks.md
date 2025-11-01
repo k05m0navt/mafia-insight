@@ -19,10 +19,10 @@
 
 **Purpose**: Project initialization and validation of existing infrastructure
 
-- [ ] T001 Verify existing admin infrastructure in src/app/(admin)/ and src/components/admin/
-- [ ] T002 Verify existing import orchestrator supports AbortSignal in src/lib/gomafia/import/import-orchestrator.ts
-- [ ] T003 Verify existing Prisma schema includes required tables (SyncStatus, SyncLog, ImportCheckpoint, etc.)
-- [ ] T004 Verify existing advisory lock infrastructure in src/lib/gomafia/import/advisory-lock.ts
+- [x] T001 Verify existing admin infrastructure in src/app/(admin)/ and src/components/admin/
+- [x] T002 Verify existing import orchestrator supports AbortSignal in src/lib/gomafia/import/import-orchestrator.ts
+- [x] T003 Verify existing Prisma schema includes required tables (SyncStatus, SyncLog, ImportCheckpoint, etc.)
+- [x] T004 Verify existing advisory lock infrastructure in src/lib/gomafia/import/advisory-lock.ts
 
 ---
 
@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create admin directory structure in src/lib/admin/
-- [ ] T006 [P] Create dashboard service interface in src/lib/admin/dashboard-service.ts
-- [ ] T007 [P] Create import control service interface in src/lib/admin/import-control-service.ts
-- [ ] T008 [P] Create database clear service interface in src/lib/admin/database-clear-service.ts
-- [ ] T009 [P] Create useAdminDashboard hook in src/hooks/useAdminDashboard.ts
+- [x] T005 Create admin directory structure in src/lib/admin/
+- [x] T006 [P] Create dashboard service interface in src/lib/admin/dashboard-service.ts
+- [x] T007 [P] Create import control service interface in src/lib/admin/import-control-service.ts
+- [x] T008 [P] Create database clear service interface in src/lib/admin/database-clear-service.ts
+- [x] T009 [P] Create useAdminDashboard hook in src/hooks/useAdminDashboard.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -52,21 +52,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Unit test for dashboard service in tests/unit/lib/admin/dashboard-service.test.ts
+- [x] T010 [P] [US1] Unit test for dashboard service in tests/unit/lib/admin/dashboard-service.test.ts
 - [ ] T011 [P] [US1] Integration test for dashboard API in tests/integration/api/admin/dashboard.test.ts
 - [ ] T012 [P] [US1] Component test for DashboardMetrics in tests/unit/components/admin/DashboardMetrics.test.tsx
 - [ ] T013 [P] [US1] E2E test for dashboard browsing in tests/e2e/admin/dashboard.spec.ts
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement dashboard metrics calculation in src/lib/admin/dashboard-service.ts
-- [ ] T015 [US1] Create DashboardMetrics component in src/components/admin/DashboardMetrics.tsx
-- [ ] T016 [US1] Create RecentActivity component in src/components/admin/RecentActivity.tsx
-- [ ] T017 [US1] Create SystemHealthBadge component in src/components/admin/SystemHealthBadge.tsx
-- [ ] T018 [US1] Create QuickActions component in src/components/admin/QuickActions.tsx
-- [ ] T019 [US1] Implement dashboard API route in src/app/api/admin/dashboard/route.ts
-- [ ] T020 [US1] Enhance admin dashboard page in src/app/(admin)/page.tsx with new components
-- [ ] T021 [US1] Implement useAdminDashboard hook with TanStack Query polling in src/hooks/useAdminDashboard.ts
+- [x] T014 [US1] Implement dashboard metrics calculation in src/lib/admin/dashboard-service.ts
+- [x] T015 [US1] Create DashboardMetrics component in src/components/admin/DashboardMetrics.tsx
+- [x] T016 [US1] Create RecentActivity component in src/components/admin/RecentActivity.tsx
+- [x] T017 [US1] Create SystemHealthBadge component in src/components/admin/SystemHealthBadge.tsx
+- [x] T018 [US1] Create QuickActions component in src/components/admin/QuickActions.tsx
+- [x] T019 [US1] Implement dashboard API route in src/app/api/admin/dashboard/route.ts
+- [x] T020 [US1] Enhance admin dashboard page in src/app/(admin)/page.tsx with new components
+- [x] T021 [US1] Implement useAdminDashboard hook with TanStack Query polling in src/hooks/useAdminDashboard.ts
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -89,12 +89,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Verify AbortSignal support in ImportOrchestrator in src/lib/gomafia/import/import-orchestrator.ts
-- [ ] T027 [US2] Implement cancelImport logic in src/lib/admin/import-control-service.ts
-- [ ] T028 [US2] Create ImportControls component with stop button in src/components/admin/ImportControls.tsx
-- [ ] T029 [US2] Implement stop import API route in src/app/api/admin/import/stop/route.ts
-- [ ] T030 [US2] Add ImportControls to admin dashboard in src/app/(admin)/page.tsx
-- [ ] T031 [US2] Enhance import orchestrator with checkpoint saving before termination in src/lib/gomafia/import/import-orchestrator.ts
+- [x] T026 [US2] Verify AbortSignal support in ImportOrchestrator in src/lib/gomafia/import/import-orchestrator.ts
+- [x] T027 [US2] Implement cancelImport logic in src/lib/admin/import-control-service.ts
+- [x] T028 [US2] Create ImportControls component with stop button in src/components/admin/ImportControls.tsx
+- [x] T029 [US2] Implement stop import API route in src/app/api/admin/import/stop/route.ts
+- [x] T030 [US2] Add ImportControls to admin dashboard in src/app/(admin)/page.tsx
+- [x] T031 [US2] Enhance import orchestrator with checkpoint saving before termination in src/lib/gomafia/import/import-orchestrator.ts
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -116,10 +116,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Implement clearDatabase with Prisma transaction in src/lib/admin/database-clear-service.ts
-- [ ] T036 [US3] Add clear database functionality to ImportControls component in src/components/admin/ImportControls.tsx
-- [ ] T037 [US3] Implement clear database API route in src/app/api/admin/import/clear-db/route.ts
-- [ ] T038 [US3] Add database clear validation to prevent during active imports in src/lib/admin/database-clear-service.ts
+- [x] T035 [US3] Implement clearDatabase with Prisma transaction in src/lib/admin/database-clear-service.ts
+- [x] T036 [US3] Add clear database functionality to ImportControls component in src/components/admin/ImportControls.tsx
+- [x] T037 [US3] Implement clear database API route in src/app/api/admin/import/clear-db/route.ts
+- [x] T038 [US3] Add database clear validation to prevent during active imports in src/lib/admin/database-clear-service.ts
 
 **Checkpoint**: All P1 user stories should now be independently functional
 
@@ -141,12 +141,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] Audit current dark theme CSS in src/app/globals.css
-- [ ] T043 [US4] Update dark theme CSS custom properties for WCAG AA compliance in src/app/globals.css
-- [ ] T044 [US4] Adjust role-based colors for dark mode in src/app/globals.css
-- [ ] T045 [US4] Test all components in dark mode and fix contrast issues in src/components/
-- [ ] T046 [US4] Verify charts render correctly in dark mode with visible axes and legends
-- [ ] T047 [US4] Ensure smooth theme transitions without flickering in src/components/providers/ThemeProvider.tsx
+- [x] T042 [US4] Audit current dark theme CSS in src/app/globals.css
+- [x] T043 [US4] Update dark theme CSS custom properties for WCAG AA compliance in src/app/globals.css
+- [x] T044 [US4] Adjust role-based colors for dark mode in src/app/globals.css
+- [x] T045 [US4] Test all components in dark mode and fix contrast issues in src/components/
+- [x] T046 [US4] Verify charts render correctly in dark mode with visible axes and legends
+- [x] T047 [US4] Ensure smooth theme transitions without flickering in src/components/providers/ThemeProvider.tsx
 
 **Checkpoint**: All user stories should now be independently functional with enhanced dark theme
 
@@ -156,13 +156,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T048 [P] Update admin API documentation in docs/api/admin.md
-- [ ] T049 [P] Add comprehensive error handling across all admin endpoints
-- [ ] T050 [P] Performance optimization for dashboard metrics aggregation
-- [ ] T051 [P] Security hardening for admin operations (audit logging, rate limiting)
-- [ ] T052 [P] Accessibility improvements across all admin components
-- [ ] T053 Run quickstart.md validation and update as needed
-- [ ] T054 [P] Code cleanup and refactoring in src/lib/admin/
+- [x] T048 [P] Update admin API documentation in docs/api/admin.md
+- [x] T049 [P] Add comprehensive error handling across all admin endpoints
+- [x] T050 [P] Performance optimization for dashboard metrics aggregation
+- [x] T051 [P] Security hardening for admin operations (audit logging, rate limiting)
+- [x] T052 [P] Accessibility improvements across all admin components
+- [x] T053 Run quickstart.md validation and update as needed
+- [x] T054 [P] Code cleanup and refactoring in src/lib/admin/
 - [ ] T055 [P] Integration test for complete admin workflows in tests/integration/workflows/admin-operations.test.ts
 
 ---

@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Eye, Filter } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SyncLog {
   id: string;
@@ -146,11 +147,16 @@ export function SyncLogsTable() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading sync logs...</p>
-        </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex space-x-4">
+            <Skeleton className="h-12 w-20" />
+            <Skeleton className="h-12 flex-1" />
+            <Skeleton className="h-12 w-32" />
+            <Skeleton className="h-12 w-32" />
+            <Skeleton className="h-12 w-24" />
+          </div>
+        ))}
       </div>
     );
   }

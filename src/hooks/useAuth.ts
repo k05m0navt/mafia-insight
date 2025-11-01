@@ -39,18 +39,23 @@ export function useAuth(): AuthState & AuthActions {
       try {
         setState((prev) => ({ ...prev, isLoading: true }));
 
-        // Force AuthService to check cookies
-        const user = authService.getCurrentUser();
+        // Check authentication status
         const isAuthenticated = authService.isAuthenticated();
+
+        // Fetch full user data from API if authenticated
+        const user = isAuthenticated
+          ? await authService.getCurrentUser()
+          : null;
 
         console.log('[useAuth] Initializing auth state:', {
           isAuthenticated,
           userRole: user?.role,
+          userName: user?.name,
         });
 
         setState({
           user,
-          isAuthenticated,
+          isAuthenticated: isAuthenticated && !!user,
           isLoading: false,
           error: null,
         });

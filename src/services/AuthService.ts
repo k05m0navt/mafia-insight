@@ -85,13 +85,60 @@ export class AuthService {
     return !!this.token && !this.isTokenExpired();
   }
 
-  // Get current user
-  getCurrentUser(): User | null {
-    // Check cookies first if not already initialized
-    if (!this.user) {
-      this.initializeFromCookies();
+  // Get current user - fetches from API if not already loaded
+  async getCurrentUser(): Promise<User | null> {
+    // If we have a valid user with name, return it
+    if (this.user && this.user.name && this.user.name !== 'User') {
+      return this.user;
     }
-    return this.user;
+
+    // Check if authenticated via cookies/token
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+
+    // Fetch full user data from API
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Session expired - clear state
+          this.logout();
+          return null;
+        }
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await response.json();
+
+      // Update cached user with full data
+      this.user = {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        avatar: userData.avatar,
+        role: userData.role || 'user',
+        isActive: userData.isActive !== false,
+        lastLogin: userData.lastLoginAt
+          ? new Date(userData.lastLoginAt)
+          : undefined,
+        createdAt: new Date(userData.createdAt),
+        updatedAt: new Date(userData.updatedAt),
+      };
+
+      return this.user;
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      // Return cached user if API fails, but prefer null if not authenticated
+      return this.user || null;
+    }
   }
 
   // Trigger auth change event for UI updates
@@ -352,6 +399,23 @@ export class AuthService {
     this.token = null;
     this.user = null;
     this.clearAuthCookies();
+  }
+
+  // Get permissions for current user
+  async getPermissions(): Promise<string[]> {
+    // If no user, return empty permissions
+    if (!this.user) {
+      return [];
+    }
+
+    // Define role-based permissions
+    const permissions: Record<string, string[]> = {
+      user: ['read:profile', 'update:profile'],
+      moderator: ['read:profile', 'update:profile', 'moderate:content'],
+      admin: ['*'], // All permissions
+    };
+
+    return permissions[this.user.role] || [];
   }
 
   // Reset password

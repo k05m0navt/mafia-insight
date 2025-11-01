@@ -15,6 +15,7 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ImportProgress {
   id: string;
@@ -160,17 +161,19 @@ export default function ImportManagementPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+      <div>
+        <Skeleton className="h-9 w-64 mb-2" />
+        <Skeleton className="h-5 w-96 mb-8" />
+        <div className="space-y-6">
+          <Skeleton className="h-64 w-full rounded-lg" />
+          <Skeleton className="h-32 w-full rounded-lg" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Import Management</h1>
@@ -339,6 +342,6 @@ export default function ImportManagementPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

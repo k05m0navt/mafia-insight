@@ -32,7 +32,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name,
-    themePreference: user.themePreference || 'system',
+    themePreference: user.themePreference || 'light',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,7 +154,6 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                 disabled={isLoading}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="system">System</option>
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>
               </select>

@@ -76,25 +76,86 @@ export class PermissionService {
 
   async getAllPermissions(): Promise<Permission[]> {
     try {
-      const response = await this.makeRequest<{ permissions: Permission[] }>(
-        '/admin/permissions'
-      );
-      return response.permissions;
+      // Use absolute URL for admin permissions endpoint
+      const url = '/api/admin/permissions';
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token')
+          : null;
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        // For 401/403 errors (unauthorized/forbidden), silently return empty array
+        // This allows guests to use fallback permissions without errors
+        if (response.status === 401 || response.status === 403) {
+          return [];
+        }
+        // For other errors, log but don't throw - return empty array to use fallbacks
+        const errorData = await response.json().catch(() => ({}));
+        console.warn(
+          'Permission request failed:',
+          errorData.message || 'Permission request failed'
+        );
+        return [];
+      }
+
+      const data = await response.json();
+      return data.permissions;
     } catch (error) {
-      console.error('Failed to fetch permissions:', error);
+      // Silently handle errors - guests and other edge cases should use fallback permissions
+      // Only log for debugging, don't throw
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Failed to fetch permissions, using fallback:', error);
+      }
       return [];
     }
   }
 
-  async updatePermissions(updates: PermissionUpdate[]): Promise<void> {
+  async updatePermissions(
+    updates: PermissionUpdate[]
+  ): Promise<{ permissions: Permission[] } | void> {
     try {
-      await this.makeRequest('/admin/permissions', {
+      // Use absolute URL for admin permissions endpoint
+      const url = '/api/admin/permissions';
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token')
+          : null;
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      const response = await fetch(url, {
         method: 'PUT',
+        headers,
         body: JSON.stringify({ permissions: updates }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update permissions');
+      }
+
+      const result = await response.json();
+
       // Refresh local permissions
       await this.refreshPermissions();
+
+      // Return the updated permissions if available
+      if (result.permissions) {
+        return { permissions: result.permissions };
+      }
     } catch (error) {
       console.error('Failed to update permissions:', error);
       throw error;

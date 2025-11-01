@@ -21,8 +21,11 @@ export default function ImportProgressPage() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchProgress = async () => {
+  const fetchProgress = async (isRefresh = false) => {
     try {
+      if (!isRefresh) {
+        setLoading(true);
+      }
       const response = await fetch('/api/import/progress');
 
       if (!response.ok) {
@@ -93,7 +96,9 @@ export default function ImportProgressPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchProgress();
+    setError(null); // Clear any previous errors
+    await fetchProgress(true); // Pass isRefresh flag to prevent showing loading skeleton
+    // Note: setIsRefreshing(false) is handled in fetchProgress's finally block
   };
 
   useEffect(() => {
@@ -231,30 +236,32 @@ export default function ImportProgressPage() {
                       Records Processed
                     </span>
                     <span className="text-sm font-medium">
-                      {progress.processedRecords.toLocaleString()} /{' '}
-                      {progress.totalRecords.toLocaleString()}
+                      {(progress.processedRecords ?? 0).toLocaleString()} /{' '}
+                      {(progress.totalRecords ?? 0).toLocaleString()}
                     </span>
                   </div>
 
-                  {progress.errors > 0 && (
+                  {(progress.errors ?? 0) > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
                         Errors
                       </span>
                       <span className="text-sm font-medium text-red-600">
-                        {progress.errors}
+                        {progress.errors ?? 0}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Started
-                    </span>
-                    <span className="text-sm font-medium">
-                      {new Date(progress.startTime).toLocaleString()}
-                    </span>
-                  </div>
+                  {progress.startTime && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Started
+                      </span>
+                      <span className="text-sm font-medium">
+                        {new Date(progress.startTime).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>

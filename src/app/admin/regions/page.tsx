@@ -14,6 +14,7 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Region {
   code: string;
@@ -101,7 +102,6 @@ export default function RegionsPage() {
         throw new Error('Failed to update region status');
       }
 
-      // Update local state
       setRegions((prev) =>
         prev.map((r) =>
           r.code === regionCode ? { ...r, isActive: !r.isActive } : r
@@ -113,7 +113,6 @@ export default function RegionsPage() {
   };
 
   const getCountryFlag = (country: string) => {
-    // Simple country code to flag emoji mapping
     const flags: Record<string, string> = {
       US: '🇺🇸',
       CA: '🇨🇦',
@@ -137,14 +136,26 @@ export default function RegionsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
           </div>
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24 mb-4" />
+                <Skeleton className="h-4 w-full" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
@@ -152,24 +163,21 @@ export default function RegionsPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-red-600">
-              <p>{error}</p>
-              <Button onClick={fetchRegions} className="mt-4">
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center text-red-600">
+            <p>{error}</p>
+            <Button onClick={fetchRegions} className="mt-4">
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
+    <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Region Management</h1>
@@ -183,7 +191,6 @@ export default function RegionsPage() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
@@ -224,7 +231,6 @@ export default function RegionsPage() {
         </div>
       )}
 
-      {/* Search */}
       <Card>
         <CardContent className="pt-6">
           <div className="relative">
@@ -239,7 +245,6 @@ export default function RegionsPage() {
         </CardContent>
       </Card>
 
-      {/* Regions List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRegions.map((region) => (
           <Card key={region.code} className="hover:shadow-md transition-shadow">
@@ -301,6 +306,6 @@ export default function RegionsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </>
   );
 }

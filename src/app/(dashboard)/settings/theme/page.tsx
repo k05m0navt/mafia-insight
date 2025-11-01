@@ -6,18 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Sun, Moon, Monitor, Palette, Save, RotateCcw } from 'lucide-react';
+import { Sun, Moon, Palette, Save, RotateCcw } from 'lucide-react';
 import { Theme } from '@/types/theme';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ThemeConfiguration {
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark';
   customColors: Record<string, string>;
   lastUpdated: string;
 }
 
 export default function ThemeSettingsPage() {
   const [config, setConfig] = useState<ThemeConfiguration>({
-    theme: 'system',
+    theme: 'light',
     customColors: {},
     lastUpdated: new Date().toISOString(),
   });
@@ -81,7 +82,7 @@ export default function ThemeSettingsPage() {
 
   const resetToDefault = () => {
     setConfig({
-      theme: 'system',
+      theme: 'light',
       customColors: {},
       lastUpdated: new Date().toISOString(),
     });
@@ -118,10 +119,24 @@ export default function ThemeSettingsPage() {
   if (loading) {
     return (
       <div className="container mx-auto py-6 space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
+        <Skeleton className="h-9 w-64 mb-2" />
+        <Skeleton className="h-5 w-96 mb-8" />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center space-x-3">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -162,7 +177,7 @@ export default function ThemeSettingsPage() {
                 <div>
                   <div className="font-medium">Light</div>
                   <div className="text-sm text-muted-foreground">
-                    Always use light theme regardless of system preference
+                    Use light theme
                   </div>
                 </div>
               </Label>
@@ -178,23 +193,7 @@ export default function ThemeSettingsPage() {
                 <div>
                   <div className="font-medium">Dark</div>
                   <div className="text-sm text-muted-foreground">
-                    Always use dark theme regardless of system preference
-                  </div>
-                </div>
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="system" id="system" />
-              <Label
-                htmlFor="system"
-                className="flex items-center gap-3 cursor-pointer flex-1"
-              >
-                <Monitor className="h-5 w-5" />
-                <div>
-                  <div className="font-medium">System</div>
-                  <div className="text-sm text-muted-foreground">
-                    Follow your system theme preference
+                    Use dark theme
                   </div>
                 </div>
               </Label>

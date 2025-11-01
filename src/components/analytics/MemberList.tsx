@@ -27,7 +27,7 @@ interface MemberListProps {
 
 const roleColors = {
   DON: 'bg-purple-500',
-  MAFIA: 'bg-black',
+  MAFIA: 'bg-black dark:bg-gray-700',
   SHERIFF: 'bg-yellow-400',
   CITIZEN: 'bg-red-500',
 };

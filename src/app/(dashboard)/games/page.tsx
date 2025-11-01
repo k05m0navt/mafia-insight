@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useRole } from '@/hooks/useRole';
 import {
   Pagination,
   PaginationContent,
@@ -69,6 +71,8 @@ interface GamesResponse {
 }
 
 export default function GamesPage() {
+  const { canAccessPage, isLoading: permissionsLoading } = usePermissions();
+  const { currentRole } = useRole();
   const [games, setGames] = useState<Game[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,6 +96,9 @@ export default function GamesPage() {
       setLoading(true);
       setError(null);
 
+      // Note: Permissions are checked in render, so we don't need to check here
+      // But we still handle 403 responses from the API
+
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: pageSize.toString(),
@@ -108,12 +115,17 @@ export default function GamesPage() {
       const response = await fetch(`/api/games?${params}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch games');
+        if (response.status === 403) {
+          // Permission denied - this shouldn't happen if permissions are checked correctly
+          throw new Error('Access denied');
+        } else {
+          throw new Error('Failed to fetch games');
+        }
+      } else {
+        const data: GamesResponse = await response.json();
+        setGames(data.games);
+        setPagination(data.pagination);
       }
-
-      const data: GamesResponse = await response.json();
-      setGames(data.games);
-      setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -122,7 +134,10 @@ export default function GamesPage() {
   };
 
   useEffect(() => {
-    fetchGames();
+    // Wait for permissions to load before checking access
+    if (!permissionsLoading) {
+      fetchGames();
+    }
   }, [
     currentPage,
     pageSize,
@@ -133,6 +148,7 @@ export default function GamesPage() {
     endDate,
     sortBy,
     sortOrder,
+    permissionsLoading,
   ]);
 
   const handleFilterChange = (key: string, value: string) => {
@@ -226,6 +242,70 @@ export default function GamesPage() {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  // Show minimal loading while permissions are being checked (prevent flash)
+  if (permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-8 h-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-t-2 border-primary border-t-transparent"></div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Checking permissions...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied message if user doesn't have permission (check BEFORE any content)
+  // Admin users should always have access, so double-check with role
+  const hasAccess = canAccessPage('/games') || currentRole === 'admin';
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Games</h1>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-red-500">🚫</span>
+              Access Denied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                You do not have permission to view games. Your current role is{' '}
+                <strong>{currentRole}</strong>.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {currentRole === 'guest'
+                  ? 'Please sign in to access this page.'
+                  : 'Please contact an administrator if you believe this is an error.'}
+              </p>
+              <div className="flex gap-2">
+                {currentRole === 'guest' && (
+                  <Button asChild>
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                )}
+                <Button
+                  asChild
+                  variant={currentRole === 'guest' ? 'outline' : 'default'}
+                >
+                  <Link href="/">Go to Home</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show page loading skeleton only if user has access
   if (loading) {
     return (
       <PageLoading

@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       name: data.name,
       role: 'user',
       subscriptionTier: 'FREE',
-      themePreference: 'system',
+      themePreference: 'light',
     });
 
     if (profileError) {

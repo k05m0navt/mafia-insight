@@ -14,7 +14,7 @@ import {
 import type { UserRole } from '@/types/navigation';
 
 export const useRole = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const role = useMemo(() => {
     if (!user) {
@@ -83,5 +83,6 @@ export const useRole = () => {
     canAccessFeature,
     getRoleLevel,
     isGuest: !user, // No user means guest
+    isLoading, // Expose loading state
   };
 };

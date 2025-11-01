@@ -1,27 +1,68 @@
 import { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createRouteHandlerClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db';
 import { AuthenticationError, AuthorizationError } from './errors';
 import { User } from '@/types/auth';
 
 /**
- * API authentication middleware
+ * API authentication middleware (cookie-based with Supabase)
  */
 export async function authenticateRequest(request: NextRequest): Promise<{
   user: User | null;
   role: string;
 }> {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  // Check auth-token cookie (primary auth method)
+  const authToken = request.cookies.get('auth-token')?.value;
 
-  if (!token) {
+  if (!authToken) {
     throw new AuthenticationError('Authentication required');
   }
 
+  // Verify with Supabase for user data
+  const supabase = await createRouteHandlerClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  if (!authUser) {
+    throw new AuthenticationError('Authentication required');
+  }
+
+  // Get user profile from database
+  const profile = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      avatar: true,
+      createdAt: true,
+      lastLogin: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!profile) {
+    throw new AuthenticationError('User profile not found');
+  }
+
+  // Map to User type
+  const user: User = {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    avatar: profile.avatar || undefined,
+    role: profile.role as 'user' | 'admin' | 'moderator',
+    permissions: [], // Default empty permissions array
+    lastLoginAt: profile.lastLogin || undefined,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
+
   return {
-    user: token as unknown as User | null,
-    role: (token as { role?: string })?.role || 'USER',
+    user,
+    role: profile.role,
   };
 }
 

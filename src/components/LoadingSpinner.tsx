@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -54,34 +55,28 @@ export function LoadingCard({ text = 'Loading...' }: { text?: string }) {
   );
 }
 
-// Skeleton loaders for better UX
+// Skeleton loaders for better UX using ShadCN Skeleton
 export function SkeletonCard() {
   return (
-    <div className="animate-pulse">
-      <div className="bg-slate-200 dark:bg-slate-700 rounded-lg p-6">
-        <div className="space-y-4">
-          <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-3/4"></div>
-          <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-1/2"></div>
-          <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-5/6"></div>
-        </div>
-      </div>
+    <div className="rounded-lg p-6 space-y-4">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-4 w-5/6" />
     </div>
   );
 }
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="animate-pulse">
-      <div className="space-y-3">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex space-x-4">
-            <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-1/4"></div>
-            <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-1/4"></div>
-            <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-1/4"></div>
-            <div className="h-4 bg-slate-300 dark:bg-slate-600 rounded w-1/4"></div>
-          </div>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex space-x-4">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+        </div>
+      ))}
     </div>
   );
 }

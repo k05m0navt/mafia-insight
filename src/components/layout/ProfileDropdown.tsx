@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 
 interface ProfileDropdownProps {
@@ -63,7 +64,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
+        <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
               {user.name || 'User'}
@@ -71,11 +72,19 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
-            {user.role && user.role !== 'user' && (
-              <p className="text-xs leading-none text-blue-600 font-semibold capitalize">
-                {user.role}
-              </p>
-            )}
+            <div className="flex items-center gap-1 pt-1">
+              {user.role === 'admin' ? (
+                <Badge variant="destructive" className="text-xs">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Admin
+                </Badge>
+              ) : (
+                <Badge variant="default" className="text-xs">
+                  <User className="h-3 w-3 mr-1" />
+                  User
+                </Badge>
+              )}
+            </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

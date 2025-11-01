@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import type { AuthContextType } from '@/types/auth';
+import type { AuthContextType, User as AuthContextUser } from '@/types/auth';
+import type { User as AuthServiceUser } from '@/services/AuthService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -14,14 +15,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const auth = useAuth();
 
   // Map AuthService.User to types/auth.User
-  const mapUser = (user: any) => {
+  const mapUser = (user: AuthServiceUser | null): AuthContextUser | null => {
     if (!user) return null;
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       avatar: user.avatar,
-      role: user.role,
+      role:
+        user.role === 'admin' || user.role === 'moderator' ? user.role : 'user',
       permissions: [], // Default empty permissions array
       lastLoginAt: user.lastLogin,
       createdAt: user.createdAt,
