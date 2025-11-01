@@ -38,6 +38,10 @@ Authorization: Bearer <your-jwt-token>
 - [Games API](./games.md) - Game data and statistics
 - [Analytics API](./analytics.md) - Analytics and reporting
 
+### Admin API
+
+- [Admin API](./admin.md) - System administration, import controls, and database management
+
 ## API Standards
 
 ### Request Format

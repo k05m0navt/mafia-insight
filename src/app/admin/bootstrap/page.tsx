@@ -1,10 +1,6 @@
-import { Metadata } from 'next';
-import { AdminBootstrapForm } from '@/components/auth/AdminBootstrap';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Admin Bootstrap | Mafia Insight',
-  description: 'Create the first administrator account',
-};
+import { AdminBootstrapForm } from '@/components/auth/AdminBootstrap';
 
 export default function AdminBootstrapPage() {
   return (

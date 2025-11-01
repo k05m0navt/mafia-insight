@@ -12,10 +12,10 @@ export const roleColors = {
     border: 'border-blue-300',
   },
   MAFIA: {
-    primary: 'bg-black',
-    secondary: 'bg-gray-100',
-    text: 'text-gray-900',
-    border: 'border-gray-300',
+    primary: 'bg-black dark:bg-gray-700',
+    secondary: 'bg-gray-100 dark:bg-gray-800',
+    text: 'text-gray-900 dark:text-gray-100',
+    border: 'border-gray-300 dark:border-gray-600',
   },
   SHERIFF: {
     primary: 'bg-yellow-400',

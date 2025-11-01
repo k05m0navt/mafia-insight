@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark';
 
 export interface ThemePreference {
   userId: string | null;
@@ -12,10 +12,8 @@ export interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
-  resolvedTheme: 'light' | 'dark';
   isDark: boolean;
   isLight: boolean;
-  isSystem: boolean;
 }
 
 export interface ThemeProviderContext extends ThemeContextType {

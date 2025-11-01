@@ -100,7 +100,7 @@ export async function createAdmin(data: CreateAdminData): Promise<UserData> {
         name: data.name,
         role: 'admin',
         subscriptionTier: 'FREE',
-        themePreference: 'system',
+        themePreference: 'light',
       },
       select: {
         id: true,

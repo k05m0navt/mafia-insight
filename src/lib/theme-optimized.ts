@@ -7,7 +7,7 @@
 
 import { themePerformance } from './performance';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark';
 
 export interface ThemeState {
   theme: Theme;
@@ -18,15 +18,13 @@ export interface ThemeState {
 export interface ThemeConfig {
   storageKey: string;
   defaultTheme: Theme;
-  enableSystemDetection: boolean;
   enableSmoothTransitions: boolean;
   transitionDuration: number;
 }
 
 const DEFAULT_CONFIG: ThemeConfig = {
   storageKey: 'mafia-insight-theme',
-  defaultTheme: 'system',
-  enableSystemDetection: true,
+  defaultTheme: 'light',
   enableSmoothTransitions: true,
   transitionDuration: 200, // 200ms for smooth transitions
 };
@@ -34,9 +32,8 @@ const DEFAULT_CONFIG: ThemeConfig = {
 class OptimizedThemeManager {
   private config: ThemeConfig;
   private listeners: Set<(state: ThemeState) => void> = new Set();
-  private systemThemeQuery: MediaQueryList | null = null;
   private state: ThemeState = {
-    theme: 'system',
+    theme: 'light',
     resolvedTheme: 'light',
     loading: true,
   };
@@ -50,14 +47,8 @@ class OptimizedThemeManager {
     // Load theme from localStorage
     const savedTheme = this.loadThemeFromStorage();
     this.state.theme = savedTheme || this.config.defaultTheme;
+    this.state.resolvedTheme = this.state.theme;
 
-    // Set up system theme detection
-    if (this.config.enableSystemDetection && typeof window !== 'undefined') {
-      this.setupSystemThemeDetection();
-    }
-
-    // Resolve initial theme
-    this.resolveTheme();
     this.state.loading = false;
 
     // Apply theme immediately
@@ -69,7 +60,7 @@ class OptimizedThemeManager {
 
     try {
       const stored = localStorage.getItem(this.config.storageKey);
-      if (stored && ['light', 'dark', 'system'].includes(stored)) {
+      if (stored && ['light', 'dark'].includes(stored)) {
         return stored as Theme;
       }
     } catch (error) {
@@ -87,42 +78,6 @@ class OptimizedThemeManager {
     } catch (error) {
       console.warn('Failed to save theme to localStorage:', error);
     }
-  }
-
-  private setupSystemThemeDetection(): void {
-    if (typeof window === 'undefined') return;
-
-    this.systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleSystemThemeChange = () => {
-      if (this.state.theme === 'system') {
-        this.resolveTheme();
-        this.applyTheme();
-        this.notifyListeners();
-      }
-    };
-
-    this.systemThemeQuery.addEventListener('change', handleSystemThemeChange);
-  }
-
-  private resolveTheme(): void {
-    if (this.state.theme === 'system') {
-      this.state.resolvedTheme = this.getSystemTheme();
-    } else {
-      this.state.resolvedTheme = this.state.theme;
-    }
-  }
-
-  private getSystemTheme(): 'light' | 'dark' {
-    if (typeof window === 'undefined') return 'light';
-
-    if (this.systemThemeQuery) {
-      return this.systemThemeQuery.matches ? 'dark' : 'light';
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
   }
 
   private applyTheme(): void {
@@ -225,6 +180,12 @@ class OptimizedThemeManager {
     });
   }
 
+  private resolveTheme(): void {
+    // Update resolvedTheme to match the current theme
+    // In the future, this could handle 'system' theme detection
+    this.state.resolvedTheme = this.state.theme;
+  }
+
   /**
    * Set the theme
    */
@@ -275,9 +236,6 @@ class OptimizedThemeManager {
    */
   destroy(): void {
     this.listeners.clear();
-    if (this.systemThemeQuery) {
-      this.systemThemeQuery.removeEventListener('change', () => {});
-    }
   }
 }
 

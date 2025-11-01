@@ -7,7 +7,7 @@ import { requireAuthCookie } from '@/lib/utils/apiAuth';
 // Profile update schema
 const ProfileUpdateSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-  themePreference: z.enum(['system', 'light', 'dark']).optional(),
+  themePreference: z.enum(['light', 'dark']).optional(),
 });
 
 /**

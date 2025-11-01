@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -33,13 +33,29 @@ interface NavbarProps {
 export function Navbar({ className = '' }: NavbarProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
-  const { canAccessPage } = usePermissions();
+  const { canAccessPage, isLoading: permissionsLoading } = usePermissions();
   const {
     isOpen: isMobileMenuOpen,
     open: openMobileMenu,
     close: closeMobileMenu,
     toggle: toggleMobileMenu,
   } = useMobileMenu();
+  const [_forceUpdate, setForceUpdate] = useState(0);
+
+  // Listen for permission updates to trigger re-render
+  useEffect(() => {
+    const handlePermissionUpdate = () => {
+      setForceUpdate((prev) => prev + 1);
+    };
+
+    window.addEventListener('permissions-updated', handlePermissionUpdate);
+    window.addEventListener('auth-change', handlePermissionUpdate);
+
+    return () => {
+      window.removeEventListener('permissions-updated', handlePermissionUpdate);
+      window.removeEventListener('auth-change', handlePermissionUpdate);
+    };
+  }, []);
 
   const navigationItems = [
     {
@@ -103,10 +119,35 @@ export function Navbar({ className = '' }: NavbarProps) {
   const visibleItems = navigationItems.filter((item) => {
     if (!item.requiresAuth) return true;
     if (!isAuthenticated) return false;
+
+    // If permissions are still loading, show items based on role only
+    // This prevents hiding admin items before permissions are loaded
+    if (permissionsLoading) {
+      // For admin items, check role directly
+      if (item.id === 'admin') {
+        return user?.role === 'admin';
+      }
+      // For other auth-required items, allow if authenticated
+      return true;
+    }
+
     try {
-      return canAccessPage(item.id);
+      // Use the path instead of id for canAccessPage
+      const pagePath = item.path || `/${item.id}`;
+      const hasAccess = canAccessPage(pagePath);
+
+      // Fallback: if permission check fails but user is admin and item is admin, allow
+      if (!hasAccess && item.id === 'admin' && user?.role === 'admin') {
+        return true;
+      }
+
+      return hasAccess;
     } catch (error) {
       console.error('Error checking page access:', error);
+      // Fallback: if it's admin item and user is admin, allow
+      if (item.id === 'admin' && user?.role === 'admin') {
+        return true;
+      }
       return false;
     }
   });
@@ -117,6 +158,7 @@ export function Navbar({ className = '' }: NavbarProps) {
       data-testid="navbar"
       role="navigation"
       aria-label="Main navigation"
+      suppressHydrationWarning
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16">

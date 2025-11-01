@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { UserRole } from '@/types/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UserInvitation {
   id: string;
@@ -177,9 +178,17 @@ export const InvitationList: React.FC<InvitationListProps> = ({
           <CardDescription>Manage pending user invitations</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading invitations...</span>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex space-x-4">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-10" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

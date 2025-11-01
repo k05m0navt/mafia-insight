@@ -305,12 +305,6 @@ export class PWATestUtils {
     await expect(page.locator('[data-testid="app-root"]')).toHaveClass(
       /dark-theme/
     );
-
-    // Test system theme
-    await page.click('[data-testid="theme-system"]');
-    await expect(page.locator('[data-testid="app-root"]')).toHaveClass(
-      /system-theme/
-    );
   }
 
   static async testOrientationChanges(page: Page) {

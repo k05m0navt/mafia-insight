@@ -343,7 +343,7 @@ scenarios:
             'Content-Type': 'application/json'
             'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
           json:
-            theme: '{{ $randomString("light", "dark", "system") }}'
+            theme: '{{ $randomString("light", "dark") }}'
       - get:
           url: '/api/pwa/theme/status'
           headers:

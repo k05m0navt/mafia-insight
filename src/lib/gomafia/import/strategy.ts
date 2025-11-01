@@ -110,7 +110,7 @@ export class DataImportStrategy {
     );
 
     try {
-      await this.processData(importId, strategy, data);
+      await this.processData(importId, strategyName, strategy, data);
       await importOrchestrator.completeImport(importId);
       return importId;
     } catch (error) {
@@ -121,6 +121,7 @@ export class DataImportStrategy {
 
   private async processData(
     importId: string,
+    strategyKey: string,
     strategy: ImportStrategy,
     data: unknown[]
   ): Promise<void> {
@@ -130,12 +131,20 @@ export class DataImportStrategy {
 
     for (const batch of batches) {
       try {
-        await this.processBatch(strategy.name, batch);
+        await this.processBatch(strategyKey, batch);
         processedRecords += batch.length;
         await importOrchestrator.updateProgress(
           importId,
           processedRecords,
           errors
+        );
+
+        // Log progress in a readable format
+        const progress = Math.round((processedRecords / data.length) * 100);
+        const batchNum = Math.ceil(processedRecords / strategy.batchSize);
+        const totalBatches = Math.ceil(data.length / strategy.batchSize);
+        console.log(
+          `✓ [${strategy.name}] Batch ${batchNum}/${totalBatches}: ${processedRecords}/${data.length} records (${progress}%)`
         );
       } catch (error) {
         console.error(`Error processing batch for ${strategy.name}:`, error);
@@ -145,6 +154,7 @@ export class DataImportStrategy {
         if (strategy.retryAttempts > 0) {
           await this.retryBatch(
             importId,
+            strategyKey,
             strategy,
             batch,
             processedRecords,
@@ -188,6 +198,7 @@ export class DataImportStrategy {
 
   private async retryBatch(
     importId: string,
+    strategyKey: string,
     strategy: ImportStrategy,
     batch: unknown[],
     processedRecords: number,
@@ -198,7 +209,7 @@ export class DataImportStrategy {
         await new Promise((resolve) =>
           setTimeout(resolve, strategy.retryDelay * attempt)
         );
-        await this.processBatch(strategy.name, batch);
+        await this.processBatch(strategyKey, batch);
         processedRecords += batch.length;
         errors = Math.max(0, errors - batch.length);
         await importOrchestrator.updateProgress(
@@ -229,10 +240,27 @@ export class DataImportStrategy {
 
   // Import methods for different data types
   private async importPlayers(players: unknown[]): Promise<void> {
-    // For demo purposes, we'll create a default user and use that
-    const defaultUser = await prisma.user.findFirst();
+    // Get or create a default admin user for imports
+    let defaultUser = await prisma.user.findFirst({
+      where: {
+        role: 'admin',
+      },
+    });
+
+    // If no admin exists, try to find any user
     if (!defaultUser) {
-      throw new Error('No user found. Please create a user first.');
+      defaultUser = await prisma.user.findFirst();
+    }
+
+    // If still no user, create a system user for imports
+    if (!defaultUser) {
+      defaultUser = await prisma.user.create({
+        data: {
+          email: `system-import-${Date.now()}@mafia-insight.local`,
+          name: 'System Import User',
+          role: 'admin',
+        },
+      });
     }
 
     await prisma.player.createMany({
@@ -254,10 +282,27 @@ export class DataImportStrategy {
   }
 
   private async importTournaments(tournaments: unknown[]): Promise<void> {
-    // For demo purposes, we'll create a default user and use that
-    const defaultUser = await prisma.user.findFirst();
+    // Get or create a default admin user for imports
+    let defaultUser = await prisma.user.findFirst({
+      where: {
+        role: 'admin',
+      },
+    });
+
+    // If no admin exists, try to find any user
     if (!defaultUser) {
-      throw new Error('No user found. Please create a user first.');
+      defaultUser = await prisma.user.findFirst();
+    }
+
+    // If still no user, create a system user for imports
+    if (!defaultUser) {
+      defaultUser = await prisma.user.create({
+        data: {
+          email: `system-import-${Date.now()}@mafia-insight.local`,
+          name: 'System Import User',
+          role: 'admin',
+        },
+      });
     }
 
     await prisma.tournament.createMany({
@@ -292,21 +337,45 @@ export class DataImportStrategy {
   }
 
   private async importClubs(clubs: unknown[]): Promise<void> {
-    // For demo purposes, we'll create a default user and use that
-    const defaultUser = await prisma.user.findFirst();
+    // Get or create a default admin user for imports
+    let defaultUser = await prisma.user.findFirst({
+      where: {
+        role: 'admin',
+      },
+    });
+
+    // If no admin exists, try to find any user
     if (!defaultUser) {
-      throw new Error('No user found. Please create a user first.');
+      defaultUser = await prisma.user.findFirst();
     }
 
+    // If still no user, create a system user for imports
+    if (!defaultUser) {
+      defaultUser = await prisma.user.create({
+        data: {
+          email: `system-import-${Date.now()}@mafia-insight.local`,
+          name: 'System Import User',
+          role: 'admin',
+        },
+      });
+    }
+
+    // Ensure all clubs have valid data
+    const clubsData = (clubs as Record<string, unknown>[]).map(
+      (club: Record<string, unknown>) => ({
+        id:
+          (club.id as string) ||
+          `club-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: (club.name as string) || 'Unnamed Club',
+        description: (club.description || '') as string,
+        createdBy: defaultUser.id,
+        region: (club.region as string) || undefined,
+        gomafiaId: (club.gomafiaId || club.id) as string | undefined,
+      })
+    );
+
     await prisma.club.createMany({
-      data: (clubs as Record<string, unknown>[]).map(
-        (club: Record<string, unknown>) => ({
-          id: club.id as string,
-          name: club.name as string,
-          description: (club.description || '') as string,
-          createdBy: defaultUser.id,
-        })
-      ),
+      data: clubsData,
       skipDuplicates: true,
     });
   }

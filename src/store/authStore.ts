@@ -1,9 +1,29 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, AuthState } from '@/types/auth';
-import { authService } from '@/lib/auth';
+import { authService, User as AuthServiceUser } from '@/services/AuthService';
 import { permissionService } from '@/lib/permissions';
 import { getAuthTokenCookie, hasAuthTokenCookie } from '@/lib/utils/auth';
+
+// Map AuthService.User to types/auth.User
+function mapUser(
+  user: AuthServiceUser | null | undefined,
+  permissions: string[] = []
+): User | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
+    role:
+      user.role === 'admin' || user.role === 'moderator' ? user.role : 'user',
+    permissions,
+    lastLoginAt: user.lastLogin,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
 
 interface AuthStore extends AuthState {
   // Actions
@@ -54,7 +74,7 @@ export const useAuthStore = create<AuthStore>()(
 
           set({
             isAuthenticated: true,
-            user: response.user,
+            user: mapUser(response.user, permissions),
             isLoading: false,
             error: null,
           });
@@ -77,10 +97,21 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true, error: null });
 
-          const response = await authService.signup({
+          // Validate password confirmation
+          if (password !== confirmPassword) {
+            set({
+              isAuthenticated: false,
+              user: null,
+              isLoading: false,
+              error: 'Passwords do not match',
+            });
+            throw new Error('Passwords do not match');
+          }
+
+          const response = await authService.register({
             email,
             password,
-            confirmPassword,
+            name: email.split('@')[0], // Use email prefix as name if not provided
           });
           const permissions = await authService.getPermissions();
 
@@ -89,7 +120,7 @@ export const useAuthStore = create<AuthStore>()(
 
           set({
             isAuthenticated: true,
-            user: response.user,
+            user: mapUser(response.user, permissions),
             isLoading: false,
             error: null,
           });
@@ -184,7 +215,7 @@ export const useAuthStore = create<AuthStore>()(
 
             set({
               isAuthenticated: true,
-              user,
+              user: mapUser(user, permissions),
               isLoading: false,
               error: null,
             });
@@ -213,7 +244,7 @@ export const useAuthStore = create<AuthStore>()(
 
                   set({
                     isAuthenticated: true,
-                    user: refreshedUser,
+                    user: mapUser(refreshedUser, permissions),
                     isLoading: false,
                     error: null,
                   });

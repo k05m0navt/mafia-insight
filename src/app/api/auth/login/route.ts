@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
           name: authData.user.user_metadata?.name || 'User',
           role: 'user',
           subscriptionTier: 'FREE',
-          themePreference: 'system',
+          themePreference: 'light',
           lastLogin: new Date().toISOString(),
         })
         .select()

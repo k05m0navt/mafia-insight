@@ -8,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/components/providers/ThemeProvider';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -20,10 +20,8 @@ export function ThemeToggle() {
         return <Sun className="h-4 w-4" />;
       case 'dark':
         return <Moon className="h-4 w-4" />;
-      case 'system':
-        return <Monitor className="h-4 w-4" />;
       default:
-        return <Monitor className="h-4 w-4" />;
+        return <Sun className="h-4 w-4" />;
     }
   };
 
@@ -33,10 +31,8 @@ export function ThemeToggle() {
         return 'Light';
       case 'dark':
         return 'Dark';
-      case 'system':
-        return 'System';
       default:
-        return 'System';
+        return 'Light';
     }
   };
 
@@ -56,10 +52,6 @@ export function ThemeToggle() {
         <DropdownMenuItem onClick={() => setTheme('dark')}>
           <Moon className="h-4 w-4 mr-2" />
           Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
-          <Monitor className="h-4 w-4 mr-2" />
-          System
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

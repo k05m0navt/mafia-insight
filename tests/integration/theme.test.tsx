@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { useTheme } from '@/hooks/useTheme';
 import { ThemeToggle } from '@/components/navigation/ThemeToggle';
 
@@ -182,7 +182,7 @@ describe('Theme Management Integration Tests', () => {
       });
 
       mockUseTheme.mockReturnValue({
-        theme: 'system',
+        theme: 'light',
         toggleTheme: vi.fn(),
         setTheme: vi.fn(),
         loading: false,
@@ -197,93 +197,9 @@ describe('Theme Management Integration Tests', () => {
       await waitFor(() => {
         expect(screen.getByTestId('theme-toggle')).toHaveAttribute(
           'data-theme',
-          'system'
+          'light'
         );
       });
-    });
-  });
-
-  describe('System Preference Detection', () => {
-    it('should detect system dark mode preference', async () => {
-      // Mock system preference for dark mode
-      Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: vi.fn().mockImplementation((query) => ({
-          matches: query === '(prefers-color-scheme: dark)',
-          media: query,
-          onchange: null,
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-          addEventListener: vi.fn(),
-          removeEventListener: vi.fn(),
-          dispatchEvent: vi.fn(),
-        })),
-      });
-
-      mockUseTheme.mockReturnValue({
-        theme: 'system',
-        toggleTheme: vi.fn(),
-        setTheme: vi.fn(),
-        loading: false,
-      });
-
-      render(
-        <TestWrapper>
-          <ThemeToggle />
-        </TestWrapper>
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId('theme-toggle')).toHaveAttribute(
-          'data-theme',
-          'system'
-        );
-      });
-    });
-
-    it('should respond to system preference changes', async () => {
-      let changeCallback: (() => void) | null = null;
-
-      Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: vi.fn().mockImplementation((query) => ({
-          matches: false,
-          media: query,
-          onchange: null,
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-          addEventListener: vi.fn((event, callback) => {
-            if (event === 'change') {
-              changeCallback = callback as () => void;
-            }
-          }),
-          removeEventListener: vi.fn(),
-          dispatchEvent: vi.fn(),
-        })),
-      });
-
-      const mockSetTheme = vi.fn();
-
-      mockUseTheme.mockReturnValue({
-        theme: 'system',
-        toggleTheme: vi.fn(),
-        setTheme: mockSetTheme,
-        loading: false,
-      });
-
-      render(
-        <TestWrapper>
-          <ThemeToggle />
-        </TestWrapper>
-      );
-
-      // Simulate system preference change
-      if (changeCallback) {
-        changeCallback();
-      }
-
-      // Verify that the theme system responds to changes
-      expect(mockSetTheme).toHaveBeenCalled();
     });
   });
 

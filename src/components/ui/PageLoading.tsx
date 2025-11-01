@@ -1,6 +1,7 @@
 import { SkeletonCard, SkeletonTable } from '@/components/LoadingSpinner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type LoadingLayout = 'cards' | 'table' | 'fullscreen' | 'minimal';
 
@@ -30,9 +31,13 @@ export function PageLoading({
   if (layout === 'fullscreen') {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">{title}</p>
+        <div className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-primary border-t-transparent"></div>
+          </div>
+          <div>
+            <p className="text-lg font-medium text-muted-foreground">{title}</p>
+          </div>
           {showRetry && onRetry && (
             <Button onClick={onRetry} variant="outline" className="mt-4">
               Try Again
@@ -46,9 +51,11 @@ export function PageLoading({
   if (layout === 'minimal') {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">{title}</p>
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-12 h-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-t-3 border-primary border-t-transparent"></div>
+          </div>
+          <p className="text-muted-foreground">{title}</p>
           {showRetry && onRetry && (
             <Button onClick={onRetry} variant="outline" className="mt-4">
               Try Again
@@ -69,16 +76,13 @@ export function PageLoading({
         <div className="flex flex-col sm:flex-row gap-4">
           {showSearch && (
             <div className="flex-1">
-              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+              <Skeleton className="h-10" />
             </div>
           )}
           {showFilters && (
             <div className="flex gap-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"
-                ></div>
+                <Skeleton key={i} className="h-10 w-20" />
               ))}
             </div>
           )}

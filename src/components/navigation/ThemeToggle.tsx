@@ -1,26 +1,20 @@
 'use client';
 
 import React from 'react';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { useTheme } from '@/components/providers/ThemeProvider';
 
 interface ThemeToggleProps {
   className?: string;
 }
 
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
 
   const getIcon = () => {
-    if (theme === 'system') {
-      return '💻';
-    }
     return isDark ? '☀️' : '🌙';
   };
 
   const getLabel = () => {
-    if (theme === 'system') {
-      return 'System theme';
-    }
     return isDark ? 'Switch to light theme' : 'Switch to dark theme';
   };
 
@@ -30,7 +24,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       className={`p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors ${className}`}
       data-testid="theme-toggle"
       aria-label={getLabel()}
-      aria-pressed={theme !== 'system'}
+      aria-pressed={isDark}
       title={getLabel()}
     >
       <span className="text-lg" aria-hidden="true">

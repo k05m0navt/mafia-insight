@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         name: data.name,
         role: 'admin',
         subscriptionTier: 'FREE',
-        themePreference: 'system',
+        themePreference: 'light',
       },
       select: {
         id: true,
