@@ -92,23 +92,63 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 }
 
 /**
- * Get recent import history
+ * Get recent import history from both SyncLog and ImportProgress tables
  */
 async function getRecentImports() {
-  const imports = await db.syncLog.findMany({
-    take: 20,
-    orderBy: { startTime: 'desc' },
-    select: {
-      id: true,
-      type: true,
-      status: true,
-      startTime: true,
-      endTime: true,
-      recordsProcessed: true,
-    },
-  });
+  // Fetch from both tables in parallel
+  const [syncLogs, importProgress] = await Promise.all([
+    db.syncLog.findMany({
+      take: 10,
+      orderBy: { startTime: 'desc' },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        startTime: true,
+        endTime: true,
+        recordsProcessed: true,
+      },
+    }),
+    db.importProgress.findMany({
+      take: 10,
+      orderBy: { startTime: 'desc' },
+      select: {
+        id: true,
+        operation: true,
+        status: true,
+        startTime: true,
+        processedRecords: true,
+        totalRecords: true,
+      },
+    }),
+  ]);
 
-  return imports;
+  // Merge and normalize the data
+  const allImports = [
+    // Map SyncLog to import format
+    ...syncLogs.map((log) => ({
+      id: log.id,
+      type: log.type || 'SYNC',
+      status: log.status,
+      startTime: log.startTime,
+      endTime: log.endTime,
+      recordsProcessed: log.recordsProcessed,
+    })),
+    // Map ImportProgress to import format
+    ...importProgress.map((imp) => ({
+      id: imp.id,
+      type: imp.operation || 'IMPORT',
+      status: imp.status,
+      startTime: imp.startTime,
+      endTime: null, // ImportProgress doesn't have endTime
+      recordsProcessed: imp.processedRecords,
+    })),
+  ];
+
+  // Sort by startTime descending and take top 20
+  return allImports
+    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+    .slice(0, 20);
 }
 
 /**

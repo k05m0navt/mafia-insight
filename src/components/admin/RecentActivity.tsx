@@ -99,7 +99,7 @@ export function RecentActivity() {
                 </div>
                 <div>
                   <div className="text-sm font-medium">
-                    {import_.type} Import
+                    {import_.type || 'Import'} Import
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {import_.startTime
@@ -107,8 +107,13 @@ export function RecentActivity() {
                           addSuffix: true,
                         })
                       : 'Unknown time'}
-                    {' • '}
-                    {import_.recordsProcessed?.toLocaleString() || 0} records
+                    {import_.recordsProcessed !== null &&
+                      import_.recordsProcessed !== undefined && (
+                        <>
+                          {' • '}
+                          {import_.recordsProcessed.toLocaleString()} records
+                        </>
+                      )}
                   </div>
                 </div>
               </div>
