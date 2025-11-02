@@ -79,3 +79,129 @@ export async function clearDatabase(adminId: string): Promise<{
 
   return { deleted };
 }
+
+/**
+ * Data types that can be deleted selectively
+ */
+export type DeletableDataType =
+  | 'tournaments'
+  | 'players'
+  | 'clubs'
+  | 'games'
+  | 'all';
+
+/**
+ * Clear specific type of data from the database
+ *
+ * @param dataType - The type of data to delete
+ * @param adminId - ID of the admin performing the operation
+ * @returns Count of deleted records
+ */
+export async function clearDataType(
+  dataType: DeletableDataType,
+  adminId: string
+): Promise<{
+  deleted: Record<string, number>;
+  dataType: DeletableDataType;
+}> {
+  // Verify no active import
+  const status = await db.syncStatus.findUnique({ where: { id: 'current' } });
+  if (status?.isRunning) {
+    throw new Error('Cannot clear database while import is running');
+  }
+
+  // Check ImportProgress for running imports
+  const runningImport = await db.importProgress.findFirst({
+    where: { status: 'RUNNING' },
+  });
+  if (runningImport) {
+    throw new Error('Cannot clear database while import is running');
+  }
+
+  // Execute clear in transaction
+  const deleted = await resilientDB.execute(async (tx) => {
+    const deletedCounts: Record<string, number> = {};
+
+    if (dataType === 'all') {
+      // Use existing clearDatabase logic
+      deletedCounts.gameParticipation = (
+        await tx.gameParticipation.deleteMany({})
+      ).count;
+      deletedCounts.playerYearStats = (
+        await tx.playerYearStats.deleteMany({})
+      ).count;
+      deletedCounts.playerRoleStats = (
+        await tx.playerRoleStats.deleteMany({})
+      ).count;
+      deletedCounts.playerTournament = (
+        await tx.playerTournament.deleteMany({})
+      ).count;
+      deletedCounts.game = (await tx.game.deleteMany({})).count;
+      deletedCounts.tournament = (await tx.tournament.deleteMany({})).count;
+      deletedCounts.player = (await tx.player.deleteMany({})).count;
+      deletedCounts.club = (await tx.club.deleteMany({})).count;
+      deletedCounts.analytics = (await tx.analytics.deleteMany({})).count;
+    } else if (dataType === 'tournaments') {
+      // Delete tournaments and related data
+      deletedCounts.playerTournament = (
+        await tx.playerTournament.deleteMany({})
+      ).count;
+      deletedCounts.game = (await tx.game.deleteMany({})).count; // Games depend on tournaments
+      deletedCounts.tournament = (await tx.tournament.deleteMany({})).count;
+    } else if (dataType === 'players') {
+      // Delete players and related data
+      deletedCounts.gameParticipation = (
+        await tx.gameParticipation.deleteMany({})
+      ).count;
+      deletedCounts.playerYearStats = (
+        await tx.playerYearStats.deleteMany({})
+      ).count;
+      deletedCounts.playerRoleStats = (
+        await tx.playerRoleStats.deleteMany({})
+      ).count;
+      deletedCounts.playerTournament = (
+        await tx.playerTournament.deleteMany({})
+      ).count;
+      deletedCounts.player = (await tx.player.deleteMany({})).count;
+    } else if (dataType === 'clubs') {
+      // Delete clubs (players must be deleted first or unlinked)
+      // First, unlink players from clubs
+      await tx.player.updateMany({
+        where: { clubId: { not: null } },
+        data: { clubId: null },
+      });
+      deletedCounts.club = (await tx.club.deleteMany({})).count;
+    } else if (dataType === 'games') {
+      // Delete games and related data
+      deletedCounts.gameParticipation = (
+        await tx.gameParticipation.deleteMany({})
+      ).count;
+      deletedCounts.game = (await tx.game.deleteMany({})).count;
+    }
+
+    return deletedCounts;
+  });
+
+  // Log the operation
+  await resilientDB.execute((db) =>
+    db.syncLog.create({
+      data: {
+        type: 'FULL',
+        status: 'COMPLETED',
+        startTime: new Date(),
+        endTime: new Date(),
+        recordsProcessed: 0,
+        errors: {
+          operation: 'SELECTIVE_DATA_CLEAR',
+          dataType,
+          adminId,
+          deleted: deleted,
+        } as Prisma.InputJsonValue,
+      },
+    })
+  );
+
+  console.log(`Data type "${dataType}" cleared by admin: ${adminId}`, deleted);
+
+  return { deleted, dataType };
+}

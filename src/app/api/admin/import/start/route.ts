@@ -5,6 +5,7 @@ import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
 import { prisma as db } from '@/lib/db';
 import { z } from 'zod';
+import { resilientDB } from '@/lib/db-resilient';
 
 // Strategy to Phase mapping
 import { ClubsPhase } from '@/lib/gomafia/import/phases/clubs-phase';
@@ -60,12 +61,14 @@ export async function POST(request: NextRequest) {
     const phase = new PhaseClass(orchestrator);
 
     // Start progress tracking in ImportOrchestrator (singleton)
-    const importId = await importOrchestrator.startImport(
-      strategy,
-      100 // Estimate, will be updated by phase
-    );
+    // Use 0 as initial totalRecords - will be updated as scraping progresses
+    const importId = await importOrchestrator.startImport(strategy, 0);
+
+    // Mark as RUNNING immediately
+    await importOrchestrator.updateProgress(importId, 0, 0);
 
     // Execute phase in background (non-blocking)
+    // Note: executePhaseInBackground handles its own error cleanup
     executePhaseInBackground(
       phase,
       importId,
@@ -73,8 +76,12 @@ export async function POST(request: NextRequest) {
       browser,
       orchestrator
     ).catch((error) => {
-      console.error(`[AdminImport] Phase execution failed:`, error);
-      importOrchestrator.failImport(importId);
+      // Log the error but don't call failImport again
+      // executePhaseInBackground already handles cleanup
+      console.error(
+        `[AdminImport] Background phase execution error (already handled):`,
+        error
+      );
     });
 
     return NextResponse.json({
@@ -129,6 +136,55 @@ async function executePhaseInBackground(
   browser: Browser,
   orchestrator: ImportOrchestrator
 ): Promise<void> {
+  const progressInterval = setInterval(async () => {
+    try {
+      // Get metrics from orchestrator to track progress
+      const metrics = orchestrator.getValidationMetrics();
+
+      // Check if we have any progress to report
+      if (metrics.totalFetched > 0) {
+        // We have data scraped, update progress based on metrics
+        // During scraping: processed = totalFetched (shows "10/unknown → 50/unknown")
+        // After validation: processed = validRecords (shows "45/50")
+        const processedRecords =
+          metrics.validRecords > 0
+            ? metrics.validRecords
+            : metrics.totalFetched;
+        await importOrchestrator.updateProgress(
+          importId,
+          processedRecords,
+          0,
+          metrics.totalFetched
+        );
+      } else {
+        // Read progress from ImportCheckpoint (updated by phases during batch processing)
+        const checkpoint = await resilientDB.execute((db) =>
+          db.importCheckpoint.findUnique({
+            where: { id: 'current' },
+          })
+        );
+
+        if (checkpoint && checkpoint.progress > 0) {
+          // Use checkpoint progress percentage (batch processing phase)
+          const totalRecords = 100; // Estimated for checkpoint-based progress
+          const processedRecords = Math.round(
+            (checkpoint.progress / 100) * totalRecords
+          );
+
+          // Update importOrchestrator for UI display
+          await importOrchestrator.updateProgress(
+            importId,
+            processedRecords,
+            0,
+            totalRecords
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[AdminImport] Failed to update progress:', error);
+    }
+  }, 2000); // Poll every 2 seconds
+
   try {
     // Execute phase
     await phase.execute();
@@ -136,8 +192,13 @@ async function executePhaseInBackground(
     // Get metrics from orchestrator
     const metrics = orchestrator.getValidationMetrics();
 
-    // Update progress based on actual results
-    await importOrchestrator.updateProgress(importId, metrics.validRecords, 0);
+    // Update progress based on actual results with dynamic totalRecords
+    await importOrchestrator.updateProgress(
+      importId,
+      metrics.validRecords,
+      0,
+      metrics.totalFetched || 100
+    );
 
     // Mark as completed
     await importOrchestrator.completeImport(importId);
@@ -148,6 +209,9 @@ async function executePhaseInBackground(
     await importOrchestrator.failImport(importId);
     throw error;
   } finally {
+    // Clear progress polling interval
+    clearInterval(progressInterval);
+
     // Always clean up browser and release lock
     if (browser) {
       await browser.close();

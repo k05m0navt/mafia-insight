@@ -71,10 +71,19 @@ export function ImportProgressCard({
     }
   };
 
-  const formatDuration = (startTime: Date, endTime?: Date) => {
+  const formatDuration = (
+    startTime: Date | string,
+    endTime?: Date | string
+  ) => {
     if (!startTime) return '0s';
-    const end = endTime || new Date();
-    const duration = end.getTime() - startTime.getTime();
+    const start =
+      typeof startTime === 'string' ? new Date(startTime) : startTime;
+    const end = endTime
+      ? typeof endTime === 'string'
+        ? new Date(endTime)
+        : endTime
+      : new Date();
+    const duration = end.getTime() - start.getTime();
     const seconds = Math.floor(duration / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -88,11 +97,15 @@ export function ImportProgressCard({
     }
   };
 
-  const formatEstimatedCompletion = (estimatedCompletion?: Date) => {
+  const formatEstimatedCompletion = (estimatedCompletion?: Date | string) => {
     if (!estimatedCompletion) return 'Calculating...';
 
     const now = new Date();
-    const diff = estimatedCompletion.getTime() - now.getTime();
+    const completion =
+      typeof estimatedCompletion === 'string'
+        ? new Date(estimatedCompletion)
+        : estimatedCompletion;
+    const diff = completion.getTime() - now.getTime();
 
     if (diff <= 0) return 'Any moment now...';
 

@@ -79,6 +79,7 @@ export class ImportOrchestrator {
   private currentPhase: ImportPhase | null = null;
   private processedIds: Set<string> = new Set(); // For duplicate prevention (T116)
   private cancellationSignal: AbortSignal | null = null; // For graceful cancellation (T118)
+  private skippedPagesByPhase: Map<ImportPhase, number[]> = new Map(); // Track skipped pages by phase
 
   private readonly phases: ImportPhase[] = [
     'CLUBS',
@@ -384,6 +385,39 @@ export class ImportOrchestrator {
   }
 
   /**
+   * Record skipped pages for a phase.
+   * @param phase The import phase
+   * @param pages Array of skipped page numbers
+   */
+  recordSkippedPages(phase: ImportPhase, pages: number[]): void {
+    const existing = this.skippedPagesByPhase.get(phase) || [];
+    this.skippedPagesByPhase.set(phase, [...existing, ...pages]);
+  }
+
+  /**
+   * Get all skipped pages by phase.
+   * @returns Map of phase to skipped page numbers
+   */
+  getSkippedPages(): Map<ImportPhase, number[]> {
+    return new Map(this.skippedPagesByPhase);
+  }
+
+  /**
+   * Get skipped pages as a flat object for storage.
+   */
+  getSkippedPagesForStorage(): Record<string, number[]> {
+    const result: Record<string, number[]> = {};
+    for (const [phase, pages] of this.skippedPagesByPhase.entries()) {
+      // Remove duplicates and sort
+      const uniquePages = Array.from(new Set(pages)).sort((a, b) => a - b);
+      if (uniquePages.length > 0) {
+        result[phase] = uniquePages;
+      }
+    }
+    return result;
+  }
+
+  /**
    * Reset validation metrics between imports (convenience method for T091).
    */
   resetValidationMetrics(): void {
@@ -430,20 +464,24 @@ export class ImportOrchestrator {
     const hasErrors = errorSummary.totalErrors > 0;
     const hasIntegrityIssues =
       integrityResults && integrityResults.status === 'FAIL';
+    const skippedPages = this.getSkippedPagesForStorage();
+    const hasSkippedPages = Object.keys(skippedPages).length > 0;
 
     let errorData: unknown = undefined;
     if (!success) {
       errorData = {
         message: 'Import failed',
         errorSummary,
+        skippedPages: hasSkippedPages ? skippedPages : undefined,
       };
-    } else if (hasErrors || hasIntegrityIssues) {
+    } else if (hasErrors || hasIntegrityIssues || hasSkippedPages) {
       errorData = {
         message: hasIntegrityIssues
           ? 'Import completed with integrity issues'
           : 'Import completed with non-critical errors',
         errorSummary: hasErrors ? errorSummary : undefined,
         integrity: hasIntegrityIssues ? integrityResults : undefined,
+        skippedPages: hasSkippedPages ? skippedPages : undefined,
       };
     }
 
@@ -515,6 +553,34 @@ export class ImportOrchestrator {
    */
   getValidationTracker(): ValidationMetricsTracker {
     return this.validationTracker;
+  }
+
+  /**
+   * Get or create a system user for imports.
+   */
+  async getSystemUser(): Promise<string> {
+    // Try to find an admin user first
+    let systemUser = await this.db.user.findFirst({
+      where: { role: 'admin' },
+    });
+
+    // If no admin exists, try to find any user
+    if (!systemUser) {
+      systemUser = await this.db.user.findFirst();
+    }
+
+    // If still no user exists, create a system user
+    if (!systemUser) {
+      systemUser = await this.db.user.create({
+        data: {
+          email: `system-import-${Date.now()}@mafia-insight.local`,
+          name: 'System Import User',
+          role: 'admin',
+        },
+      });
+    }
+
+    return systemUser.id;
   }
 
   /**

@@ -425,8 +425,15 @@ async function startImportInBackground(
       }
     }
 
-    // Get final metrics
+    // Get final metrics and skipped pages
     const metrics = orchestrator.getValidationMetrics();
+    const skippedPages = orchestrator.getSkippedPagesForStorage();
+
+    // Prepare error data including skipped pages
+    const errorData: Record<string, unknown> = {};
+    if (Object.keys(skippedPages).length > 0) {
+      errorData.skippedPages = skippedPages;
+    }
 
     // Mark as completed
     await db.syncLog.update({
@@ -435,6 +442,8 @@ async function startImportInBackground(
         status: 'COMPLETED',
         endTime: new Date(),
         recordsProcessed: metrics.validRecords,
+        errors:
+          Object.keys(errorData).length > 0 ? (errorData as any) : undefined,
       },
     });
 

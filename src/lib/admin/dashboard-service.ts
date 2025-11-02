@@ -147,7 +147,10 @@ async function getRecentImports() {
 
   // Sort by startTime descending and take top 20
   return allImports
-    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    )
     .slice(0, 20);
 }
 

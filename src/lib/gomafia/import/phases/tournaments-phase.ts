@@ -49,21 +49,98 @@ export class TournamentsPhase {
       throw new Error('Failed to initialize tournaments scraper');
     }
 
-    // Scrape all tournaments
-    const rawTournaments = await this.tournamentsScraper.scrapeAllTournaments({
+    // Get system user ID for imports (needed for incremental saves)
+    const systemUserId = await this.orchestrator.getSystemUser();
+
+    // Track what's been saved to avoid duplicates during incremental saves
+    const savedTournamentIds = new Set<string>();
+    let totalSaved = 0;
+    let skippedPages: number[] = [];
+
+    // Scrape all tournaments with progress callback and incremental saving
+    const result = await this.tournamentsScraper.scrapeAllTournaments({
       timeFilter: 'all',
+      skipOnError: true, // Skip problematic pages instead of failing completely
+      onProgress: (pageNumber: number, currentTotal: number) => {
+        // Update metrics during scraping so UI sees progress
+        this.orchestrator.updateValidationMetrics({
+          totalFetched: currentTotal,
+        });
+      },
+      onPageData: async (pageNumber: number, pageData: TournamentRawData[]) => {
+        // Incrementally save each page's data as it's scraped
+        // This ensures we don't lose data if scraping fails later
+        await this.savePageData(pageData, systemUserId, savedTournamentIds);
+        totalSaved += pageData.length;
+        console.log(
+          `[TournamentsPhase] Saved page ${pageNumber}: ${pageData.length} tournaments (total saved: ${totalSaved})`
+        );
+      },
     });
 
+    const rawTournaments = result.data;
+    skippedPages = result.skippedPages;
+
+    // Store skipped pages in orchestrator for later retrieval
+    if (skippedPages.length > 0) {
+      this.orchestrator.recordSkippedPages('TOURNAMENTS', skippedPages);
+      console.warn(
+        `[TournamentsPhase] Skipped pages detected: ${skippedPages.join(', ')}`
+      );
+    }
+
     console.log(
-      `[TournamentsPhase] Scraped ${rawTournaments.length} tournaments`
+      `[TournamentsPhase] Scraped ${rawTournaments.length} tournaments (${totalSaved} already saved incrementally)`
     );
 
-    // Filter valid and non-duplicate tournaments
+    if (skippedPages.length > 0) {
+      // Attempt to retry skipped pages
+      if (skippedPages.length <= 5) {
+        // Only retry if reasonable number of pages
+        console.log(
+          `[TournamentsPhase] Attempting to retry ${skippedPages.length} skipped pages...`
+        );
+        try {
+          const retriedTournaments =
+            await this.tournamentsScraper.retrySkippedPages(skippedPages, {
+              timeFilter: 'all',
+              onPageData: async (
+                pageNumber: number,
+                pageData: TournamentRawData[]
+              ) => {
+                await this.savePageData(
+                  pageData,
+                  systemUserId,
+                  savedTournamentIds
+                );
+                totalSaved += pageData.length;
+              },
+            });
+          console.log(
+            `[TournamentsPhase] Successfully retried ${retriedTournaments.length} tournaments from skipped pages`
+          );
+        } catch (error) {
+          console.error(
+            '[TournamentsPhase] Error retrying skipped pages:',
+            error
+          );
+        }
+      }
+    }
+
+    // Filter valid and non-duplicate tournaments (only process what wasn't already saved)
     const validTournaments: TournamentRawData[] = [];
     let invalidCount = 0;
     let duplicateCount = 0;
+    let alreadySavedCount = 0;
 
     for (const tournament of rawTournaments) {
+      // Skip if already saved incrementally
+      if (savedTournamentIds.has(tournament.gomafiaId)) {
+        alreadySavedCount++;
+        continue;
+      }
+
       // Validate
       const isValid = await this.validateData(tournament);
       if (!isValid) {
@@ -71,10 +148,11 @@ export class TournamentsPhase {
         continue;
       }
 
-      // Check duplicate
+      // Check duplicate in database
       const isDuplicate = await this.checkDuplicate(tournament.gomafiaId);
       if (isDuplicate) {
         duplicateCount++;
+        savedTournamentIds.add(tournament.gomafiaId); // Track it to avoid checking again
         continue;
       }
 
@@ -82,67 +160,145 @@ export class TournamentsPhase {
     }
 
     console.log(
-      `[TournamentsPhase] Valid: ${validTournaments.length}, Invalid: ${invalidCount}, Duplicates: ${duplicateCount}`
+      `[TournamentsPhase] Valid: ${validTournaments.length}, Invalid: ${invalidCount}, Duplicates: ${duplicateCount}, Already Saved: ${alreadySavedCount}`
     );
 
     // Update orchestrator metrics
     this.orchestrator.updateValidationMetrics({
       totalFetched: rawTournaments.length,
-      validRecords: validTournaments.length,
+      validRecords: validTournaments.length + totalSaved,
       invalidRecords: invalidCount,
-      duplicatesSkipped: duplicateCount,
+      duplicatesSkipped: duplicateCount + alreadySavedCount,
     });
 
-    // Batch insert
-    const batchProcessor = this.orchestrator.getBatchProcessor();
+    // Batch insert remaining valid tournaments (those not saved incrementally)
+    if (validTournaments.length > 0) {
+      const batchProcessor = this.orchestrator.getBatchProcessor();
 
-    await batchProcessor.process(
-      validTournaments,
-      async (batch, batchIndex, totalBatches) => {
-        // Transform to Prisma format
-        const tournamentsToInsert = (batch as TournamentRawData[]).map(
-          (tournament: TournamentRawData) => ({
-            gomafiaId: tournament.gomafiaId,
-            name: tournament.name,
-            stars: tournament.stars,
-            averageElo: tournament.averageElo,
-            isFsmRated: tournament.isFsmRated,
-            startDate: parseGomafiaDate(tournament.startDate),
-            endDate: tournament.endDate
-              ? parseGomafiaDate(tournament.endDate)
-              : null,
-            status: tournament.status,
-            createdBy: 'system-import-user', // System user for imports
-            lastSyncAt: new Date(),
-            syncStatus: 'SYNCED' as const,
-          })
-        );
+      await batchProcessor.process(
+        validTournaments,
+        async (batch, batchIndex, totalBatches) => {
+          // Transform to Prisma format
+          const tournamentsToInsert = (batch as TournamentRawData[]).map(
+            (tournament: TournamentRawData) => ({
+              gomafiaId: tournament.gomafiaId,
+              name: tournament.name,
+              stars: tournament.stars,
+              averageElo: tournament.averageElo,
+              isFsmRated: tournament.isFsmRated,
+              startDate: parseGomafiaDate(tournament.startDate),
+              endDate: tournament.endDate
+                ? parseGomafiaDate(tournament.endDate)
+                : null,
+              status: tournament.status,
+              createdBy: systemUserId, // System user for imports
+              lastSyncAt: new Date(),
+              syncStatus: 'SYNCED' as const,
+            })
+          );
 
-        // Insert batch
-        await resilientDB.execute((db) =>
-          db.tournament.createMany({
-            data: tournamentsToInsert,
-            skipDuplicates: true,
-          })
-        );
+          // Insert batch
+          await resilientDB.execute((db) =>
+            db.tournament.createMany({
+              data: tournamentsToInsert,
+              skipDuplicates: true,
+            })
+          );
 
-        // Save checkpoint
-        const checkpoint = this.createCheckpoint(
-          batchIndex,
-          totalBatches,
-          (batch as TournamentRawData[]).map(
-            (t: TournamentRawData) => t.gomafiaId
-          )
-        );
-        await this.orchestrator.saveCheckpoint(checkpoint);
+          // Save checkpoint
+          const checkpoint = this.createCheckpoint(
+            batchIndex,
+            totalBatches,
+            (batch as TournamentRawData[]).map(
+              (t: TournamentRawData) => t.gomafiaId
+            )
+          );
+          await this.orchestrator.saveCheckpoint(checkpoint);
 
-        console.log(
-          `[TournamentsPhase] Imported batch ${batchIndex + 1}/${totalBatches}`
-        );
-      }
+          console.log(
+            `[TournamentsPhase] Imported batch ${batchIndex + 1}/${totalBatches} (${tournamentsToInsert.length} tournaments)`
+          );
+        }
+      );
+    } else {
+      console.log(
+        '[TournamentsPhase] All tournaments were already saved incrementally'
+      );
+    }
+
+    console.log(
+      `[TournamentsPhase] Tournaments import complete. Total saved: ${totalSaved + validTournaments.length}`
     );
+  }
 
-    console.log('[TournamentsPhase] Tournaments import complete');
+  /**
+   * Save a page's data incrementally during scraping.
+   * This ensures data is persisted even if scraping fails later.
+   */
+  private async savePageData(
+    pageData: TournamentRawData[],
+    systemUserId: string,
+    savedTournamentIds: Set<string>
+  ): Promise<void> {
+    // Filter valid tournaments
+    const validTournaments: TournamentRawData[] = [];
+
+    for (const tournament of pageData) {
+      // Validate
+      const isValid = await this.validateData(tournament);
+      if (!isValid) {
+        continue;
+      }
+
+      // Check if already exists
+      const isDuplicate = await this.checkDuplicate(tournament.gomafiaId);
+      if (isDuplicate) {
+        savedTournamentIds.add(tournament.gomafiaId);
+        continue;
+      }
+
+      validTournaments.push(tournament);
+    }
+
+    if (validTournaments.length === 0) {
+      return;
+    }
+
+    // Transform to Prisma format
+    const tournamentsToInsert = validTournaments.map((tournament) => ({
+      gomafiaId: tournament.gomafiaId,
+      name: tournament.name,
+      stars: tournament.stars,
+      averageElo: tournament.averageElo,
+      isFsmRated: tournament.isFsmRated,
+      startDate: parseGomafiaDate(tournament.startDate),
+      endDate: tournament.endDate ? parseGomafiaDate(tournament.endDate) : null,
+      status: tournament.status,
+      createdBy: systemUserId,
+      lastSyncAt: new Date(),
+      syncStatus: 'SYNCED' as const,
+    }));
+
+    // Insert batch
+    try {
+      await resilientDB.execute((db) =>
+        db.tournament.createMany({
+          data: tournamentsToInsert,
+          skipDuplicates: true,
+        })
+      );
+
+      // Mark as saved
+      validTournaments.forEach((tournament) =>
+        savedTournamentIds.add(tournament.gomafiaId)
+      );
+    } catch (error) {
+      console.error(
+        '[TournamentsPhase] Error saving page data incrementally:',
+        error
+      );
+      // Don't throw - continue scraping even if save fails
+    }
   }
 
   /**
@@ -150,6 +306,18 @@ export class TournamentsPhase {
    */
   async validateData(data: TournamentRawData): Promise<boolean> {
     const result = tournamentSchema.safeParse(data);
+    if (!result.success) {
+      // Log validation errors for debugging
+      const errors = result.error.issues.map((err) => ({
+        path: err.path.join('.'),
+        message: err.message,
+        value: err.path.reduce((obj: any, key) => obj?.[key], data),
+      }));
+      console.warn(
+        `[TournamentsPhase] Validation failed for tournament ${data.gomafiaId}:`,
+        errors
+      );
+    }
     return result.success;
   }
 

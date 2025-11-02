@@ -16,6 +16,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SkippedPagesManager } from '@/components/admin/SkippedPagesManager';
 
 interface ImportProgress {
   id: string;
@@ -352,6 +353,11 @@ export default function ImportManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Skipped Pages Manager */}
+      <div className="mt-6">
+        <SkippedPagesManager />
+      </div>
     </>
   );
 }

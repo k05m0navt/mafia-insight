@@ -1,58 +1,85 @@
 import { db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
+import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
 
 /**
  * Cancel a running import operation
  */
-export async function cancelImport(adminId: string): Promise<void> {
-  // Check if import is running
-  const status = await db.syncStatus.findUnique({ where: { id: 'current' } });
+export async function cancelImport(
+  adminId: string,
+  importId?: string
+): Promise<void> {
+  // Check ImportProgress table first (newer system used by admin imports)
+  if (importId) {
+    const importProgress = await db.importProgress.findUnique({
+      where: { id: importId },
+    });
 
-  if (!status || !status.isRunning) {
-    throw new Error('No import operation currently running');
+    if (importProgress && importProgress.status === 'RUNNING') {
+      // Use the importOrchestrator to cancel
+      await importOrchestrator.cancelImport(importId);
+      console.log(`Import ${importId} cancelled by admin: ${adminId}`);
+      return;
+    }
   }
 
-  // Set cancellation flag
-  // Note: The actual orchestrator cancellation is handled elsewhere
-  // This service updates the database status
+  // Fallback: Check for any running import in ImportProgress
+  const runningImport = await db.importProgress.findFirst({
+    where: { status: 'RUNNING' },
+    orderBy: { startTime: 'desc' },
+  });
 
-  // Update syncStatus to mark as cancelled
-  await resilientDB.execute((db) =>
-    db.syncStatus.update({
-      where: { id: 'current' },
-      data: {
-        isRunning: false,
-        lastError: 'Import cancelled by administrator',
-        updatedAt: new Date(),
-      },
-    })
-  );
+  if (runningImport) {
+    await importOrchestrator.cancelImport(runningImport.id);
+    console.log(`Import ${runningImport.id} cancelled by admin: ${adminId}`);
+    return;
+  }
 
-  // Update the most recent running import log
-  const runningLog = await resilientDB.execute((db) =>
-    db.syncLog.findFirst({
-      where: {
-        status: 'RUNNING',
-      },
-      orderBy: {
-        startTime: 'desc',
-      },
-    })
-  );
+  // Fallback: Check old syncStatus system
+  const status = await db.syncStatus.findUnique({ where: { id: 'current' } });
 
-  if (runningLog) {
+  if (status && status.isRunning) {
+    // Update syncStatus to mark as cancelled
     await resilientDB.execute((db) =>
-      db.syncLog.update({
-        where: { id: runningLog.id },
+      db.syncStatus.update({
+        where: { id: 'current' },
         data: {
-          status: 'CANCELLED',
-          endTime: new Date(),
+          isRunning: false,
+          lastError: 'Import cancelled by administrator',
+          updatedAt: new Date(),
         },
       })
     );
+
+    // Update the most recent running import log
+    const runningLog = await resilientDB.execute((db) =>
+      db.syncLog.findFirst({
+        where: {
+          status: 'RUNNING',
+        },
+        orderBy: {
+          startTime: 'desc',
+        },
+      })
+    );
+
+    if (runningLog) {
+      await resilientDB.execute((db) =>
+        db.syncLog.update({
+          where: { id: runningLog.id },
+          data: {
+            status: 'CANCELLED',
+            endTime: new Date(),
+          },
+        })
+      );
+    }
+
+    console.log(`Sync cancelled by admin: ${adminId}`);
+    return;
   }
 
-  console.log(`Import cancelled by admin: ${adminId}`);
+  throw new Error('No import operation currently running');
 }
 
 /**

@@ -45,8 +45,11 @@ export class PlayersScraper {
       year?: number;
       region?: string;
       maxPages?: number;
+      onProgress?: (pageNumber: number, currentTotal: number) => void;
+      onPageData?: (pageNumber: number, data: PlayerRawData[]) => Promise<void>;
+      skipOnError?: boolean;
     } = {}
-  ): Promise<PlayerRawData[]> {
+  ): Promise<{ data: PlayerRawData[]; skippedPages: number[] }> {
     const year = options.year || new Date().getFullYear();
     const region = options.region || 'all';
     const baseUrl = `https://gomafia.pro/rating?yearUsers=${year}&regionUsers=${region}`;
@@ -57,7 +60,42 @@ export class PlayersScraper {
       hasNextSelector: '.pagination .next',
       maxPages: options.maxPages,
       extractDataFn: async () => this.extractPlayersFromPage(),
+      onProgress: options.onProgress,
+      onPageData: options.onPageData,
+      skipOnError: options.skipOnError ?? true, // Default to skipping errors
     });
+  }
+
+  /**
+   * Retry scraping specific pages that were skipped.
+   *
+   * @param pageNumbers Array of page numbers to retry
+   * @param options Scraping options (must match original scraping options)
+   * @returns Array of scraped player data from retried pages
+   */
+  async retrySkippedPages(
+    pageNumbers: number[],
+    options: {
+      year?: number;
+      region?: string;
+      onPageData?: (pageNumber: number, data: PlayerRawData[]) => Promise<void>;
+    } = {}
+  ): Promise<PlayerRawData[]> {
+    const year = options.year || new Date().getFullYear();
+    const region = options.region || 'all';
+    const baseUrl = `https://gomafia.pro/rating?yearUsers=${year}&regionUsers=${region}`;
+
+    return await this.paginationHandler.retrySkippedPages<PlayerRawData>(
+      {
+        baseUrl,
+        pageParam: 'pageUsers',
+        hasNextSelector: '.pagination .next',
+        extractDataFn: async () => this.extractPlayersFromPage(),
+        onPageData: options.onPageData,
+        skipOnError: true,
+      },
+      pageNumbers
+    );
   }
 
   /**
