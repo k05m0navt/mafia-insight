@@ -64,11 +64,17 @@ export class CheckpointManager {
       })
     );
 
-    // Also update sync status for UI visibility
+    // Also update sync status for UI visibility - use upsert to handle missing records
     await resilientDB.execute((db) =>
-      db.syncStatus.update({
+      db.syncStatus.upsert({
         where: { id: 'current' },
-        data: {
+        create: {
+          id: 'current',
+          isRunning: true,
+          progress: checkpoint.progress,
+          currentOperation: `Processing ${checkpoint.currentPhase} (batch ${checkpoint.currentBatch})`,
+        },
+        update: {
           progress: checkpoint.progress,
           currentOperation: `Processing ${checkpoint.currentPhase} (batch ${checkpoint.currentBatch})`,
           updatedAt: new Date(),

@@ -89,6 +89,7 @@ export type DeletableDataType =
   | 'clubs'
   | 'games'
   | 'player_statistics'
+  | 'tournament_results'
   | 'all';
 
 /**
@@ -186,6 +187,12 @@ export async function clearDataType(
       ).count;
       deletedCounts.playerRoleStats = (
         await tx.playerRoleStats.deleteMany({})
+      ).count;
+    } else if (dataType === 'tournament_results') {
+      // Delete only player-tournament relationships (tournament results)
+      // Players and tournaments are kept intact
+      deletedCounts.playerTournament = (
+        await tx.playerTournament.deleteMany({})
       ).count;
     }
 

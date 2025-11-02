@@ -116,6 +116,13 @@ description: 'Task list for replacing mock scrapers with real scrapers in admin 
 - [ ] T029 [P] Update E2E test to verify real data in `tests/e2e/admin-import.spec.ts`
 - [ ] T030 [P] Performance benchmarking: Measure import times for each strategy and compare with success criteria in documentation
 - [ ] T031 [P] Validation rate verification: Ensure ≥95% validation rate for all imports in production logs
+- [x] T037 [P] [OPT] Implement parallel browser contexts for player stats scraping in `src/lib/gomafia/import/phases/player-year-stats-phase.ts`
+- [x] T038 [P] [OPT] Optimize page wait strategies from networkidle to domcontentloaded in `src/lib/gomafia/scrapers/player-stats-scraper.ts`
+- [x] T039 [P] [OPT] Add resource blocking (images, fonts, media) in `src/lib/gomafia/import/phases/player-year-stats-phase.ts`
+- [x] T040 [P] [OPT] Optimize wait timeouts and remove unnecessary delays in `src/lib/gomafia/scrapers/player-stats-scraper.ts`
+- [x] T041 [P] [OPT] Implement batch database inserts instead of per-player inserts in `src/lib/gomafia/import/phases/player-year-stats-phase.ts`
+- [x] T042 [P] [OPT] Add retry logic for page navigation timeouts in `src/lib/gomafia/scrapers/player-stats-scraper.ts` and `retry-manager.ts`
+- [x] T043 [P] [OPT] Fix import status race condition - clear progress interval before completion in `src/app/api/admin/import/start/route.ts`
 - [x] T032 [P] Code cleanup: Remove any remaining references to generateSampleData or mock data patterns
 - [ ] T033 [P] Documentation update: Add examples and troubleshooting guide in `docs/admin-import.md`
 - [x] T034 [P] Update OpenAPI contract documentation if needed in `specs/012-real-scrapers/contracts/admin-import-api.yaml`
@@ -223,12 +230,12 @@ With multiple developers:
 
 ## Task Summary
 
-**Total Tasks**: 36  
+**Total Tasks**: 39  
 **User Story 1 Tasks**: 13 (4 test tasks, 9 implementation tasks)  
 **User Story 2 Tasks**: 5 (2 test tasks, 3 implementation tasks)  
 **Setup Tasks**: 5  
 **Foundational Tasks**: 5  
-**Polish Tasks**: 8
+**Polish Tasks**: 11
 
 **Parallel Opportunities**:
 

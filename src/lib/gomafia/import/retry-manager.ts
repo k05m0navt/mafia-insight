@@ -121,6 +121,8 @@ export class RetryManager {
       '502',
       '504',
       'getaddrinfo enotfound',
+      'timeout', // Playwright timeouts (page.goto: Timeout, etc.)
+      'exceeded', // Timeout exceeded errors
     ];
 
     return transientPatterns.some((pattern) => message.includes(pattern));

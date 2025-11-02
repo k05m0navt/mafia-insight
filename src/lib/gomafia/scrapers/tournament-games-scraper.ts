@@ -34,7 +34,7 @@ export class TournamentGamesScraper {
     await this.page.goto(
       `https://gomafia.pro/tournament/${tournamentId}?tab=games`,
       {
-        waitUntil: 'networkidle',
+        waitUntil: 'load', // Waits for HTML/CSS, more reliable with resource blocking
         timeout: 30000,
       }
     );

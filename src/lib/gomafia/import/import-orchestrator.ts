@@ -98,7 +98,7 @@ export class ImportOrchestrator {
   ) {
     this.checkpointManager = new CheckpointManager(db);
     this.lockManager = new AdvisoryLockManager(db);
-    this.rateLimiter = new RateLimiter(2000); // 2 seconds between requests
+    this.rateLimiter = new RateLimiter(1000); // 1 second between requests for faster scraping
     this.batchProcessor = new BatchProcessor(db, 100); // 100 records per batch
     this.timeoutManager = new TimeoutManager(maxDurationMs);
     this.validationTracker = new ValidationMetricsTracker();

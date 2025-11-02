@@ -10,6 +10,7 @@ export interface PaginationConfig<T> {
   onProgress?: (pageNumber: number, currentTotal: number) => void; // Optional progress callback
   onPageData?: (pageNumber: number, data: T[]) => Promise<void>; // Optional callback for incremental saving
   skipOnError?: boolean; // If true, skip problematic pages instead of throwing
+  silent?: boolean; // If true, reduce verbose logging
 }
 
 /**
@@ -77,19 +78,22 @@ export class PaginationHandler {
         // Navigate to page with progressive timeout increase for high page numbers
         if (url !== 'about:blank') {
           // Skip navigation for test pages
-          // Progressive timeout: 30s for pages 1-100, 60s for 101-300, 90s for 301-500, 120s for 500+
-          let timeout = 30000;
+          // PERFORMANCE OPTIMIZATION: Balanced timeouts for tab-based pages
+          // Tab content loads dynamically, so we need enough time for JavaScript execution
+          // Progressive timeout: 20s for page 1, 25s for pages 2-100, 30s for 101-300, 60s for 301+
+          let timeout = currentPage === 1 ? 20000 : 25000; // Slightly more time for first page (tab activation)
           if (currentPage > 500) {
-            timeout = 120000; // 2 minutes for very high pages
+            timeout = 60000; // 1 minute for very high pages
           } else if (currentPage > 300) {
-            timeout = 90000; // 90s
+            timeout = 45000; // 45s
           } else if (currentPage > 100) {
-            timeout = 60000; // 60s
+            timeout = 30000; // 30s
           }
 
-          // Use 'domcontentloaded' for high pages instead of 'networkidle' (faster, less likely to timeout)
-          const waitUntil =
-            currentPage > 100 ? 'domcontentloaded' : 'networkidle';
+          // PERFORMANCE: Use 'domcontentloaded' - much faster than 'load'
+          // Since we block images/fonts/media anyway, we only need DOM + CSS to be ready
+          // The extractDataFn will wait for specific selectors anyway
+          const waitUntil = 'domcontentloaded';
 
           await this.page.goto(url, {
             waitUntil,
@@ -123,9 +127,13 @@ export class PaginationHandler {
           retryCount = 0; // Reset retry count on successful page
           consecutiveTimeouts = 0; // Reset consecutive timeout counter
           allData.push(...pageData);
-          console.log(
-            `[Pagination] Page ${currentPage}: ${pageData.length} records (total: ${allData.length})`
-          );
+
+          // Only log if not silent mode
+          if (!config.silent) {
+            console.log(
+              `[Pagination] Page ${currentPage}: ${pageData.length} records (total: ${allData.length})`
+            );
+          }
 
           // Call progress callback if provided
           if (config.onProgress) {
@@ -149,9 +157,11 @@ export class PaginationHandler {
         // Check for next page
         const hasNext = await this.hasNextPage(config.hasNextSelector);
         if (!hasNext) {
-          console.log(
-            `[Pagination] No more pages available at page ${currentPage}`
-          );
+          if (!config.silent) {
+            console.log(
+              `[Pagination] No more pages available at page ${currentPage}`
+            );
+          }
           break;
         }
 
@@ -293,7 +303,7 @@ export class PaginationHandler {
           timeout = 60000;
         }
 
-        const waitUntil = pageNumber > 100 ? 'domcontentloaded' : 'networkidle';
+        const waitUntil = 'load';
 
         await this.page.goto(url, { waitUntil, timeout });
         await this.rateLimiter.wait();

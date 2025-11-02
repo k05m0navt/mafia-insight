@@ -43,7 +43,7 @@ export class TournamentsScraper {
     } = {}
   ): Promise<{ data: TournamentRawData[]; skippedPages: number[] }> {
     const timeFilter = options.timeFilter || 'all';
-    const baseUrl = `https://gomafia.pro/tournaments?time=${timeFilter}`;
+    const baseUrl = `https://gomafia.pro/tournaments?time=${timeFilter}&fsm=all`;
 
     return await this.paginationHandler.scrapeAllPages<TournamentRawData>({
       baseUrl,
@@ -75,7 +75,7 @@ export class TournamentsScraper {
     } = {}
   ): Promise<TournamentRawData[]> {
     const timeFilter = options.timeFilter || 'all';
-    const baseUrl = `https://gomafia.pro/tournaments?time=${timeFilter}`;
+    const baseUrl = `https://gomafia.pro/tournaments?time=${timeFilter}&fsm=all`;
 
     return await this.paginationHandler.retrySkippedPages<TournamentRawData>(
       {

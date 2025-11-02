@@ -3,6 +3,22 @@ import { resilientDB } from '@/lib/db-resilient';
 import { importOrchestrator } from '@/lib/gomafia/import/orchestrator';
 
 /**
+ * Get AbortController for admin imports.
+ * This dynamically imports the function from the route to avoid circular dependencies.
+ */
+async function getAdminAbortController(importId: string) {
+  try {
+    const { getAbortController } = await import(
+      '@/app/api/admin/import/start/route'
+    );
+    return getAbortController(importId);
+  } catch (error) {
+    console.error('[ImportControl] Failed to get abort controller:', error);
+    return undefined;
+  }
+}
+
+/**
  * Cancel a running import operation
  */
 export async function cancelImport(
@@ -16,7 +32,16 @@ export async function cancelImport(
     });
 
     if (importProgress && importProgress.status === 'RUNNING') {
-      // Use the importOrchestrator to cancel
+      // Signal the AbortController for graceful cancellation
+      const abortController = await getAdminAbortController(importId);
+      if (abortController) {
+        console.log(
+          `[ImportControl] Sending cancellation signal to import ${importId}`
+        );
+        abortController.abort('User requested cancellation');
+      }
+
+      // Use the importOrchestrator to cancel (updates DB status)
       await importOrchestrator.cancelImport(importId);
       console.log(`Import ${importId} cancelled by admin: ${adminId}`);
       return;
@@ -30,6 +55,15 @@ export async function cancelImport(
   });
 
   if (runningImport) {
+    // Signal the AbortController for graceful cancellation
+    const abortController = await getAdminAbortController(runningImport.id);
+    if (abortController) {
+      console.log(
+        `[ImportControl] Sending cancellation signal to import ${runningImport.id}`
+      );
+      abortController.abort('User requested cancellation');
+    }
+
     await importOrchestrator.cancelImport(runningImport.id);
     console.log(`Import ${runningImport.id} cancelled by admin: ${adminId}`);
     return;

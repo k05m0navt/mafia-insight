@@ -60,6 +60,14 @@ export class ImportOrchestrator {
       throw new Error(`Import ${importId} not found`);
     }
 
+    // Don't update if already completed
+    if (
+      importProgress.status === 'COMPLETED' ||
+      importProgress.status === 'FAILED'
+    ) {
+      return;
+    }
+
     // Update totalRecords if provided
     if (
       totalRecords !== undefined &&

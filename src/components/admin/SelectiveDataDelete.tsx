@@ -37,6 +37,7 @@ type DeletableDataType =
   | 'clubs'
   | 'games'
   | 'player_statistics'
+  | 'tournament_results'
   | 'all';
 
 interface DataTypeOption {
@@ -71,6 +72,12 @@ const dataTypeOptions: DataTypeOption[] = [
     label: 'Player Statistics',
     description:
       'Delete all player statistics (year stats and role stats). Players will be kept.',
+  },
+  {
+    value: 'tournament_results',
+    label: 'Tournament Results',
+    description:
+      'Delete all player-tournament relationships (placements, points, prizes). Players and tournaments will be kept.',
   },
   {
     value: 'all',
@@ -255,6 +262,19 @@ export function SelectiveDataDelete() {
                         <li>All player role statistics</li>
                         <li className="font-medium text-foreground">
                           Players will be preserved (not deleted)
+                        </li>
+                      </ul>
+                    )}
+                    {selectedDataType === 'tournament_results' && (
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                        <li>All player-tournament relationships</li>
+                        <li>All tournament placements</li>
+                        <li>
+                          All GG points, ELO changes, and prize money records
+                        </li>
+                        <li className="font-medium text-foreground">
+                          Players and tournaments will be preserved (not
+                          deleted)
                         </li>
                       </ul>
                     )}

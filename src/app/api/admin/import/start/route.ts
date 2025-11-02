@@ -15,6 +15,41 @@ import { GamesPhase } from '@/lib/gomafia/import/phases/games-phase';
 import { PlayerYearStatsPhase } from '@/lib/gomafia/import/phases/player-year-stats-phase';
 import { PlayerTournamentPhase } from '@/lib/gomafia/import/phases/player-tournament-phase';
 
+/**
+ * Global map of AbortControllers for import cancellation.
+ * Keyed by importId to allow per-import cancellation.
+ */
+const importControllers = new Map<string, AbortController>();
+
+/**
+ * Get or create AbortController for an import.
+ */
+function getImportController(importId: string): AbortController {
+  let controller = importControllers.get(importId);
+  if (!controller) {
+    controller = new AbortController();
+    importControllers.set(importId, controller);
+  }
+  return controller;
+}
+
+/**
+ * Remove AbortController for an import after completion/failure.
+ */
+function removeImportController(importId: string): void {
+  importControllers.delete(importId);
+}
+
+/**
+ * Get AbortController for an import to trigger cancellation.
+ * Exported for use in cancelImport service.
+ */
+export function getAbortController(
+  importId: string
+): AbortController | undefined {
+  return importControllers.get(importId);
+}
+
 const requestSchema = z.object({
   strategy: z.enum([
     'players',
@@ -66,6 +101,13 @@ export async function POST(request: NextRequest) {
 
     // Mark as RUNNING immediately
     await importOrchestrator.updateProgress(importId, 0, 0);
+
+    // Get or create AbortController for cancellation
+    const abortController = getImportController(importId);
+
+    // Set cancellation signal on orchestrator for graceful shutdown
+    orchestrator.setCancellationSignal(abortController.signal);
+    console.log(`[AdminImport] Created AbortController for import ${importId}`);
 
     // Execute phase in background (non-blocking)
     // Note: executePhaseInBackground handles its own error cleanup
@@ -179,6 +221,12 @@ async function executePhaseInBackground(
         }
       }
     } catch (error) {
+      // Suppress errors for cancelled/deleted imports - don't spam logs
+      if (error instanceof Error && error.message.includes('not found')) {
+        // Import was cancelled/deleted, silently stop polling
+        clearInterval(progressInterval);
+        return;
+      }
       console.error('[AdminImport] Failed to update progress:', error);
     }
   }, 2000); // Poll every 2 seconds
@@ -187,33 +235,42 @@ async function executePhaseInBackground(
     // Execute phase
     await phase.execute();
 
-    // Get metrics from orchestrator
-    const metrics = orchestrator.getValidationMetrics();
+    // Clear progress polling interval BEFORE marking as completed
+    // to prevent race condition where interval overwrites status
+    clearInterval(progressInterval);
 
-    // Update progress based on actual results with dynamic totalRecords
-    await importOrchestrator.updateProgress(
-      importId,
-      metrics.validRecords,
-      0,
-      metrics.totalFetched || 100
-    );
-
-    // Mark as completed
+    // Mark as completed (completeImport sets progress to 100 and final metrics)
     await importOrchestrator.completeImport(importId);
 
     console.log(`[AdminImport] Import ${importId} completed successfully`);
   } catch (error) {
-    console.error(`[AdminImport] Import ${importId} failed:`, error);
+    // Check if cancellation was the cause
+    if (orchestrator.isCancelled()) {
+      console.log(`[AdminImport] Import ${importId} was cancelled gracefully`);
+    } else {
+      console.error(`[AdminImport] Import ${importId} failed:`, error);
+    }
+    // Clear interval on error too
+    clearInterval(progressInterval);
     await importOrchestrator.failImport(importId);
     throw error;
   } finally {
-    // Clear progress polling interval
-    clearInterval(progressInterval);
+    // Remove AbortController from map
+    removeImportController(importId);
 
-    // Always clean up browser and release lock
-    if (browser) {
-      await browser.close();
+    // Always clean up browser and release lock with error handling
+    try {
+      if (browser) {
+        await browser.close();
+      }
+    } catch (cleanupError) {
+      console.error('[AdminImport] Browser cleanup error:', cleanupError);
     }
-    await lockManager.releaseLock();
+
+    try {
+      await lockManager.releaseLock();
+    } catch (cleanupError) {
+      console.error('[AdminImport] Lock release error:', cleanupError);
+    }
   }
 }
