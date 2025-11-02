@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       'players',
       'clubs',
       'games',
+      'player_statistics',
       'all',
     ];
     if (!validDataTypes.includes(dataType)) {

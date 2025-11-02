@@ -144,12 +144,10 @@ async function executePhaseInBackground(
       // Check if we have any progress to report
       if (metrics.totalFetched > 0) {
         // We have data scraped, update progress based on metrics
-        // During scraping: processed = totalFetched (shows "10/unknown → 50/unknown")
-        // After validation: processed = validRecords (shows "45/50")
-        const processedRecords =
-          metrics.validRecords > 0
-            ? metrics.validRecords
-            : metrics.totalFetched;
+        // totalFetched = total items to process (set at start)
+        // validRecords = items actually processed (updated incrementally)
+        // For player_stats: totalFetched = total players, validRecords = processed players
+        const processedRecords = metrics.validRecords || 0;
         await importOrchestrator.updateProgress(
           importId,
           processedRecords,

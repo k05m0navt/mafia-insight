@@ -31,7 +31,13 @@ import { useState } from 'react';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { toast } from '@/components/hooks/use-toast';
 
-type DeletableDataType = 'tournaments' | 'players' | 'clubs' | 'games' | 'all';
+type DeletableDataType =
+  | 'tournaments'
+  | 'players'
+  | 'clubs'
+  | 'games'
+  | 'player_statistics'
+  | 'all';
 
 interface DataTypeOption {
   value: DeletableDataType;
@@ -59,6 +65,12 @@ const dataTypeOptions: DataTypeOption[] = [
     value: 'games',
     label: 'Games',
     description: 'Delete all games and participations',
+  },
+  {
+    value: 'player_statistics',
+    label: 'Player Statistics',
+    description:
+      'Delete all player statistics (year stats and role stats). Players will be kept.',
   },
   {
     value: 'all',
@@ -235,6 +247,15 @@ export function SelectiveDataDelete() {
                       <ul className="list-disc list-inside text-sm text-muted-foreground">
                         <li>All games</li>
                         <li>All game participations</li>
+                      </ul>
+                    )}
+                    {selectedDataType === 'player_statistics' && (
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                        <li>All player year statistics</li>
+                        <li>All player role statistics</li>
+                        <li className="font-medium text-foreground">
+                          Players will be preserved (not deleted)
+                        </li>
                       </ul>
                     )}
                     {selectedDataType === 'all' && (

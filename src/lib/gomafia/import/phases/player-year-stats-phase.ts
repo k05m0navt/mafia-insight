@@ -55,8 +55,20 @@ export class PlayerYearStatsPhase {
       `[PlayerYearStatsPhase] Found ${players.length} players to process`
     );
 
+    // Reset and set total records for progress tracking
+    // Clear any previous metrics and set the total number of players to process
+    this.orchestrator.updateValidationMetrics({
+      totalFetched: players.length,
+      validRecords: 0, // Start with 0 processed
+      invalidRecords: 0, // Reset error count
+    });
+
+    const startTime = Date.now();
     let totalStats = 0;
     let errorCount = 0;
+    let processedPlayers = 0;
+    let playersWithStats = 0;
+    let playersWithoutStats = 0;
 
     // Process players in batches
     const batchProcessor = this.orchestrator.getBatchProcessor();
@@ -64,17 +76,7 @@ export class PlayerYearStatsPhase {
     await batchProcessor.process(
       players,
       async (batch, batchIndex, totalBatches) => {
-        const statsToInsert: Array<{
-          playerId: string;
-          year: number;
-          totalGames: number;
-          donGames: number;
-          mafiaGames: number;
-          sheriffGames: number;
-          civilianGames: number;
-          eloRating: number | null;
-          extraPoints: number;
-        }> = [];
+        const batchStartTime = Date.now();
 
         for (const player of batch as Array<{
           id: string;
@@ -87,9 +89,20 @@ export class PlayerYearStatsPhase {
               player.gomafiaId
             );
 
-            // Transform to Prisma format
-            for (const stats of yearStats) {
-              statsToInsert.push({
+            processedPlayers++;
+
+            // Update progress metrics - track processed players in validRecords
+            // (since we're tracking players, not individual stats here)
+            // totalFetched = total players, validRecords = processed players
+            this.orchestrator.updateValidationMetrics({
+              validRecords: processedPlayers,
+            });
+
+            if (yearStats.length > 0) {
+              playersWithStats++;
+
+              // Transform to Prisma format
+              const playerStatsToInsert = yearStats.map((stats) => ({
                 playerId: player.id,
                 year: stats.year,
                 totalGames: stats.totalGames,
@@ -99,27 +112,75 @@ export class PlayerYearStatsPhase {
                 civilianGames: stats.civilianGames,
                 eloRating: stats.eloRating,
                 extraPoints: stats.extraPoints,
-              });
+              }));
+
+              // Save immediately to Supabase after scraping
+              const insertStartTime = Date.now();
+              try {
+                await resilientDB.execute((db) =>
+                  db.playerYearStats.createMany({
+                    data: playerStatsToInsert,
+                    skipDuplicates: true,
+                  })
+                );
+                const insertDuration = Date.now() - insertStartTime;
+
+                totalStats += yearStats.length;
+
+                // Note: validRecords is already tracking processedPlayers above,
+                // which is what we want for progress (players processed, not stats count)
+
+                // Log every player with stats and save confirmation
+                console.log(
+                  `[PlayerYearStatsPhase] [${processedPlayers}/${players.length}] Player: ${player.name} (ID: ${player.gomafiaId}) | ` +
+                    `Year stats: ${yearStats.length} | ` +
+                    `Saved to Supabase in ${insertDuration}ms | ` +
+                    `Total stats: ${totalStats} | ` +
+                    `Errors: ${errorCount}`
+                );
+              } catch (insertError) {
+                console.error(
+                  `[PlayerYearStatsPhase] Failed to save stats for player ${player.name} (ID: ${player.gomafiaId}):`,
+                  insertError instanceof Error
+                    ? insertError.message
+                    : insertError
+                );
+                // Still count the stats as scraped even if save failed
+                totalStats += yearStats.length;
+                errorCount++;
+
+                // Update metrics with invalid records (player still processed, so validRecords stays the same)
+                this.orchestrator.updateValidationMetrics({
+                  invalidRecords: errorCount,
+                });
+              }
+            } else {
+              playersWithoutStats++;
+              // Log every player without stats
+              console.log(
+                `[PlayerYearStatsPhase] [${processedPlayers}/${players.length}] Player: ${player.name} (ID: ${player.gomafiaId}) | ` +
+                  `No stats found | ` +
+                  `Players without stats: ${playersWithoutStats} | ` +
+                  `Errors: ${errorCount}`
+              );
             }
-
-            totalStats += yearStats.length;
           } catch (error) {
-            console.error(
-              `[PlayerYearStatsPhase] Failed to scrape stats for player ${player.name}:`,
-              error
-            );
             errorCount++;
-          }
-        }
+            processedPlayers++;
 
-        // Bulk insert stats
-        if (statsToInsert.length > 0) {
-          await resilientDB.execute((db) =>
-            db.playerYearStats.createMany({
-              data: statsToInsert,
-              skipDuplicates: true,
-            })
-          );
+            // Update progress metrics even on error
+            // totalFetched stays as players.length (set at start)
+            // validRecords = processedPlayers (tracks progress)
+            this.orchestrator.updateValidationMetrics({
+              validRecords: processedPlayers,
+              invalidRecords: errorCount,
+            });
+
+            console.error(
+              `[PlayerYearStatsPhase] Failed to scrape stats for player ${player.name} (ID: ${player.gomafiaId}):`,
+              error instanceof Error ? error.message : error
+            );
+          }
         }
 
         // Save checkpoint
@@ -132,15 +193,53 @@ export class PlayerYearStatsPhase {
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 
+        const batchDuration = Date.now() - batchStartTime;
+        const elapsed = Date.now() - startTime;
+        const avgTimePerBatch = elapsed / (batchIndex + 1);
+        const remainingBatches = totalBatches - (batchIndex + 1);
+        const estimatedRemaining = Math.round(
+          (remainingBatches * avgTimePerBatch) / 1000
+        );
+
         console.log(
-          `[PlayerYearStatsPhase] Processed batch ${batchIndex + 1}/${totalBatches} (${totalStats} stats imported, ${errorCount} errors)`
+          `[PlayerYearStatsPhase] Batch ${batchIndex + 1}/${totalBatches} complete in ${Math.round(batchDuration / 1000)}s | ` +
+            `Processed: ${processedPlayers}/${players.length} players | ` +
+            `Stats imported: ${totalStats} | ` +
+            `Players with stats: ${playersWithStats} | ` +
+            `Players without stats: ${playersWithoutStats} | ` +
+            `Errors: ${errorCount} | ` +
+            `Estimated remaining: ~${estimatedRemaining}s`
         );
       }
     );
 
+    const totalDuration = Date.now() - startTime;
+    const avgTimePerPlayer = totalDuration / players.length;
+
+    console.log(`[PlayerYearStatsPhase] ===== Import Complete =====`);
     console.log(
-      `[PlayerYearStatsPhase] Player year stats import complete (${totalStats} stats, ${errorCount} errors)`
+      `[PlayerYearStatsPhase] Total players processed: ${processedPlayers}/${players.length}`
     );
+    console.log(
+      `[PlayerYearStatsPhase] Players with stats: ${playersWithStats} (${Math.round((playersWithStats / processedPlayers) * 100)}%)`
+    );
+    console.log(
+      `[PlayerYearStatsPhase] Players without stats: ${playersWithoutStats}`
+    );
+    console.log(
+      `[PlayerYearStatsPhase] Total year stats imported: ${totalStats}`
+    );
+    console.log(`[PlayerYearStatsPhase] Errors encountered: ${errorCount}`);
+    console.log(
+      `[PlayerYearStatsPhase] Total duration: ${Math.round(totalDuration / 1000)}s (${Math.round(totalDuration / 60000)}m ${Math.round((totalDuration % 60000) / 1000)}s)`
+    );
+    console.log(
+      `[PlayerYearStatsPhase] Average time per player: ${Math.round(avgTimePerPlayer)}ms`
+    );
+    console.log(
+      `[PlayerYearStatsPhase] Average stats per player: ${totalStats > 0 ? (totalStats / playersWithStats).toFixed(2) : '0'}`
+    );
+    console.log(`[PlayerYearStatsPhase] ============================`);
   }
 
   /**

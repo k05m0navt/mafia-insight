@@ -88,6 +88,7 @@ export type DeletableDataType =
   | 'players'
   | 'clubs'
   | 'games'
+  | 'player_statistics'
   | 'all';
 
 /**
@@ -177,6 +178,15 @@ export async function clearDataType(
         await tx.gameParticipation.deleteMany({})
       ).count;
       deletedCounts.game = (await tx.game.deleteMany({})).count;
+    } else if (dataType === 'player_statistics') {
+      // Delete only player statistics (year stats and role stats)
+      // Players are kept intact
+      deletedCounts.playerYearStats = (
+        await tx.playerYearStats.deleteMany({})
+      ).count;
+      deletedCounts.playerRoleStats = (
+        await tx.playerRoleStats.deleteMany({})
+      ).count;
     }
 
     return deletedCounts;
