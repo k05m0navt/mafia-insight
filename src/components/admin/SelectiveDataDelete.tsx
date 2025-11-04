@@ -191,16 +191,16 @@ export function SelectiveDataDelete() {
             <SelectContent>
               {dataTypeOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {option.description}
-                    </span>
-                  </div>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedOption && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedOption.description}
+            </p>
+          )}
         </div>
 
         <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

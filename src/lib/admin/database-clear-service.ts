@@ -143,6 +143,7 @@ export async function clearDataType(
       deletedCounts.player = (await tx.player.deleteMany({})).count;
       deletedCounts.club = (await tx.club.deleteMany({})).count;
       deletedCounts.analytics = (await tx.analytics.deleteMany({})).count;
+      // Note: gameCount is deleted with tournaments, so no need to reset
     } else if (dataType === 'tournaments') {
       // Delete tournaments and related data
       deletedCounts.playerTournament = (
@@ -150,6 +151,7 @@ export async function clearDataType(
       ).count;
       deletedCounts.game = (await tx.game.deleteMany({})).count; // Games depend on tournaments
       deletedCounts.tournament = (await tx.tournament.deleteMany({})).count;
+      // Note: gameCount is deleted with tournaments, so no need to reset
     } else if (dataType === 'players') {
       // Delete players and related data
       deletedCounts.gameParticipation = (
@@ -179,6 +181,13 @@ export async function clearDataType(
         await tx.gameParticipation.deleteMany({})
       ).count;
       deletedCounts.game = (await tx.game.deleteMany({})).count;
+
+      // Reset tournament gameCount to 0 since all games are deleted
+      await tx.tournament.updateMany({
+        data: {
+          gameCount: 0,
+        },
+      });
     } else if (dataType === 'player_statistics') {
       // Delete only player statistics (year stats and role stats)
       // Players are kept intact

@@ -15,6 +15,10 @@ import { SyncTriggerButton } from '@/components/data-display/SyncTriggerButton';
 import { SyncLogsTable } from '@/components/data-display/SyncLogsTable';
 import { LiveSyncStatus } from '@/components/data-display/LiveSyncStatus';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
+import {
+  ScraperErrorsPanel,
+  type ScraperErrorData,
+} from '@/components/sync/ScraperErrorsPanel';
 
 interface SyncStatus {
   isRunning: boolean;
@@ -43,19 +47,33 @@ export default function SyncStatusPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncMetrics, setSyncMetrics] = useState<SyncMetrics | null>(null);
   const [syncHealth, setSyncHealth] = useState<SyncHealth | null>(null);
+  const [scraperErrors, setScraperErrors] = useState<ScraperErrorData | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSyncStatus = async () => {
     try {
-      const response = await fetch('/api/gomafia-sync/sync/status');
-      if (!response.ok) {
+      const [statusResponse, validationResponse] = await Promise.all([
+        fetch('/api/gomafia-sync/sync/status'),
+        fetch('/api/gomafia-sync/import/validation'),
+      ]);
+
+      if (!statusResponse.ok) {
         throw new Error('Failed to fetch sync status');
       }
-      const data = await response.json();
-      setSyncStatus(data.status);
-      setSyncMetrics(data.metrics);
-      setSyncHealth(data.health);
+      const statusData = await statusResponse.json();
+      setSyncStatus(statusData.status);
+      setSyncMetrics(statusData.metrics);
+      setSyncHealth(statusData.health);
+
+      // Fetch detailed scraper errors from validation endpoint
+      if (validationResponse.ok) {
+        const validationData = await validationResponse.json();
+        setScraperErrors(validationData.detailedErrors || null);
+      }
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -280,6 +298,9 @@ export default function SyncStatusPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Scraper Errors & Issues */}
+      <ScraperErrorsPanel errorData={scraperErrors} />
 
       {/* Live Status Updates */}
       <LiveSyncStatus />

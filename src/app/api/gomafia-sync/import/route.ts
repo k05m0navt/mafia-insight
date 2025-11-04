@@ -42,6 +42,10 @@ export async function GET() {
       lastSyncType: syncStatus?.lastSyncType || null,
       lastError: syncStatus?.lastError || null,
       syncLogId: syncLog?.id || null,
+      // Map validRecords/totalRecordsProcessed to processedRecords/totalRecords for UI compatibility
+      // For games phase, these represent tournaments processed/total tournaments
+      processedRecords: syncStatus?.validRecords || 0,
+      totalRecords: syncStatus?.totalRecordsProcessed || 0,
       validation: {
         validationRate: syncStatus?.validationRate || null,
         totalRecordsProcessed: syncStatus?.totalRecordsProcessed || null,
@@ -384,7 +388,9 @@ async function startImportInBackground(
       }
 
       const { name, phase } = phases[i];
-      const progress = Math.floor(((i + 1) / phases.length) * 100);
+      // Calculate phase start progress (not completion progress)
+      // Phase i starts at (i / totalPhases * 100)%
+      const phaseStartProgress = Math.floor((i / phases.length) * 100);
 
       console.log(`[Import] Starting phase ${i + 1}/${phases.length}: ${name}`);
 
@@ -393,7 +399,7 @@ async function startImportInBackground(
           where: { id: 'current' },
           data: {
             isRunning: true, // Ensure isRunning stays true during phases
-            progress,
+            progress: phaseStartProgress,
             currentOperation: `Executing ${name} phase`,
             updatedAt: new Date(),
           },
@@ -443,7 +449,9 @@ async function startImportInBackground(
         endTime: new Date(),
         recordsProcessed: metrics.validRecords,
         errors:
-          Object.keys(errorData).length > 0 ? (errorData as any) : undefined,
+          Object.keys(errorData).length > 0
+            ? (errorData as Record<string, unknown>)
+            : undefined,
       },
     });
 

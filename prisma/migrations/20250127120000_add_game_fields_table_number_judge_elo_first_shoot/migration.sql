@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "games" ADD COLUMN IF NOT EXISTS "tableNumber" INTEGER,
+ADD COLUMN IF NOT EXISTS "judgeId" TEXT;
+
+-- AlterTable
+ALTER TABLE "game_participations" ADD COLUMN IF NOT EXISTS "eloChange" INTEGER,
+ADD COLUMN IF NOT EXISTS "isFirstShoot" BOOLEAN NOT NULL DEFAULT false;
+
