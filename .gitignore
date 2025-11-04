@@ -129,4 +129,15 @@ workbox-*.js
 
 # Playwright
 .playwright-mcp/
-.playwright-report/
+playwright-report/
+
+# Analysis results
+analysis-results/
+
+# Scripts
+scripts/
+
+# Tests
+test-results/
+playwright-report/
+.jscpdrc.json

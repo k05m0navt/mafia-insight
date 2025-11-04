@@ -138,7 +138,90 @@ async function main() {
     });
   }
 
+  // Seed regions with default regions data
+  const defaultRegions = [
+    {
+      code: 'RU',
+      name: 'Russia',
+      country: 'Russia',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'UA',
+      name: 'Ukraine',
+      country: 'Ukraine',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'BY',
+      name: 'Belarus',
+      country: 'Belarus',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'KZ',
+      name: 'Kazakhstan',
+      country: 'Kazakhstan',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'US',
+      name: 'United States',
+      country: 'United States',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'DE',
+      name: 'Germany',
+      country: 'Germany',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'FR',
+      name: 'France',
+      country: 'France',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'GB',
+      name: 'United Kingdom',
+      country: 'United Kingdom',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'CA',
+      name: 'Canada',
+      country: 'Canada',
+      isActive: true,
+      playerCount: 0,
+    },
+    {
+      code: 'AU',
+      name: 'Australia',
+      country: 'Australia',
+      isActive: true,
+      playerCount: 0,
+    },
+  ];
+
+  for (const regionData of defaultRegions) {
+    await prisma.region.upsert({
+      where: { code: regionData.code },
+      update: {},
+      create: regionData,
+    });
+  }
+
   console.log('Test database seeded successfully!');
+  console.log(`Seeded ${defaultRegions.length} regions`);
 }
 
 main()

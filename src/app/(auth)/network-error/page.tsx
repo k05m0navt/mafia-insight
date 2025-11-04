@@ -12,17 +12,34 @@ import { WifiOff } from 'lucide-react';
 
 export default function NetworkErrorPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4 sm:px-6 lg:px-8 py-12">
+    <main
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4 sm:px-6 lg:px-8 py-12"
+      role="main"
+      aria-labelledby="network-error-title"
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <WifiOff className="h-6 w-6 text-red-600 dark:text-red-400" />
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20"
+            role="img"
+            aria-label="Network error icon"
+          >
+            <WifiOff
+              className="h-6 w-6 text-red-600 dark:text-red-400"
+              aria-hidden="true"
+            />
           </div>
-          <CardTitle className="text-2xl">Network Error</CardTitle>
+          <CardTitle id="network-error-title" className="text-2xl">
+            Network Error
+          </CardTitle>
           <CardDescription>Unable to connect to the server</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 border border-red-200 dark:border-red-800">
+          <div
+            className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 border border-red-200 dark:border-red-800"
+            role="alert"
+            aria-live="polite"
+          >
             <p className="text-sm text-red-800 dark:text-red-200">
               We're having trouble connecting to our servers. This could be due
               to:
@@ -46,13 +63,17 @@ export default function NetworkErrorPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <Button asChild className="w-full">
-            <Link href="/">Try Again</Link>
+            <Link href="/" aria-label="Try again to reload the page">
+              Try Again
+            </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/contact">Contact Support</Link>
+            <Link href="/contact" aria-label="Contact support for help">
+              Contact Support
+            </Link>
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </main>
   );
 }

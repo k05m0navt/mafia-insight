@@ -49,10 +49,41 @@ export default function TestPlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [isGated, setIsGated] = useState(false);
 
   useEffect(() => {
-    fetchPlayers();
-  }, [search, selectedRole]);
+    // Check if route is gated by trying to fetch from API
+    // If API returns 404, the page is gated
+    fetch('/api/test-players?limit=1')
+      .then((response) => {
+        if (response.status === 404) {
+          setIsGated(true);
+        } else {
+          fetchPlayers();
+        }
+      })
+      .catch(() => {
+        setIsGated(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!isGated) {
+      fetchPlayers();
+    }
+  }, [search, selectedRole, isGated]);
+
+  // Show 404 if gated
+  if (isGated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">404</h1>
+          <p className="text-gray-600">Page not found</p>
+        </div>
+      </div>
+    );
+  }
 
   const fetchPlayers = async () => {
     try {

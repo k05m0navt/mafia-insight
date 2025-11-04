@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mockPlayers } from '@/lib/test-db';
 
-// Mock API route for E2E tests
+// Mock API route for E2E tests - gated in production
 export async function GET(request: NextRequest) {
+  // Gate test routes in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');

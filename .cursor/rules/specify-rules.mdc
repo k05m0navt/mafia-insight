@@ -25,6 +25,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - PostgreSQL (Supabase) with Prisma ORM (011-admin-dashboard)
 - TypeScript 5.0+ (Next.js 16.0 App Router) + Next.js 16.0, Prisma ORM 5.0, Playwright 1.56 (browser automation), Zod 4.1 (validation), React Query (data fetching), shadcn UI (components) (012-real-scrapers)
 - PostgreSQL via Supabase (Prisma ORM for schema management) (012-real-scrapers)
+- TypeScript 5.0.0, Node.js 20+ + Next.js 16.0.0, React 19.2.0, Prisma 5.0.0, Supabase 2.38.0, Playwright 1.56.1, Vitest 1.0.0 (013-route-refactor)
+- PostgreSQL via Supabase, Prisma ORM (013-route-refactor)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -44,9 +46,9 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 013-route-refactor: Added TypeScript 5.0.0, Node.js 20+ + Next.js 16.0.0, React 19.2.0, Prisma 5.0.0, Supabase 2.38.0, Playwright 1.56.1, Vitest 1.0.0
 - 012-real-scrapers: Added TypeScript 5.0+ (Next.js 16.0 App Router) + Next.js 16.0, Prisma ORM 5.0, Playwright 1.56 (browser automation), Zod 4.1 (validation), React Query (data fetching), shadcn UI (components)
 - 011-admin-dashboard: Added TypeScript 5.x with Next.js 16 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Tailwind CSS, ShadCN/UI, TanStack Query, Zustand
-- 010-fix-navbar-auth: Added TypeScript 5.0+ + Next.js 16.0, React 19.2, @supabase/supabase-js 2.38.0, @supabase/ssr 0.1.0, next-auth 4.24.12
 
 
 <!-- MANUAL ADDITIONS START -->

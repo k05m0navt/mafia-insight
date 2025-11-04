@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userService } from '@/lib/users/user-service';
+import { authenticateRequest, requireRole } from '@/lib/apiAuth';
 import { z } from 'zod';
 
 // Update role request body schema
@@ -16,18 +17,51 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authenticate request - only admins can update roles
+    const { user: currentUser, role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
+
     const { id } = await params;
     const body = await request.json();
     const data = UpdateRoleSchema.parse(body);
 
-    // TODO: Get current user from session
-    const updatedBy = '00000000-0000-0000-0000-000000000000';
+    // Prevent changing own role
+    if (currentUser.id === id) {
+      return NextResponse.json(
+        { error: 'Cannot change your own role' },
+        { status: 400 }
+      );
+    }
 
-    const user = await userService.updateUserRole(id, data.role, updatedBy);
+    const user = await userService.updateUserRole(
+      id,
+      data.role,
+      currentUser.id
+    );
 
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user role:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

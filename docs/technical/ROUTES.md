@@ -34,21 +34,32 @@ These routes are accessible to everyone, including non-authenticated users.
 
 ### Error Pages
 
-- **`/error`** - General Error Page
-  - Description: Generic error handler
+All error pages have been refactored for **WCAG 2.1 Level AA accessibility compliance** with semantic HTML, ARIA labels, and proper error handling.
+
+- **`/error`** - Authentication Error Page
+  - Description: Shown when authentication errors occur
   - Access: Public
+  - **Refactored**: Added semantic HTML (`<main>`), ARIA labels, `role="alert"`, `aria-live="polite"`
+  - Accessibility: WCAG 2.1 Level AA compliant
 
 - **`/expired`** - Session Expired
   - Description: Shown when session expires
   - Access: Public
+  - **Refactored**: Added accessibility features, improved error handling
+  - Accessibility: WCAG 2.1 Level AA compliant
 
 - **`/unauthorized`** - Unauthorized Access
-  - Description: Shown when user tries to access protected resource
+  - Description: Shown when user tries to access protected resource without proper permissions
   - Access: Public
+  - Usage: Used programmatically by middleware for role-based redirects
+  - **Refactored**: Added accessibility features, improved error handling
+  - Accessibility: WCAG 2.1 Level AA compliant
 
 - **`/network-error`** - Network Error
   - Description: Shown on network connectivity issues
   - Access: Public
+  - **Refactored**: Added accessibility features
+  - Accessibility: WCAG 2.1 Level AA compliant
 
 - **`/access-denied`** - Access Denied
   - Description: Shown when user doesn't have required permissions
@@ -246,15 +257,21 @@ These routes are restricted to users with the `admin` role.
   - Description: Admin section layout wrapper
   - Access: ✅ **Admin only**
 
-### Testing Routes
+### Testing Routes (Environment-Gated)
+
+> **⚠️ Note**: These routes are **gated in production** and only accessible in development/staging environments.
 
 - **`/test-players`** - Test Players List
   - Description: Testing environment for player features
-  - Access: Authenticated users (dev/staging only)
+  - Access: **Development/Staging only** (returns 404 in production)
+  - Gating: Environment-based via `NODE_ENV` check
+  - Implementation: Client-side check with API fetch, server-side middleware protection
 
 - **`/test-players/[id]`** - Test Player Detail
   - Description: Testing environment for player detail page
-  - Access: Authenticated users (dev/staging only)
+  - Access: **Development/Staging only** (returns 404 in production)
+  - Gating: Environment-based via `NODE_ENV` check
+  - Implementation: Client-side check with API fetch, server-side middleware protection
 
 ---
 
@@ -297,6 +314,64 @@ These routes are restricted to users with the `admin` role.
   - Access: Authenticated
   - Request: FormData with image file
   - Response: `{ success: boolean, avatarUrl?: string }`
+
+### User Management API (Refactored)
+
+> **🔄 Refactored**: All user management routes now have proper authentication and authorization checks.
+
+- **`GET /api/users`** - List All Users
+  - Description: Fetch all users with pagination and filtering
+  - Access: **Admin only**
+  - **Refactored**: Added `authenticateRequest` and `requireRole('admin')` checks
+  - Query: `?page=1&limit=20&search=&role=`
+  - Response: `{ users: User[], pagination: PaginationData }`
+
+- **`POST /api/users`** - Create User
+  - Description: Create a new user account
+  - Access: **Admin only**
+  - **Refactored**: Added authentication, uses current user ID for `invitedBy` audit trail
+  - Request: `{ email: string, name: string, role: 'guest' | 'user' | 'admin' }`
+  - Response: `{ user: User }` (201 Created)
+
+- **`GET /api/users/[id]`** - Get User by ID
+  - Description: Fetch individual user details
+  - Access: **Authenticated** (users can view own profile, admins can view any)
+  - **Refactored**: Added authentication, self-access allowed, admin can access any
+  - Response: `{ user: User }`
+
+- **`PATCH /api/users/[id]`** - Update User
+  - Description: Update user information
+  - Access: **Authenticated** (users can update own name, admins can update any user)
+  - **Refactored**: Added authentication, role updates restricted to admins only
+  - Request: `{ name?: string, role?: 'guest' | 'user' | 'admin' }`
+  - Response: `{ user: User }`
+
+- **`DELETE /api/users/[id]`** - Delete User
+  - Description: Delete user account
+  - Access: **Admin only**
+  - **Refactored**: Added authentication, prevents self-deletion
+  - Response: `{ message: 'User deleted successfully' }`
+
+- **`PUT /api/users/[id]/role`** - Update User Role
+  - Description: Change user's role
+  - Access: **Admin only**
+  - **Refactored**: Added authentication, prevents changing own role
+  - Request: `{ role: 'guest' | 'user' | 'admin' }`
+  - Response: `{ user: User }`
+
+- **`GET /api/users/invitations`** - List User Invitations
+  - Description: Fetch all pending user invitations
+  - Access: **Admin only**
+  - **Refactored**: Added authentication, ready for UserInvitation model implementation
+  - Response: `{ invitations: UserInvitation[], pagination: PaginationData }`
+  - Note: Currently returns empty array until UserInvitation database model is added
+
+- **`POST /api/users/invitations`** - Create User Invitation
+  - Description: Create a new user invitation
+  - Access: **Admin only**
+  - **Refactored**: Added authentication, uses current user ID for `invitedBy` audit trail
+  - Request: `{ email: string, role: 'guest' | 'user' | 'admin' }`
+  - Response: `{ invitation: UserInvitation }` (201 Created)
 
 ### Admin API
 
@@ -483,12 +558,27 @@ These routes are restricted to users with the `admin` role.
   - Access: Authenticated
   - Response: `{ analytics: ClubAnalytics }`
 
-### Database & Testing API
+### Database & Testing API (Environment-Gated)
+
+> **⚠️ Note**: These routes are **gated in production** and only accessible in development/staging environments.
 
 - **`GET /api/test-db`** - Test Database Connection
   - Description: Verify database connectivity
-  - Access: Public (dev only)
-  - Response: `{ connected: boolean }`
+  - Access: **Development/Staging only** (returns 404 in production)
+  - Gating: Environment-based via `NODE_ENV` check in route handler and middleware
+  - Response: `{ connected: boolean }` (dev/staging) or `{ error: 'Not found' }` (404 in production)
+
+- **`GET /api/test-players`** - Test Players Data
+  - Description: Fetch test player data for development/testing
+  - Access: **Development/Staging only** (returns 404 in production)
+  - Gating: Environment-based via `NODE_ENV` check
+  - Response: `{ data: Player[], pagination: PaginationData }` (dev/staging) or 404 (production)
+
+- **`GET /api/test-players/[id]/analytics`** - Test Player Analytics
+  - Description: Fetch test player analytics data
+  - Access: **Development/Staging only** (returns 404 in production)
+  - Gating: Environment-based via `NODE_ENV` check
+  - Response: `{ player: Player, totalGames: number, winRate: number, ... }` (dev/staging) or 404 (production)
 
 ### API Documentation
 
@@ -531,13 +621,14 @@ These routes are restricted to users with the `admin` role.
 
 ### Middleware Protection
 
-The application uses Next.js middleware (`middleware.ts`) to enforce authentication:
+The application uses Next.js middleware (`src/proxy.ts`) to enforce authentication and route gating:
 
 - **Redirects unauthenticated users** to `/login` with return URL
 - **Checks role-based access** for admin routes
 - **Sets authentication cookies** on login/signup
 - **Clears cookies** on logout
 - **Validates session** on each protected route access
+- **Environment-based gating** for test routes (returns 404 in production)
 
 ---
 
@@ -584,7 +675,27 @@ function MyComponent() {
 - **Protected Routes**: 20+
 - **Admin Routes**: 10+
 - **API Endpoints**: 40+
+- **Environment-Gated Routes**: 5 (test routes gated in production)
+
+## 🔄 Recent Refactoring Changes (2025-01-27)
+
+### Route Gating
+
+- **Test routes** (`/test-players`, `/api/test-players`, `/api/test-db`) are now gated in production
+- **Environment-based gating** using `NODE_ENV` checks
+- **Multi-layer protection**: Route handlers, client-side pages, and middleware
+
+### Route Improvements
+
+- **User management routes** (`/api/users/*`) now have proper authentication and authorization
+- **Invitation routes** (`/api/users/invitations`) added authentication (ready for UserInvitation model)
+- All routes now use `authenticateRequest` and `requireRole` for consistent security
+
+### Page Improvements
+
+- **Error pages** (`/error`, `/expired`, `/network-error`, `/unauthorized`) refactored for accessibility
+- **WCAG 2.1 Level AA compliance** achieved with semantic HTML, ARIA labels, and proper error handling
 
 ---
 
-**Last Updated**: October 30, 2025
+**Last Updated**: January 27, 2025

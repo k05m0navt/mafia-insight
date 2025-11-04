@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userService } from '@/lib/users/user-service';
+import { authenticateRequest, requireRole } from '@/lib/apiAuth';
 import { z } from 'zod';
 
 // Update user request body schema
@@ -13,15 +14,34 @@ const UpdateUserSchema = z.object({
  * Get a specific user by ID
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authenticate request
+    const { user, role } = await authenticateRequest(request);
+
     const { id } = await params;
-    const user = await userService.getUserById(id);
-    return NextResponse.json(user);
+
+    // Users can only view their own profile unless they're admin
+    if (user.id !== id && role !== 'admin') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const userData = await userService.getUserById(id);
+    return NextResponse.json(userData);
   } catch (error) {
     console.error('Error fetching user:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
     if (error instanceof Error && error.message.includes('not found')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -43,11 +63,25 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authenticate request
+    const { user: currentUser, role } = await authenticateRequest(request);
+
     const { id } = await params;
     const body = await request.json();
     const data = UpdateUserSchema.parse(body);
 
-    // TODO: Get current user from session for audit trail
+    // Users can only update their own profile (name only), unless they're admin
+    if (currentUser.id !== id) {
+      requireRole(role, 'admin');
+    }
+
+    // Only admins can update roles
+    if (data.role && data.role !== currentUser.role && role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Only admins can update user roles' },
+        { status: 403 }
+      );
+    }
 
     const user = await userService.updateUser(id, {
       name: data.name,
@@ -57,6 +91,26 @@ export async function PATCH(
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -85,19 +139,49 @@ export async function PATCH(
  * Delete a specific user
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    // TODO: Get current user from session for audit trail
-    const deletedBy = '00000000-0000-0000-0000-000000000000';
+    // Authenticate request - only admins can delete users
+    const { user: currentUser, role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
 
-    await userService.deleteUser(id, deletedBy);
+    const { id } = await params;
+
+    // Prevent self-deletion
+    if (currentUser.id === id) {
+      return NextResponse.json(
+        { error: 'Cannot delete your own account' },
+        { status: 400 }
+      );
+    }
+
+    await userService.deleteUser(id, currentUser.id);
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
 
     if (error instanceof Error && error.message.includes('not found')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

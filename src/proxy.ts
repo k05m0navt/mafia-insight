@@ -7,6 +7,15 @@ import type { NextRequest } from 'next/server';
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Gate test routes in production
+  if (process.env.NODE_ENV === 'production') {
+    const testRoutes = ['/test-players', '/api/test-players', '/api/test-db'];
+    const isTestRoute = testRoutes.some((route) => pathname.startsWith(route));
+    if (isTestRoute) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+  }
+
   // Allow API routes, static files, and _next files
   if (
     pathname.startsWith('/api') ||

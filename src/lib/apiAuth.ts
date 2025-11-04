@@ -6,9 +6,10 @@ import { User } from '@/types/auth';
 
 /**
  * API authentication middleware (cookie-based with Supabase)
+ * Throws AuthenticationError if authentication fails
  */
 export async function authenticateRequest(request: NextRequest): Promise<{
-  user: User | null;
+  user: User;
   role: string;
 }> {
   // Check auth-token cookie (primary auth method)
@@ -71,13 +72,17 @@ export async function authenticateRequest(request: NextRequest): Promise<{
  */
 export function requireRole(userRole: string, requiredRole: string): void {
   const roleHierarchy: Record<string, number> = {
-    GUEST: 0,
-    USER: 1,
-    ADMIN: 2,
+    guest: 0,
+    user: 1,
+    admin: 2,
   };
 
-  const userLevel = roleHierarchy[userRole] || 0;
-  const requiredLevel = roleHierarchy[requiredRole] || 0;
+  // Normalize roles to lowercase for comparison
+  const normalizedUserRole = userRole.toLowerCase();
+  const normalizedRequiredRole = requiredRole.toLowerCase();
+
+  const userLevel = roleHierarchy[normalizedUserRole] || 0;
+  const requiredLevel = roleHierarchy[normalizedRequiredRole] || 0;
 
   if (userLevel < requiredLevel) {
     throw new AuthorizationError(`Role '${requiredRole}' required`);

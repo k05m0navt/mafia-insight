@@ -1,0 +1,463 @@
+openapi: 3.0.0
+info:
+  title: Route and Database Analysis API
+  description: API endpoints for analyzing routes, pages, and database tables during refactoring
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://mafia-insight.com/api
+    description: Production server
+
+paths:
+  /admin/analysis/routes:
+    get:
+      summary: Analyze all routes in the application
+      description: Returns analysis results for all routes including usage references, navigation links, and recommendations
+      operationId: analyzeRoutes
+      tags:
+        - Analysis
+      security:
+        - bearerAuth: [admin]
+      responses:
+        '200':
+          description: Route analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  routes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RouteAnalysis'
+                  summary:
+                    $ref: '#/components/schemas/AnalysisSummary'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/analysis/pages:
+    get:
+      summary: Analyze all pages in the application
+      description: Returns analysis results for all pages including code quality metrics, accessibility compliance, and refactoring recommendations
+      operationId: analyzePages
+      tags:
+        - Analysis
+      security:
+        - bearerAuth: [admin]
+      responses:
+        '200':
+          description: Page analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PageAnalysis'
+                  summary:
+                    $ref: '#/components/schemas/AnalysisSummary'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/analysis/database:
+    get:
+      summary: Analyze database tables and indexes
+      description: Returns analysis results for database tables (zero-row tables, unused tables) and indexes (missing, unused)
+      operationId: analyzeDatabase
+      tags:
+        - Analysis
+      security:
+        - bearerAuth: [admin]
+      responses:
+        '200':
+          description: Database analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tables:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TableAnalysis'
+                  indexes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IndexAnalysis'
+                  summary:
+                    $ref: '#/components/schemas/AnalysisSummary'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/refactor/apply:
+    post:
+      summary: Apply refactoring decisions
+      description: Applies refactoring decisions (remove routes/pages, create migrations, etc.) based on analysis results
+      operationId: applyRefactoring
+      tags:
+        - Refactoring
+      security:
+        - bearerAuth: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefactoringPlan'
+      responses:
+        '200':
+          description: Refactoring applied successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  operations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RefactoringOperation'
+                  migrations:
+                    type: array
+                    items:
+                      type: string
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    RouteAnalysis:
+      type: object
+      required:
+        - path
+        - type
+        - status
+        - decision
+      properties:
+        path:
+          type: string
+          description: Route path
+          example: '/test-players'
+        type:
+          type: string
+          enum: [PAGE_ROUTE, API_ROUTE]
+        usageReferences:
+          type: array
+          items:
+            type: string
+          description: Files/locations where route is referenced
+        navigationReference:
+          type: boolean
+          description: Whether route is referenced in navigation
+        codeReference:
+          type: boolean
+          description: Whether route is imported/used in code
+        testReference:
+          type: boolean
+          description: Whether route is used in E2E tests
+        environmentVisibility:
+          type: string
+          enum: [ALWAYS, DEVELOPMENT_ONLY, PRODUCTION_ONLY]
+        status:
+          type: string
+          enum: [ACTIVE, INCOMPLETE, UNUSED, GATED]
+        decision:
+          type: string
+          enum: [KEEP, REMOVE, GATE, COMPLETE]
+
+    PageAnalysis:
+      type: object
+      required:
+        - path
+        - status
+        - decision
+      properties:
+        path:
+          type: string
+          example: '/test-players'
+        componentFile:
+          type: string
+          example: 'src/app/(dashboard)/test-players/page.tsx'
+        navigationReference:
+          type: boolean
+        linkReferences:
+          type: array
+          items:
+            type: string
+        codeImports:
+          type: array
+          items:
+            type: string
+        testUsage:
+          type: boolean
+        codeQualityIssues:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                DUPLICATE_CODE,
+                POOR_ERROR_HANDLING,
+                MISSING_ACCESSIBILITY,
+                PERFORMANCE_ISSUES,
+              ]
+        duplicationPercentage:
+          type: number
+          minimum: 0
+          maximum: 100
+        errorHandlingCoverage:
+          type: number
+          minimum: 0
+          maximum: 100
+        accessibilityCompliance:
+          type: string
+          enum: [NON_COMPLIANT, WCAG_A, WCAG_AA, WCAG_AAA]
+        status:
+          type: string
+          enum: [ANALYZED, NEEDS_REFACTORING, REFACTORED, REMOVED]
+        decision:
+          type: string
+          enum: [KEEP, REMOVE, GATE, REFACTOR]
+
+    TableAnalysis:
+      type: object
+      required:
+        - tableName
+        - rowCount
+        - status
+        - decision
+      properties:
+        tableName:
+          type: string
+          example: 'analytics'
+        rowCount:
+          type: integer
+          minimum: 0
+        codeReferences:
+          type: array
+          items:
+            type: string
+        foreignKeyRelationships:
+          type: array
+          items:
+            type: string
+        plannedFeatureUsage:
+          type: boolean
+        importProcessUsage:
+          type: boolean
+        status:
+          type: string
+          enum: [ACTIVE, EMPTY, UNUSED]
+        decision:
+          type: string
+          enum: [KEEP, REMOVE, POPULATE]
+
+    IndexAnalysis:
+      type: object
+      required:
+        - indexName
+        - tableName
+        - status
+        - decision
+      properties:
+        indexName:
+          type: string
+          example: 'notifications_createdAt_idx'
+        tableName:
+          type: string
+          example: 'notifications'
+        columns:
+          type: array
+          items:
+            type: string
+        isUsed:
+          type: boolean
+        isForeignKey:
+          type: boolean
+        status:
+          type: string
+          enum: [ACTIVE, UNUSED, MISSING]
+        decision:
+          type: string
+          enum: [KEEP, REMOVE, ADD]
+
+    AnalysisSummary:
+      type: object
+      properties:
+        totalRoutes:
+          type: integer
+        routesToRemove:
+          type: integer
+        routesToGate:
+          type: integer
+        routesToComplete:
+          type: integer
+        totalPages:
+          type: integer
+        pagesToRemove:
+          type: integer
+        pagesToRefactor:
+          type: integer
+        totalTables:
+          type: integer
+        tablesToRemove:
+          type: integer
+        tablesToPopulate:
+          type: integer
+        totalIndexes:
+          type: integer
+        indexesToAdd:
+          type: integer
+        indexesToRemove:
+          type: integer
+
+    RefactoringPlan:
+      type: object
+      required:
+        - routes
+        - pages
+        - database
+      properties:
+        routes:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              action:
+                type: string
+                enum: [REMOVE, GATE, COMPLETE]
+        pages:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              action:
+                type: string
+                enum: [REMOVE, GATE, REFACTOR]
+        database:
+          type: object
+          properties:
+            tablesToRemove:
+              type: array
+              items:
+                type: string
+            indexesToAdd:
+              type: array
+              items:
+                type: object
+                properties:
+                  tableName:
+                    type: string
+                  columns:
+                    type: array
+                    items:
+                      type: string
+            indexesToRemove:
+              type: array
+              items:
+                type: string
+            rlsPoliciesToOptimize:
+              type: array
+              items:
+                type: string
+
+    RefactoringOperation:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            [
+              ROUTE_REMOVED,
+              ROUTE_GATED,
+              PAGE_REMOVED,
+              PAGE_GATED,
+              TABLE_REMOVED,
+              INDEX_ADDED,
+              INDEX_REMOVED,
+              RLS_OPTIMIZED,
+            ]
+        target:
+          type: string
+        status:
+          type: string
+          enum: [SUCCESS, FAILED, SKIPPED]
+        message:
+          type: string
+
+  responses:
+    Forbidden:
+      description: Forbidden - Admin access required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Forbidden'
+              message:
+                type: string
+                example: 'Admin access required'
+
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Bad Request'
+              message:
+                type: string
+                example: 'Invalid refactoring plan'
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'Internal Server Error'
+              message:
+                type: string
+                example: 'An unexpected error occurred'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Analysis
+    description: Analysis endpoints for routes, pages, and database
+  - name: Refactoring
+    description: Refactoring operation endpoints

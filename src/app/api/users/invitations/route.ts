@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userService } from '@/lib/users/user-service';
+import { authenticateRequest, requireRole } from '@/lib/apiAuth';
 import { z } from 'zod';
 
 // Create invitation request body schema
@@ -12,11 +13,14 @@ const CreateInvitationSchema = z.object({
  * GET /api/users/invitations
  * List all user invitations
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // TODO: Get current user from session and check admin permissions
-    // For now, return empty array as invitations are not yet implemented in the database
+    // Authenticate request - only admins can list invitations
+    const { role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
 
+    // TODO: Implement invitation listing when UserInvitation model is available
+    // For now, return empty array as invitations are not yet implemented in the database
     return NextResponse.json({
       invitations: [],
       pagination: {
@@ -28,6 +32,27 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching invitations:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to fetch invitations' },
       { status: 500 }
@@ -41,21 +66,42 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate request - only admins can create invitations
+    const { user: currentUser, role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
+
     const body = await request.json();
     const data = CreateInvitationSchema.parse(body);
-
-    // TODO: Get current user from session for audit trail
-    const invitedBy = '00000000-0000-0000-0000-000000000000';
 
     const invitation = await userService.createInvitation({
       email: data.email,
       role: data.role,
-      invitedBy,
+      invitedBy: currentUser.id,
     });
 
     return NextResponse.json(invitation, { status: 201 });
   } catch (error) {
     console.error('Error creating invitation:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

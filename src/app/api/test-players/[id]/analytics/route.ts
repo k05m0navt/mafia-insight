@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mockPlayerAnalytics } from '@/lib/test-db';
 
-// Mock analytics API route for E2E tests
+// Mock analytics API route for E2E tests - gated in production
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Gate test routes in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
