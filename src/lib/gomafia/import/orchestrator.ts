@@ -52,17 +52,38 @@ export class ImportOrchestrator {
   public async updateProgress(
     importId: string,
     processedRecords: number,
-    errors: number = 0
+    errors: number = 0,
+    totalRecords?: number
   ): Promise<void> {
     const importProgress = this.activeImports.get(importId);
     if (!importProgress) {
       throw new Error(`Import ${importId} not found`);
     }
 
-    const progress = Math.min(
-      100,
-      Math.round((processedRecords / importProgress.totalRecords) * 100)
-    );
+    // Don't update if already completed
+    if (
+      importProgress.status === 'COMPLETED' ||
+      importProgress.status === 'FAILED'
+    ) {
+      return;
+    }
+
+    // Update totalRecords if provided
+    if (
+      totalRecords !== undefined &&
+      totalRecords > importProgress.totalRecords
+    ) {
+      importProgress.totalRecords = totalRecords;
+    }
+
+    // Calculate progress, handling division by zero
+    const progress =
+      importProgress.totalRecords > 0
+        ? Math.min(
+            100,
+            Math.round((processedRecords / importProgress.totalRecords) * 100)
+          )
+        : 0;
 
     importProgress.progress = progress;
     importProgress.processedRecords = processedRecords;
@@ -75,6 +96,7 @@ export class ImportOrchestrator {
       data: {
         progress,
         processedRecords,
+        totalRecords: importProgress.totalRecords,
         errors,
         status: 'RUNNING',
       },
@@ -133,14 +155,23 @@ export class ImportOrchestrator {
   }
 
   public async cancelImport(importId: string): Promise<void> {
-    const importProgress = this.activeImports.get(importId);
-    if (!importProgress) {
+    // First check if import exists in database (more reliable than in-memory)
+    const dbImport = await prisma.importProgress.findUnique({
+      where: { id: importId },
+    });
+
+    if (!dbImport) {
       throw new Error(`Import ${importId} not found`);
     }
 
-    importProgress.status = 'CANCELLED';
+    // Check if it's actually running
+    if (dbImport.status !== 'RUNNING') {
+      throw new Error(
+        `Import ${importId} is not running (status: ${dbImport.status})`
+      );
+    }
 
-    // Update database
+    // Update database first (source of truth)
     await prisma.importProgress.update({
       where: { id: importId },
       data: {
@@ -148,19 +179,82 @@ export class ImportOrchestrator {
       },
     });
 
-    // Notify subscribers
-    this.notifyProgress(importProgress);
+    // Also update in-memory if it exists
+    const importProgress = this.activeImports.get(importId);
+    if (importProgress) {
+      importProgress.status = 'CANCELLED';
+      // Notify subscribers
+      this.notifyProgress(importProgress);
+      // Clean up
+      this.activeImports.delete(importId);
+    }
 
-    // Clean up
-    this.activeImports.delete(importId);
+    console.log(`Import ${importId} cancelled successfully`);
   }
 
-  public getActiveImports(): ImportProgress[] {
-    return Array.from(this.activeImports.values());
+  public async getActiveImports(): Promise<ImportProgress[]> {
+    // Get in-memory imports
+    const memoryImports = Array.from(this.activeImports.values());
+
+    // Also check database for any RUNNING imports that might not be in memory
+    // (e.g., after server restart)
+    const dbImports = await prisma.importProgress.findMany({
+      where: { status: 'RUNNING' },
+      orderBy: { startTime: 'desc' },
+    });
+
+    // Merge: prioritize in-memory, add missing from database
+    const importMap = new Map<string, ImportProgress>();
+
+    // Add in-memory imports (they have latest state)
+    memoryImports.forEach((imp) => importMap.set(imp.id, imp));
+
+    // Add database imports that aren't in memory
+    dbImports.forEach((imp) => {
+      if (!importMap.has(imp.id)) {
+        importMap.set(imp.id, {
+          id: imp.id,
+          operation: imp.operation,
+          progress: imp.progress,
+          totalRecords: imp.totalRecords,
+          processedRecords: imp.processedRecords,
+          errors: imp.errors,
+          startTime: imp.startTime,
+          estimatedCompletion: imp.estimatedCompletion || undefined,
+          status: imp.status as ImportStatus,
+        });
+      }
+    });
+
+    return Array.from(importMap.values());
   }
 
   public getImport(importId: string): ImportProgress | undefined {
     return this.activeImports.get(importId);
+  }
+
+  public async getImportFromDB(
+    importId: string
+  ): Promise<ImportProgress | null> {
+    const dbImport = await prisma.importProgress.findUnique({
+      where: { id: importId },
+    });
+
+    if (!dbImport) {
+      return null;
+    }
+
+    return {
+      id: dbImport.id,
+      operation: dbImport.operation,
+      progress: dbImport.progress,
+      totalRecords: dbImport.totalRecords,
+      processedRecords: dbImport.processedRecords,
+      errors: dbImport.errors,
+      startTime: dbImport.startTime,
+      estimatedCompletion: dbImport.estimatedCompletion || undefined,
+      status: dbImport.status as ImportStatus,
+    };
   }
 
   private notifyProgress(importProgress: ImportProgress): void {

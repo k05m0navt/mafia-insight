@@ -46,20 +46,94 @@ export class PlayersPhase {
       throw new Error('Failed to initialize players scraper');
     }
 
-    // Scrape all players
-    const rawPlayers = await this.playersScraper.scrapeAllPlayers({
+    // Get system user ID for imports (needed for incremental saves)
+    const systemUserId = await this.orchestrator.getSystemUser();
+
+    // Track what's been saved to avoid duplicates during incremental saves
+    const savedPlayerIds = new Set<string>();
+    let totalSaved = 0;
+
+    // Scrape all players with progress callback and incremental saving
+    const result = await this.playersScraper.scrapeAllPlayers({
       year: new Date().getFullYear(),
       region: 'all',
+      skipOnError: true, // Skip problematic pages instead of failing completely
+      onProgress: (pageNumber: number, currentTotal: number) => {
+        // Update metrics during scraping so UI sees progress
+        this.orchestrator.updateValidationMetrics({
+          totalFetched: currentTotal,
+        });
+      },
+      onPageData: async (pageNumber: number, pageData: PlayerRawData[]) => {
+        // Incrementally save each page's data as it's scraped
+        // This ensures we don't lose data if scraping fails later
+        await this.savePageData(pageData, systemUserId, savedPlayerIds);
+        totalSaved += pageData.length;
+        console.log(
+          `[PlayersPhase] Saved page ${pageNumber}: ${pageData.length} players (total saved: ${totalSaved})`
+        );
+      },
     });
 
-    console.log(`[PlayersPhase] Scraped ${rawPlayers.length} players`);
+    const rawPlayers = result.data;
+    const skippedPages = result.skippedPages;
 
-    // Filter valid and non-duplicate players
+    // Store skipped pages in orchestrator for later retrieval
+    if (skippedPages.length > 0) {
+      this.orchestrator.recordSkippedPages('PLAYERS', skippedPages);
+      console.warn(
+        `[PlayersPhase] Skipped pages detected: ${skippedPages.join(', ')}`
+      );
+    }
+
+    console.log(
+      `[PlayersPhase] Scraped ${rawPlayers.length} players (${totalSaved} already saved incrementally)`
+    );
+
+    // Attempt to retry skipped pages if reasonable number
+    if (skippedPages.length > 0) {
+      if (skippedPages.length <= 5) {
+        // Only retry if reasonable number of pages
+        console.log(
+          `[PlayersPhase] Attempting to retry ${skippedPages.length} skipped pages...`
+        );
+        try {
+          const retriedPlayers = await this.playersScraper.retrySkippedPages(
+            skippedPages,
+            {
+              year: new Date().getFullYear(),
+              region: 'all',
+              onPageData: async (
+                pageNumber: number,
+                pageData: PlayerRawData[]
+              ) => {
+                await this.savePageData(pageData, systemUserId, savedPlayerIds);
+                totalSaved += pageData.length;
+              },
+            }
+          );
+          console.log(
+            `[PlayersPhase] Successfully retried ${retriedPlayers.length} players from skipped pages`
+          );
+        } catch (error) {
+          console.error('[PlayersPhase] Error retrying skipped pages:', error);
+        }
+      }
+    }
+
+    // Filter valid and non-duplicate players (only process what wasn't already saved)
     const validPlayers: PlayerRawData[] = [];
     let invalidCount = 0;
     let duplicateCount = 0;
+    let alreadySavedCount = 0;
 
     for (const player of rawPlayers) {
+      // Skip if already saved incrementally
+      if (savedPlayerIds.has(player.gomafiaId)) {
+        alreadySavedCount++;
+        continue;
+      }
+
       // Validate
       const isValid = await this.validateData(player);
       if (!isValid) {
@@ -67,10 +141,11 @@ export class PlayersPhase {
         continue;
       }
 
-      // Check duplicate
+      // Check duplicate in database
       const isDuplicate = await this.checkDuplicate(player.gomafiaId);
       if (isDuplicate) {
         duplicateCount++;
+        savedPlayerIds.add(player.gomafiaId); // Track it to avoid checking again
         continue;
       }
 
@@ -78,76 +153,167 @@ export class PlayersPhase {
     }
 
     console.log(
-      `[PlayersPhase] Valid: ${validPlayers.length}, Invalid: ${invalidCount}, Duplicates: ${duplicateCount}`
+      `[PlayersPhase] Valid: ${validPlayers.length}, Invalid: ${invalidCount}, Duplicates: ${duplicateCount}, Already Saved: ${alreadySavedCount}`
     );
 
     // Update orchestrator metrics
     this.orchestrator.updateValidationMetrics({
       totalFetched: rawPlayers.length,
-      validRecords: validPlayers.length,
+      validRecords: validPlayers.length + totalSaved,
       invalidRecords: invalidCount,
-      duplicatesSkipped: duplicateCount,
+      duplicatesSkipped: duplicateCount + alreadySavedCount,
     });
 
-    // Batch insert
-    const batchProcessor = this.orchestrator.getBatchProcessor();
+    // Batch insert remaining valid players (those not saved incrementally)
+    if (validPlayers.length > 0) {
+      const batchProcessor = this.orchestrator.getBatchProcessor();
 
-    await batchProcessor.process(
-      validPlayers,
-      async (batch, batchIndex, totalBatches) => {
-        // Transform to Prisma format
-        const playersToInsert = await Promise.all(
-          (batch as PlayerRawData[]).map(async (player) => {
-            // Find club by name if provided
-            let clubId: string | undefined;
-            if (player.club) {
-              const club = (await resilientDB.execute((db) =>
-                db.club.findFirst({
-                  where: { name: player.club || undefined },
-                })
-              )) as { id: string } | null;
-              clubId = club?.id;
-            }
+      await batchProcessor.process(
+        validPlayers,
+        async (batch, batchIndex, totalBatches) => {
+          // Transform to Prisma format
+          const playersToInsert = await Promise.all(
+            (batch as PlayerRawData[]).map(async (player) => {
+              // Find club by name if provided
+              let clubId: string | undefined;
+              if (player.club) {
+                const club = (await resilientDB.execute((db) =>
+                  db.club.findFirst({
+                    where: { name: player.club || undefined },
+                  })
+                )) as { id: string } | null;
+                clubId = club?.id;
+              }
 
-            return {
-              gomafiaId: player.gomafiaId,
-              name: player.name,
-              region: this.normalizeRegion(player.region),
-              clubId,
-              eloRating: Math.round(player.elo),
-              totalGames: player.tournaments, // Using tournaments as proxy for now
-              wins: 0, // Will be calculated later
-              losses: 0, // Will be calculated later
-              userId: 'system-import-user', // System user for imports
-              lastSyncAt: new Date(),
-              syncStatus: 'SYNCED' as const,
-            };
-          })
-        );
+              return {
+                gomafiaId: player.gomafiaId,
+                name: player.name,
+                region: this.normalizeRegion(player.region),
+                clubId,
+                eloRating: Math.round(player.elo),
+                totalGames: player.tournaments, // Using tournaments as proxy for now
+                wins: 0, // Will be calculated later
+                losses: 0, // Will be calculated later
+                userId: systemUserId, // System user for imports
+                lastSyncAt: new Date(),
+                syncStatus: 'SYNCED' as const,
+              };
+            })
+          );
 
-        // Insert batch
-        await resilientDB.execute((db) =>
-          db.player.createMany({
-            data: playersToInsert,
-            skipDuplicates: true,
-          })
-        );
+          // Insert batch
+          await resilientDB.execute((db) =>
+            db.player.createMany({
+              data: playersToInsert,
+              skipDuplicates: true,
+            })
+          );
 
-        // Save checkpoint
-        const checkpoint = this.createCheckpoint(
-          batchIndex,
-          totalBatches,
-          (batch as PlayerRawData[]).map((p: PlayerRawData) => p.gomafiaId)
-        );
-        await this.orchestrator.saveCheckpoint(checkpoint);
+          // Save checkpoint
+          const checkpoint = this.createCheckpoint(
+            batchIndex,
+            totalBatches,
+            (batch as PlayerRawData[]).map((p: PlayerRawData) => p.gomafiaId)
+          );
+          await this.orchestrator.saveCheckpoint(checkpoint);
 
-        console.log(
-          `[PlayersPhase] Imported batch ${batchIndex + 1}/${totalBatches}`
-        );
+          console.log(
+            `[PlayersPhase] Imported batch ${batchIndex + 1}/${totalBatches} (${playersToInsert.length} players)`
+          );
+        }
+      );
+    } else {
+      console.log(
+        '[PlayersPhase] All players were already saved incrementally'
+      );
+    }
+
+    console.log(
+      `[PlayersPhase] Players import complete. Total saved: ${totalSaved + validPlayers.length}`
+    );
+  }
+
+  /**
+   * Save a page's data incrementally during scraping.
+   * This ensures data is persisted even if scraping fails later.
+   */
+  private async savePageData(
+    pageData: PlayerRawData[],
+    systemUserId: string,
+    savedPlayerIds: Set<string>
+  ): Promise<void> {
+    // Filter valid players
+    const validPlayers: PlayerRawData[] = [];
+
+    for (const player of pageData) {
+      // Validate
+      const isValid = await this.validateData(player);
+      if (!isValid) {
+        continue;
       }
+
+      // Check if already exists
+      const isDuplicate = await this.checkDuplicate(player.gomafiaId);
+      if (isDuplicate) {
+        savedPlayerIds.add(player.gomafiaId);
+        continue;
+      }
+
+      validPlayers.push(player);
+    }
+
+    if (validPlayers.length === 0) {
+      return;
+    }
+
+    // Transform to Prisma format
+    const playersToInsert = await Promise.all(
+      validPlayers.map(async (player) => {
+        // Find club by name if provided
+        let clubId: string | undefined;
+        if (player.club) {
+          const club = (await resilientDB.execute((db) =>
+            db.club.findFirst({
+              where: { name: player.club || undefined },
+            })
+          )) as { id: string } | null;
+          clubId = club?.id;
+        }
+
+        return {
+          gomafiaId: player.gomafiaId,
+          name: player.name,
+          region: this.normalizeRegion(player.region),
+          clubId,
+          eloRating: Math.round(player.elo),
+          totalGames: player.tournaments,
+          wins: 0,
+          losses: 0,
+          userId: systemUserId,
+          lastSyncAt: new Date(),
+          syncStatus: 'SYNCED' as const,
+        };
+      })
     );
 
-    console.log('[PlayersPhase] Players import complete');
+    // Insert batch
+    try {
+      await resilientDB.execute((db) =>
+        db.player.createMany({
+          data: playersToInsert,
+          skipDuplicates: true,
+        })
+      );
+
+      // Mark as saved
+      validPlayers.forEach((player) => savedPlayerIds.add(player.gomafiaId));
+    } catch (error) {
+      console.error(
+        '[PlayersPhase] Error saving page data incrementally:',
+        error
+      );
+      // Don't throw - continue scraping even if save fails
+    }
   }
 
   /**

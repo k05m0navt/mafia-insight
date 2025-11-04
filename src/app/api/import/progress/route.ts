@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
     // Get all imports from database
     const allImports = await importOrchestrator.getImportHistory(50);
 
-    // Also get active imports from memory
-    const activeImports = importOrchestrator.getActiveImports();
+    // Also get active imports (checks both memory and database)
+    const activeImports = await importOrchestrator.getActiveImports();
 
     // Merge and deduplicate (active imports take precedence)
     const importMap = new Map<string, (typeof allImports)[0]>();

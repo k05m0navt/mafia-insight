@@ -36,10 +36,18 @@ export interface TournamentRawData {
 export interface GameParticipationRawData {
   playerId: string;
   playerName: string;
-  role: 'DON' | 'MAFIA' | 'SHERIFF' | 'CIVILIAN' | null;
-  team: 'MAFIA' | 'CITIZENS' | null;
+  role: 'DON' | 'MAFIA' | 'SHERIFF' | 'CITIZEN' | null;
+  team: 'BLACK' | 'RED' | null;
   isWinner: boolean;
   performanceScore: number | null;
+  eloChange: number | null;
+  isFirstShoot: boolean;
+  firstShootType:
+    | 'NONE'
+    | 'ZERO_MAFIA'
+    | 'ONE_TWO_MAFIA'
+    | 'THREE_MAFIA'
+    | null;
 }
 
 export interface GameRawData {

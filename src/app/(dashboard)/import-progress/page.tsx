@@ -103,6 +103,13 @@ export default function ImportProgressPage() {
 
   useEffect(() => {
     fetchProgress();
+
+    // Auto-refresh when import is running
+    const interval = setInterval(() => {
+      fetchProgress(true);
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const getStatusIcon = (status: ImportStatus) => {

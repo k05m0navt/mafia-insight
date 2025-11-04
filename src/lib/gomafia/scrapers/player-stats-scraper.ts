@@ -17,7 +17,7 @@ export class PlayerStatsScraper {
     private page: Page,
     retryManager?: RetryManager
   ) {
-    this.retryManager = retryManager || new RetryManager(3);
+    this.retryManager = retryManager || new RetryManager(5);
   }
 
   /**
@@ -33,9 +33,12 @@ export class PlayerStatsScraper {
     let consecutiveEmptyYears = 0;
 
     // Navigate to player stats page
-    await this.page.goto(`https://gomafia.pro/stats/${gomafiaId}`, {
-      waitUntil: 'networkidle',
-      timeout: 30000,
+    // Wrap in retry manager to handle timeout errors
+    await this.retryManager.execute(async () => {
+      await this.page.goto(`https://gomafia.pro/stats/${gomafiaId}`, {
+        waitUntil: 'load', // Waits for HTML/CSS, reliable with resource blocking
+        timeout: 30000,
+      });
     });
 
     for (let year = currentYear; year >= 2022; year--) {
@@ -82,11 +85,13 @@ export class PlayerStatsScraper {
     gomafiaId: string,
     year: number
   ): Promise<PlayerYearStatsRawData> {
-    // If not already on the page, navigate
+    // If not already on the page, navigate (with retry for timeouts)
     if (!this.page.url().includes(`/stats/${gomafiaId}`)) {
-      await this.page.goto(`https://gomafia.pro/stats/${gomafiaId}`, {
-        waitUntil: 'networkidle',
-        timeout: 30000,
+      await this.retryManager.execute(async () => {
+        await this.page.goto(`https://gomafia.pro/stats/${gomafiaId}`, {
+          waitUntil: 'load', // Waits for HTML/CSS, reliable with resource blocking
+          timeout: 30000,
+        });
       });
     }
 
@@ -103,26 +108,29 @@ export class PlayerStatsScraper {
       // Step 3: Click the specific year option
       await this.page.click(`text="${year}"`, { timeout: 3000 });
 
-      // Step 4: Data refreshes immediately - no waiting needed!
-      // Just a small delay to ensure DOM is stable
-      await this.page.waitForTimeout(500);
+      // OPTIMIZED: Removed unnecessary waitForTimeout(500) - data refreshes immediately
     } catch {
       // Year selector might not exist or year not available
       console.warn(`Year ${year} selector not found for player ${gomafiaId}`);
     }
 
     // Wait for dynamic content to load after year selection
-    // Data refreshes immediately, so shorter timeout is sufficient
+    // CRITICAL: Must wait for the API call to complete before extracting data
+    // Use networkidle to ensure the API request finishes and DOM updates
+    // Promise.race ensures we don't wait forever if network never idles
     await Promise.race([
-      this.page.waitForLoadState('networkidle', { timeout: 5000 }),
-      new Promise((resolve) => setTimeout(resolve, 2000)), // Fallback
+      this.page.waitForLoadState('networkidle', { timeout: 10000 }),
+      new Promise((resolve) => setTimeout(resolve, 5000)), // Fallback: wait 5 seconds minimum
     ]);
 
     // Wait for stats element to ensure data is loaded
     try {
-      await this.page.waitForSelector('.stats, .total-games', {
-        timeout: 5000,
-      });
+      await this.page.waitForSelector(
+        '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz',
+        {
+          timeout: 3000,
+        }
+      );
     } catch {
       // Stats might not exist for this year
     }

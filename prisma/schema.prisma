@@ -6,62 +6,62 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  name            String
-  avatar          String?
+  id               String           @id @default(uuid())
+  email            String           @unique
+  name             String
+  avatar           String?
   subscriptionTier SubscriptionTier @default(FREE)
-  role            UserRole  @default(user)
-  themePreference String?   @default("system")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  lastLogin       DateTime?
-  
-  players         Player[]
-  clubs           Club[]
-  tournaments     Tournament[]
-  notifications   Notification[]
-  
+  role             UserRole         @default(user)
+  themePreference  String?          @default("system")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lastLogin        DateTime?
+
+  players       Player[]
+  clubs         Club[]
+  tournaments   Tournament[]
+  notifications Notification[]
+
   @@map("users")
 }
 
 model Player {
-  id          String    @id @default(uuid())
-  userId      String
-  gomafiaId   String    @unique
-  name        String
-  eloRating   Int       @default(1200)
-  totalGames  Int       @default(0)
-  wins        Int       @default(0)
-  losses      Int       @default(0)
-  region      String?
-  clubId      String?
-  lastSyncAt  DateTime?
-  syncStatus  EntitySyncStatus?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  user        User      @relation(fields: [userId], references: [id])
-  club        Club?     @relation(fields: [clubId], references: [id], name: "ClubMembers")
+  id         String            @id @default(uuid())
+  userId     String
+  gomafiaId  String            @unique
+  name       String
+  eloRating  Int               @default(1200)
+  totalGames Int               @default(0)
+  wins       Int               @default(0)
+  losses     Int               @default(0)
+  region     String?
+  clubId     String?
+  lastSyncAt DateTime?
+  syncStatus EntitySyncStatus?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  user           User                @relation(fields: [userId], references: [id])
+  club           Club?               @relation(fields: [clubId], references: [id], name: "ClubMembers")
   participations GameParticipation[]
-  roleStats   PlayerRoleStats[]
-  yearStats   PlayerYearStats[]
-  tournaments PlayerTournament[]
-  presidingClubs Club[]  @relation("ClubPresident")
-  
+  roleStats      PlayerRoleStats[]
+  yearStats      PlayerYearStats[]
+  tournaments    PlayerTournament[]
+  presidingClubs Club[]              @relation("ClubPresident")
+
   @@map("players")
 }
 
 model Club {
-  id          String    @id @default(uuid())
-  gomafiaId   String?   @unique
-  name        String    @unique
+  id          String            @id @default(uuid())
+  gomafiaId   String?           @unique
+  name        String            @unique
   region      String?
   presidentId String?
   description String?
@@ -69,151 +69,157 @@ model Club {
   createdBy   String
   lastSyncAt  DateTime?
   syncStatus  EntitySyncStatus?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  creator     User      @relation(fields: [createdBy], references: [id])
-  president   Player?   @relation("ClubPresident", fields: [presidentId], references: [id])
-  players     Player[]  @relation("ClubMembers")
-  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  creator   User     @relation(fields: [createdBy], references: [id])
+  president Player?  @relation("ClubPresident", fields: [presidentId], references: [id])
+  players   Player[] @relation("ClubMembers")
+
   @@map("clubs")
 }
 
 model Game {
-  id              String    @id @default(uuid())
-  gomafiaId       String    @unique
+  id              String            @id @default(uuid())
+  gomafiaId       String            @unique
   tournamentId    String?
+  tableNumber     Int?
+  judgeId         String?
   date            DateTime
   durationMinutes Int?
   winnerTeam      WinnerTeam?
-  status          GameStatus @default(SCHEDULED)
+  status          GameStatus        @default(SCHEDULED)
   lastSyncAt      DateTime?
   syncStatus      EntitySyncStatus?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  tournament      Tournament? @relation(fields: [tournamentId], references: [id])
-  participations  GameParticipation[]
-  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tournament     Tournament?         @relation(fields: [tournamentId], references: [id])
+  participations GameParticipation[]
+
   @@map("games")
 }
 
 model GameParticipation {
-  id               String    @id @default(uuid())
+  id               String          @id @default(uuid())
   playerId         String
   gameId           String
   role             PlayerRole
   team             Team
   isWinner         Boolean
   performanceScore Int?
-  
-  player           Player    @relation(fields: [playerId], references: [id])
-  game             Game      @relation(fields: [gameId], references: [id])
-  
+  eloChange        Int?
+  isFirstShoot     Boolean         @default(false)
+  firstShootType   FirstShootType? @default(NONE)
+
+  player Player @relation(fields: [playerId], references: [id])
+  game   Game   @relation(fields: [gameId], references: [id])
+
   @@unique([playerId, gameId])
   @@map("game_participations")
 }
 
 model Tournament {
-  id              String    @id @default(uuid())
-  gomafiaId       String?   @unique
+  id              String            @id @default(uuid())
+  gomafiaId       String?           @unique
   name            String
   description     String?
   stars           Int?
   averageElo      Decimal?
-  isFsmRated      Boolean   @default(false)
+  isFsmRated      Boolean           @default(false)
   startDate       DateTime
   endDate         DateTime?
-  status          TournamentStatus @default(SCHEDULED)
+  status          TournamentStatus  @default(SCHEDULED)
   maxParticipants Int?
   entryFee        Decimal?
   prizePool       Decimal?
   createdBy       String
   lastSyncAt      DateTime?
   syncStatus      EntitySyncStatus?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  creator         User      @relation(fields: [createdBy], references: [id])
-  games           Game[]
+  gameCount       Int?              @default(0) // Number of games in this tournament
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  creator           User               @relation(fields: [createdBy], references: [id])
+  games             Game[]
   playerTournaments PlayerTournament[]
-  
+
   @@map("tournaments")
 }
 
 model PlayerRoleStats {
-  id                  String    @id @default(uuid())
-  playerId            String
-  role                PlayerRole
-  gamesPlayed         Int       @default(0)
-  wins                Int       @default(0)
-  losses              Int       @default(0)
-  winRate             Decimal   @default(0)
-  averagePerformance  Decimal   @default(0)
-  lastPlayed          DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  player              Player    @relation(fields: [playerId], references: [id])
-  
+  id                 String     @id @default(uuid())
+  playerId           String
+  role               PlayerRole
+  gamesPlayed        Int        @default(0)
+  wins               Int        @default(0)
+  losses             Int        @default(0)
+  winRate            Decimal    @default(0)
+  averagePerformance Decimal    @default(0)
+  lastPlayed         DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id])
+
   @@unique([playerId, role])
   @@map("player_role_stats")
 }
 
 model Analytics {
-  id          String    @id @default(uuid())
-  entityType  EntityType
-  entityId    String
-  metricName  String
-  metricValue Decimal
+  id           String       @id @default(uuid())
+  entityType   EntityType
+  entityId     String
+  metricName   String
+  metricValue  Decimal
   metricPeriod MetricPeriod
-  calculatedAt DateTime @default(now())
-  validUntil  DateTime?
-  
+  calculatedAt DateTime     @default(now())
+  validUntil   DateTime?
+
   @@map("analytics")
 }
 
 model SyncLog {
-  id                String    @id @default(uuid())
-  type              SyncType
-  status            SyncStatusEnum
-  startTime         DateTime  @default(now())
-  endTime           DateTime?
-  recordsProcessed  Int?
-  errors            Json?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
+  id               String         @id @default(uuid())
+  type             SyncType
+  status           SyncStatusEnum
+  startTime        DateTime       @default(now())
+  endTime          DateTime?
+  recordsProcessed Int?
+  errors           Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
   @@map("sync_logs")
 }
 
 model SyncStatus {
-  id                     String    @id @default("current")
-  lastSyncTime           DateTime?
-  lastSyncType           String?
-  isRunning              Boolean   @default(false)
-  progress               Int?
-  currentOperation       String?
-  lastError              String?
-  validationRate         Float?
-  totalRecordsProcessed  Int?
-  validRecords           Int?
-  invalidRecords         Int?
-  updatedAt              DateTime  @updatedAt
-  
+  id                    String    @id @default("current")
+  lastSyncTime          DateTime?
+  lastSyncType          String?
+  isRunning             Boolean   @default(false)
+  progress              Int?
+  currentOperation      String?
+  lastError             String?
+  validationRate        Float?
+  totalRecordsProcessed Int?
+  validRecords          Int?
+  invalidRecords        Int?
+  updatedAt             DateTime  @updatedAt
+
   @@map("sync_status")
 }
 
 model ImportCheckpoint {
-  id               String   @id @default("current")
-  currentPhase     String
-  currentBatch     Int
-  lastProcessedId  String?
-  processedIds     String[]
-  progress         Int
-  lastUpdated      DateTime @updatedAt
-  createdAt        DateTime @default(now())
-  
+  id              String   @id @default("current")
+  currentPhase    String
+  currentBatch    Int
+  lastProcessedId String?
+  processedIds    String[]
+  progress        Int
+  lastUpdated     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
   @@map("import_checkpoints")
 }
 
@@ -230,27 +236,27 @@ model PlayerYearStats {
   extraPoints   Decimal  @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
-  player        Player   @relation(fields: [playerId], references: [id])
-  
+
+  player Player @relation(fields: [playerId], references: [id])
+
   @@unique([playerId, year])
   @@map("player_year_stats")
 }
 
 model PlayerTournament {
-  id           String      @id @default(uuid())
+  id           String   @id @default(uuid())
   playerId     String
   tournamentId String
   placement    Int?
   ggPoints     Int?
   eloChange    Int?
   prizeMoney   Decimal?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  
-  player       Player      @relation(fields: [playerId], references: [id])
-  tournament   Tournament  @relation(fields: [tournamentId], references: [id])
-  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  player     Player     @relation(fields: [playerId], references: [id])
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
   @@unique([playerId, tournamentId])
   @@map("player_tournaments")
 }
@@ -332,32 +338,39 @@ enum UserRole {
   admin
 }
 
+enum FirstShootType {
+  NONE
+  ZERO_MAFIA
+  ONE_TWO_MAFIA
+  THREE_MAFIA
+}
+
 model Region {
-  id          String    @id @default(uuid())
-  code        String    @unique
+  id          String   @id @default(uuid())
+  code        String   @unique
   name        String
   country     String?
-  isActive    Boolean   @default(true)
-  playerCount Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  isActive    Boolean  @default(true)
+  playerCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@map("regions")
 }
 
 model ImportProgress {
-  id                   String    @id @default(uuid())
-  operation            String
-  progress             Int       @default(0)
-  totalRecords         Int       @default(0)
-  processedRecords     Int       @default(0)
-  errors               Int       @default(0)
-  startTime            DateTime  @default(now())
-  estimatedCompletion  DateTime?
-  status               ImportStatus
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  
+  id                  String       @id @default(uuid())
+  operation           String
+  progress            Int          @default(0)
+  totalRecords        Int          @default(0)
+  processedRecords    Int          @default(0)
+  errors              Int          @default(0)
+  startTime           DateTime     @default(now())
+  estimatedCompletion DateTime?
+  status              ImportStatus
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
   @@map("import_progress")
 }
 
@@ -379,9 +392,9 @@ model Notification {
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
   expiresAt DateTime?
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId, read])
   @@index([createdAt])
   @@map("notifications")
@@ -395,33 +408,33 @@ enum NotificationType {
 }
 
 model DataIntegrityReport {
-  id              String   @id @default(uuid())
-  timestamp       DateTime @default(now())
+  id              String    @id @default(uuid())
+  timestamp       DateTime  @default(now())
   overallAccuracy Float
   entities        Json
   discrepancies   Json?
-  sampleStrategy  String   @default("1_percent")
+  sampleStrategy  String    @default("1_percent")
   triggerType     String
   status          String
   completedAt     DateTime?
-  
+
   @@index([timestamp])
   @@index([status])
   @@map("data_integrity_reports")
 }
 
 model EmailLog {
-  id          String   @id @default(uuid())
-  to          String[]
-  subject     String
-  type        String
-  status      String
-  sentAt      DateTime?
-  error       String?
-  retryCount  Int      @default(0)
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  
+  id         String    @id @default(uuid())
+  to         String[]
+  subject    String
+  type       String
+  status     String
+  sentAt     DateTime?
+  error      String?
+  retryCount Int       @default(0)
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
   @@index([status, createdAt])
   @@index([type])
   @@map("email_logs")

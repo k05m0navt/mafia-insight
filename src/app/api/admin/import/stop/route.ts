@@ -26,8 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get importId from request body if provided
+    const body = await request.json().catch(() => ({}));
+    const { importId } = body;
+
     // Cancel the import
-    await cancelImport(user.id);
+    await cancelImport(user.id, importId);
 
     return NextResponse.json({
       success: true,
