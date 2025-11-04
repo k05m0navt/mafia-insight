@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
 import { prisma as db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
+import { Prisma } from '@prisma/client';
 
 /**
  * Global AbortController for import cancellation.
@@ -450,7 +451,7 @@ async function startImportInBackground(
         recordsProcessed: metrics.validRecords,
         errors:
           Object.keys(errorData).length > 0
-            ? (errorData as Record<string, unknown>)
+            ? (errorData as Prisma.InputJsonValue)
             : undefined,
       },
     });
