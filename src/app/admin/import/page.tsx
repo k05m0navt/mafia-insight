@@ -54,6 +54,11 @@ export default function ImportManagementPage() {
       name: 'Tournament Results',
       description: 'Import tournament results',
     },
+    {
+      id: 'judges',
+      name: 'Judges',
+      description: 'Import judge data and link to players',
+    },
   ];
 
   useEffect(() => {

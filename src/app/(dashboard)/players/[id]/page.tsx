@@ -13,7 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, RefreshCw, Trophy, Target, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Trophy,
+  Target,
+  Users,
+  Scale,
+} from 'lucide-react';
 import Link from 'next/link';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
@@ -32,6 +39,15 @@ interface Player {
     id: string;
     name: string;
   };
+  // Judge fields (only present if player is a judge)
+  judgeCategory?: string | null;
+  judgeCanBeGs?: number | null;
+  judgeCanJudgeFinal?: boolean | null;
+  judgeMaxTablesAsGs?: number | null;
+  judgeRating?: number | null;
+  judgeGamesJudged?: number | null;
+  judgeAccreditationDate?: string | null;
+  judgeResponsibleFromSc?: string | null;
   participations: Array<{
     game: {
       id: string;
@@ -241,6 +257,97 @@ export default function PlayerDetailsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Judge Information */}
+      {player.judgeCategory && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5" />
+              Judge Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Category
+                </label>
+                <p className="text-sm font-semibold">{player.judgeCategory}</p>
+              </div>
+              {player.judgeCanBeGs !== null &&
+                player.judgeCanBeGs !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Can be GS
+                    </label>
+                    <p className="text-sm">{player.judgeCanBeGs} games</p>
+                  </div>
+                )}
+              {player.judgeCanJudgeFinal && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Can Judge Final
+                  </label>
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800"
+                  >
+                    Yes
+                  </Badge>
+                </div>
+              )}
+              {player.judgeMaxTablesAsGs !== null &&
+                player.judgeMaxTablesAsGs !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Max Tables as GS
+                    </label>
+                    <p className="text-sm">{player.judgeMaxTablesAsGs}</p>
+                  </div>
+                )}
+              {player.judgeRating !== null &&
+                player.judgeRating !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Judge Rating
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {player.judgeRating}
+                    </p>
+                  </div>
+                )}
+              {player.judgeGamesJudged !== null &&
+                player.judgeGamesJudged !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Games Judged
+                    </label>
+                    <p className="text-sm">{player.judgeGamesJudged}</p>
+                  </div>
+                )}
+              {player.judgeAccreditationDate && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Accreditation Date
+                  </label>
+                  <p className="text-sm">
+                    {formatDate(player.judgeAccreditationDate)}
+                  </p>
+                </div>
+              )}
+              {player.judgeResponsibleFromSc && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Responsible from SC FSM
+                  </label>
+                  <p className="text-sm">{player.judgeResponsibleFromSc}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Player Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

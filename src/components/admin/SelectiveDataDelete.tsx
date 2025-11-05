@@ -38,6 +38,7 @@ type DeletableDataType =
   | 'games'
   | 'player_statistics'
   | 'tournament_results'
+  | 'judges'
   | 'all';
 
 interface DataTypeOption {
@@ -78,6 +79,12 @@ const dataTypeOptions: DataTypeOption[] = [
     label: 'Tournament Results',
     description:
       'Delete all player-tournament relationships (placements, points, prizes). Players and tournaments will be kept.',
+  },
+  {
+    value: 'judges',
+    label: 'Judge Data',
+    description:
+      'Clear all judge information from players (judge fields will be nulled). Players will be preserved.',
   },
   {
     value: 'all',
@@ -275,6 +282,18 @@ export function SelectiveDataDelete() {
                         <li className="font-medium text-foreground">
                           Players and tournaments will be preserved (not
                           deleted)
+                        </li>
+                      </ul>
+                    )}
+                    {selectedDataType === 'judges' && (
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                        <li>All judge categories</li>
+                        <li>All judge capabilities (GS, final judge, etc.)</li>
+                        <li>All judge ratings and games judged counts</li>
+                        <li>All judge accreditation dates</li>
+                        <li className="font-medium text-foreground">
+                          Players will be preserved (only judge fields will be
+                          cleared)
                         </li>
                       </ul>
                     )}

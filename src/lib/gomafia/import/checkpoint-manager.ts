@@ -15,6 +15,7 @@ export interface ImportCheckpoint {
     | 'TOURNAMENTS'
     | 'TOURNAMENT_CHIEF_JUDGE'
     | 'PLAYER_TOURNAMENT_HISTORY'
+    | 'JUDGES'
     | 'GAMES'
     | 'STATISTICS';
   /** Current batch index within the phase */

@@ -79,3 +79,16 @@ export interface PlayerTournamentRawData {
   eloChange: number | null;
   prizeMoney: number | null;
 }
+
+export interface JudgeRawData {
+  gomafiaId: string;
+  name: string;
+  category: string | null; // e.g., "Высшая категория", "1 категория"
+  canBeGs: number | null; // Maximum number of games can be GS
+  canJudgeFinal: boolean;
+  maxTablesAsGs: number | null; // Maximum tables in role of GS
+  rating: number | null;
+  gamesJudged: number | null;
+  accreditationDate: string | null; // ISO date string
+  responsibleFromSc: string | null; // Responsible from SC FSM
+}

@@ -90,6 +90,7 @@ export type DeletableDataType =
   | 'games'
   | 'player_statistics'
   | 'tournament_results'
+  | 'judges'
   | 'all';
 
 /**
@@ -203,6 +204,34 @@ export async function clearDataType(
       deletedCounts.playerTournament = (
         await tx.playerTournament.deleteMany({})
       ).count;
+    } else if (dataType === 'judges') {
+      // Clear all judge information from players
+      // Players are kept intact, only judge fields are nulled
+      const playersUpdated = await tx.player.updateMany({
+        where: {
+          OR: [
+            { judgeCategory: { not: null } },
+            { judgeCanBeGs: { not: null } },
+            { judgeCanJudgeFinal: true },
+            { judgeMaxTablesAsGs: { not: null } },
+            { judgeRating: { not: null } },
+            { judgeGamesJudged: { not: null } },
+            { judgeAccreditationDate: { not: null } },
+            { judgeResponsibleFromSc: { not: null } },
+          ],
+        },
+        data: {
+          judgeCategory: null,
+          judgeCanBeGs: null,
+          judgeCanJudgeFinal: false,
+          judgeMaxTablesAsGs: null,
+          judgeRating: null,
+          judgeGamesJudged: null,
+          judgeAccreditationDate: null,
+          judgeResponsibleFromSc: null,
+        },
+      });
+      deletedCounts.players_judge_fields_cleared = playersUpdated.count;
     }
 
     return deletedCounts;

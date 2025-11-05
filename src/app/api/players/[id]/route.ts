@@ -16,7 +16,25 @@ export async function GET(
 
     const player = await db.player.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        gomafiaId: true,
+        name: true,
+        eloRating: true,
+        totalGames: true,
+        wins: true,
+        losses: true,
+        lastSyncAt: true,
+        syncStatus: true,
+        clubId: true,
+        judgeCategory: true,
+        judgeCanBeGs: true,
+        judgeCanJudgeFinal: true,
+        judgeMaxTablesAsGs: true,
+        judgeRating: true,
+        judgeGamesJudged: true,
+        judgeAccreditationDate: true,
+        judgeResponsibleFromSc: true,
         club: {
           select: {
             id: true,
@@ -24,7 +42,7 @@ export async function GET(
           },
         },
         participations: {
-          include: {
+          select: {
             game: {
               select: {
                 id: true,

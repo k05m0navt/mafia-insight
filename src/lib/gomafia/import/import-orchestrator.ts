@@ -21,6 +21,7 @@ type ImportPhase =
   | 'TOURNAMENTS'
   | 'TOURNAMENT_CHIEF_JUDGE'
   | 'PLAYER_TOURNAMENT_HISTORY'
+  | 'JUDGES'
   | 'GAMES'
   | 'STATISTICS';
 
@@ -91,6 +92,7 @@ export class ImportOrchestrator {
     'TOURNAMENTS',
     'TOURNAMENT_CHIEF_JUDGE',
     'PLAYER_TOURNAMENT_HISTORY',
+    'JUDGES',
     'GAMES',
     'STATISTICS',
   ];

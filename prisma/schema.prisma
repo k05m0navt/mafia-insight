@@ -47,14 +47,25 @@ model Player {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
-  user                User                @relation(fields: [userId], references: [id])
-  club                Club?               @relation(fields: [clubId], references: [id], name: "ClubMembers")
-  participations      GameParticipation[]
-  roleStats           PlayerRoleStats[]
-  yearStats           PlayerYearStats[]
-  tournaments         PlayerTournament[]
-  presidingClubs      Club[]              @relation("ClubPresident")
-  chiefJudgedTournaments Tournament[]      @relation("TournamentChiefJudge")
+  // Judge-specific fields (judges are always players)
+  judgeCategory          String? // e.g., "Высшая категория", "1 категория"
+  judgeCanBeGs           Int? // Maximum number of games can be GS
+  judgeCanJudgeFinal     Boolean   @default(false)
+  judgeMaxTablesAsGs     Int? // Maximum tables in role of GS
+  judgeRating            Int? // Judge rating
+  judgeGamesJudged       Int? // Number of games judged
+  judgeAccreditationDate DateTime? // Accreditation date
+  judgeResponsibleFromSc String? // Responsible from SC FSM
+
+  user                   User                @relation(fields: [userId], references: [id])
+  club                   Club?               @relation(fields: [clubId], references: [id], name: "ClubMembers")
+  participations         GameParticipation[]
+  roleStats              PlayerRoleStats[]
+  yearStats              PlayerYearStats[]
+  tournaments            PlayerTournament[]
+  presidingClubs         Club[]              @relation("ClubPresident")
+  chiefJudgedTournaments Tournament[]        @relation("TournamentChiefJudge")
+  judgedGames            Game[]              @relation("GameJudge")
 
   @@map("players")
 }
@@ -96,6 +107,7 @@ model Game {
   updatedAt       DateTime          @updatedAt
 
   tournament     Tournament?         @relation(fields: [tournamentId], references: [id])
+  judge          Player?             @relation("GameJudge", fields: [judgeId], references: [id])
   participations GameParticipation[]
 
   @@map("games")

@@ -366,8 +366,12 @@ async function startImportInBackground(
     const { TournamentChiefJudgePhase } = await import(
       '@/lib/gomafia/import/phases/tournament-chief-judge-phase'
     );
+    // Import judges phase
+    const { JudgesPhase } = await import(
+      '@/lib/gomafia/import/phases/judges-phase'
+    );
 
-    // Execute all 9 phases
+    // Execute all 10 phases
     const phases = [
       { name: 'CLUBS', phase: new ClubsPhase(orchestrator) },
       { name: 'PLAYERS', phase: new PlayersPhase(orchestrator) },
@@ -385,6 +389,7 @@ async function startImportInBackground(
         name: 'PLAYER_TOURNAMENT_HISTORY',
         phase: new PlayerTournamentPhase(orchestrator),
       },
+      { name: 'JUDGES', phase: new JudgesPhase(orchestrator) },
       { name: 'GAMES', phase: new GamesPhase(orchestrator) },
       { name: 'STATISTICS', phase: new StatisticsPhase(orchestrator) },
     ];
