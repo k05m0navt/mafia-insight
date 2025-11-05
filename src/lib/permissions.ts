@@ -78,32 +78,26 @@ export class PermissionService {
     try {
       // Use absolute URL for admin permissions endpoint
       const url = '/api/admin/permissions';
-      const token =
-        typeof window !== 'undefined'
-          ? localStorage.getItem('auth_token')
-          : null;
 
+      // Use cookies for authentication (same-origin requests automatically include cookies)
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
       };
 
       const response = await fetch(url, {
         method: 'GET',
         headers,
+        credentials: 'include', // Ensure cookies are sent
       });
 
       if (!response.ok) {
-        // For 401/403 errors (unauthorized/forbidden), silently return empty array
-        // This allows guests to use fallback permissions without errors
-        if (response.status === 401 || response.status === 403) {
-          return [];
-        }
-        // For other errors, log but don't throw - return empty array to use fallbacks
+        // API is now public, so 401/403 shouldn't happen, but handle gracefully
+        // For any errors, log but don't throw - return empty array to use fallbacks
         const errorData = await response.json().catch(() => ({}));
         console.warn(
           'Permission request failed:',
-          errorData.message || 'Permission request failed'
+          errorData.message ||
+            `HTTP ${response.status} - Permission request failed`
         );
         return [];
       }
@@ -126,19 +120,16 @@ export class PermissionService {
     try {
       // Use absolute URL for admin permissions endpoint
       const url = '/api/admin/permissions';
-      const token =
-        typeof window !== 'undefined'
-          ? localStorage.getItem('auth_token')
-          : null;
 
+      // Use cookies for authentication (same-origin requests automatically include cookies)
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
       };
 
       const response = await fetch(url, {
         method: 'PUT',
         headers,
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({ permissions: updates }),
       });
 
@@ -149,10 +140,8 @@ export class PermissionService {
 
       const result = await response.json();
 
-      // Refresh local permissions
-      await this.refreshPermissions();
-
       // Return the updated permissions if available
+      // No need to refresh local permissions - the API already returns updated data
       if (result.permissions) {
         return { permissions: result.permissions };
       }

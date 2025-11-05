@@ -8,60 +8,192 @@ export class TournamentService {
     page: number = 1,
     limit: number = 20,
     search?: string,
-    status?: string
+    status?: string,
+    sortBy: string = 'startDate',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    minPrizePool?: number
   ) {
-    const skip = (page - 1) * limit;
+    // Build orderBy clause
+    let orderBy: any = {};
+    if (sortBy === 'prizePool') {
+      // For prize pool, we need to handle null values
+      orderBy = { prizePool: sortOrder };
+    } else {
+      orderBy[sortBy] = sortOrder;
+    }
 
-    const where = {
-      ...(search && {
+    const hasSearch = !!search;
+    const searchTerm = search?.toLowerCase() || '';
+    let tournaments: any[] = [];
+    let total = 0;
+
+    // Base where clause for filters other than search
+    const baseWhere: any = {
+      ...(status && { status: status as TournamentStatus }),
+      ...(minPrizePool !== undefined &&
+        minPrizePool > 0 && {
+          prizePool: {
+            gte: minPrizePool,
+          },
+        }),
+    };
+
+    if (hasSearch && searchTerm) {
+      // For search queries, fetch exact matches and partial matches separately
+      // to ensure exact matches are always included, even when sorting by other fields
+
+      // Build where clause for exact matches
+      const exactWhere: any = {
+        ...baseWhere,
+        name: {
+          equals: search,
+          mode: 'insensitive' as const,
+        },
+      };
+
+      // Build where clause for all matches (contains)
+      const allMatchesWhere: any = {
+        ...baseWhere,
         name: {
           contains: search,
           mode: 'insensitive' as const,
         },
-      }),
-      ...(status && { status: status as TournamentStatus }),
-    };
+      };
 
-    const [tournaments, total] = await Promise.all([
-      prisma.tournament.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          games: {
+      // Fetch exact matches (no limit, sorted by user's preference)
+      // Fetch all matches (larger set to ensure good pagination, up to 1000)
+      const fetchLimit = Math.min(1000, limit * 10);
+
+      const [exactMatches, allMatches, _exactCount, allCount] =
+        await Promise.all([
+          prisma.tournament.findMany({
+            where: exactWhere,
+            orderBy,
             include: {
-              participations: {
+              creator: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              games: {
                 include: {
-                  player: {
-                    select: {
-                      id: true,
-                      name: true,
-                      eloRating: true,
+                  participations: {
+                    include: {
+                      player: {
+                        select: {
+                          id: true,
+                          name: true,
+                          eloRating: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              _count: {
+                select: {
+                  games: true,
+                },
+              },
+            },
+          }),
+          prisma.tournament.findMany({
+            where: allMatchesWhere,
+            orderBy,
+            take: fetchLimit,
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              games: {
+                include: {
+                  participations: {
+                    include: {
+                      player: {
+                        select: {
+                          id: true,
+                          name: true,
+                          eloRating: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              _count: {
+                select: {
+                  games: true,
+                },
+              },
+            },
+          }),
+          prisma.tournament.count({ where: exactWhere }),
+          prisma.tournament.count({ where: allMatchesWhere }),
+        ]);
+
+      // Filter out exact matches from allMatches to get only partial matches
+      const exactMatchIds = new Set(exactMatches.map((t) => t.id));
+      const partialMatches = allMatches.filter((t) => !exactMatchIds.has(t.id));
+
+      // Combine: exact matches first, then partial matches
+      const allTournaments = [...exactMatches, ...partialMatches];
+      total = allCount;
+
+      // Apply pagination
+      const paginatedSkip = (page - 1) * limit;
+      tournaments = allTournaments.slice(paginatedSkip, paginatedSkip + limit);
+    } else {
+      // For non-search queries, use normal pagination
+      const skip = (page - 1) * limit;
+      const where: any = { ...baseWhere };
+
+      const [allTournaments, totalCount] = await Promise.all([
+        prisma.tournament.findMany({
+          where,
+          skip,
+          take: limit,
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            games: {
+              include: {
+                participations: {
+                  include: {
+                    player: {
+                      select: {
+                        id: true,
+                        name: true,
+                        eloRating: true,
+                      },
                     },
                   },
                 },
               },
             },
-          },
-          _count: {
-            select: {
-              games: true,
+            _count: {
+              select: {
+                games: true,
+              },
             },
           },
-        },
-        orderBy: {
-          startDate: 'desc',
-        },
-      }),
-      prisma.tournament.count({ where }),
-    ]);
+          orderBy,
+        }),
+        prisma.tournament.count({ where }),
+      ]);
+      tournaments = allTournaments;
+      total = totalCount;
+    }
 
     return {
       data: tournaments,
@@ -69,7 +201,9 @@ export class TournamentService {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
       },
     };
   }

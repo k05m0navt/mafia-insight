@@ -9,10 +9,34 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || undefined;
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = (searchParams.get('sortOrder') || 'desc') as
+      | 'asc'
+      | 'desc';
+    const minMembers = searchParams.get('minMembers')
+      ? parseInt(searchParams.get('minMembers')!)
+      : undefined;
+    const region = searchParams.get('region') || undefined;
 
-    const result = await clubService.getClubs(page, limit, search);
+    const result = await clubService.getClubs(
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+      minMembers,
+      region
+    );
 
-    return NextResponse.json(result);
+    const response = NextResponse.json(result);
+
+    // Add cache headers for better performance (30 seconds)
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=30, stale-while-revalidate=60'
+    );
+
+    return response;
   } catch (error) {
     console.error('Error fetching clubs:', error);
     return NextResponse.json(

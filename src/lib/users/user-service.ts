@@ -181,30 +181,86 @@ export class UserService {
   async searchUsers(filters: UserFilters = {}) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
-    const skip = (page - 1) * limit;
+    const hasSearch = !!filters.search;
+    const searchTerm = filters.search?.toLowerCase() || '';
 
-    const where: Record<string, unknown> = {};
-
-    if (filters.search) {
-      where.OR = [
-        { email: { contains: filters.search, mode: 'insensitive' } },
-        { name: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
-
+    const baseWhere: Record<string, unknown> = {};
     if (filters.role) {
-      where.role = filters.role;
+      baseWhere.role = filters.role;
     }
 
-    const [users, total] = await Promise.all([
-      db.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.user.count({ where }),
-    ]);
+    let users: any[] = [];
+    let total = 0;
+
+    if (hasSearch && searchTerm) {
+      // For search queries, fetch exact matches and partial matches separately
+      // to ensure exact matches are always included
+
+      // Build where clause for exact matches (email or name)
+      const exactWhere: Record<string, unknown> = {
+        ...baseWhere,
+        OR: [
+          { email: { equals: filters.search, mode: 'insensitive' } },
+          { name: { equals: filters.search, mode: 'insensitive' } },
+        ],
+      };
+
+      // Build where clause for all matches (contains)
+      const allMatchesWhere: Record<string, unknown> = {
+        ...baseWhere,
+        OR: [
+          { email: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+
+      // Fetch exact matches (no limit, sorted by user's preference)
+      // Fetch all matches (larger set to ensure good pagination, up to 1000)
+      const fetchLimit = Math.min(1000, limit * 10);
+
+      const [exactMatches, allMatches, _exactCount, allCount] =
+        await Promise.all([
+          db.user.findMany({
+            where: exactWhere,
+            orderBy: { createdAt: 'desc' },
+          }),
+          db.user.findMany({
+            where: allMatchesWhere,
+            orderBy: { createdAt: 'desc' },
+            take: fetchLimit,
+          }),
+          db.user.count({ where: exactWhere }),
+          db.user.count({ where: allMatchesWhere }),
+        ]);
+
+      // Filter out exact matches from allMatches to get only partial matches
+      const exactMatchIds = new Set(exactMatches.map((u) => u.id));
+      const partialMatches = allMatches.filter((u) => !exactMatchIds.has(u.id));
+
+      // Combine: exact matches first, then partial matches
+      const allUsers = [...exactMatches, ...partialMatches];
+      total = allCount;
+
+      // Apply pagination
+      const paginatedSkip = (page - 1) * limit;
+      users = allUsers.slice(paginatedSkip, paginatedSkip + limit);
+    } else {
+      // For non-search queries, use normal pagination
+      const skip = (page - 1) * limit;
+      const where: Record<string, unknown> = { ...baseWhere };
+
+      const [allUsers, totalCount] = await Promise.all([
+        db.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        db.user.count({ where }),
+      ]);
+      users = allUsers;
+      total = totalCount;
+    }
 
     return {
       users,

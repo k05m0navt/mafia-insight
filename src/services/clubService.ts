@@ -3,54 +3,233 @@ import { ClubSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export class ClubService {
-  async getClubs(page: number = 1, limit: number = 20, search?: string) {
-    const skip = (page - 1) * limit;
+  async getClubs(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    minMembers?: number,
+    region?: string
+  ) {
+    // Build orderBy clause
+    let orderBy: any = {};
+    if (sortBy === 'memberCount') {
+      // For member count, we need to sort by _count.players
+      // This requires a more complex query, so we'll sort by name for now
+      // and handle member count filtering separately
+      orderBy = { createdAt: sortOrder };
+    } else {
+      orderBy[sortBy] = sortOrder;
+    }
 
-    const where = {
-      ...(search && {
+    const hasSearch = !!search;
+    const searchTerm = search?.toLowerCase() || '';
+    let clubs: any[] = [];
+    let total = 0;
+
+    if (hasSearch && searchTerm) {
+      // For search queries, fetch exact matches and partial matches separately
+      // to ensure exact matches are always included, even when sorting by other fields
+
+      // Build where clause for exact matches
+      const exactWhere: any = {
+        name: {
+          equals: search,
+          mode: 'insensitive' as const,
+        },
+      };
+
+      if (region) {
+        exactWhere.region = region;
+      }
+      if (minMembers !== undefined) {
+        exactWhere._count = {
+          players: {
+            gte: minMembers,
+          },
+        };
+      }
+
+      // Build where clause for all matches (contains)
+      const allMatchesWhere: any = {
         name: {
           contains: search,
           mode: 'insensitive' as const,
         },
-      }),
-    };
+      };
 
-    const [clubs, total] = await Promise.all([
-      prisma.club.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+      if (region) {
+        allMatchesWhere.region = region;
+      }
+      if (minMembers !== undefined) {
+        allMatchesWhere._count = {
           players: {
+            gte: minMembers,
+          },
+        };
+      }
+
+      // Fetch exact matches (no limit, sorted by user's preference)
+      // Fetch all matches (larger set to ensure good pagination, up to 1000)
+      const fetchLimit = Math.min(1000, limit * 10);
+
+      const [exactMatches, allMatches, _exactCount, allCount] =
+        await Promise.all([
+          prisma.club.findMany({
+            where: exactWhere,
+            orderBy,
             include: {
-              user: {
+              creator: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
                 },
               },
+              players: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+              _count: {
+                select: {
+                  players: true,
+                },
+              },
+            },
+          }),
+          prisma.club.findMany({
+            where: allMatchesWhere,
+            orderBy,
+            take: fetchLimit,
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              players: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+              _count: {
+                select: {
+                  players: true,
+                },
+              },
+            },
+          }),
+          prisma.club.count({ where: exactWhere }),
+          prisma.club.count({ where: allMatchesWhere }),
+        ]);
+
+      // Filter out exact matches from allMatches to get only partial matches
+      const exactMatchIds = new Set(exactMatches.map((c) => c.id));
+      const partialMatches = allMatches.filter((c) => !exactMatchIds.has(c.id));
+
+      // Combine: exact matches first, then partial matches
+      const allClubs = [...exactMatches, ...partialMatches];
+      total = allCount;
+
+      // Apply pagination
+      const paginatedSkip = (page - 1) * limit;
+      clubs = allClubs.slice(paginatedSkip, paginatedSkip + limit);
+    } else {
+      // For non-search queries, use normal pagination
+      const skip = (page - 1) * limit;
+      const where: any = {};
+
+      if (region) {
+        where.region = region;
+      }
+      if (minMembers !== undefined && minMembers > 0) {
+        // For member count filtering, we need to use a different approach
+        // since Prisma doesn't support filtering by _count directly in where clause
+        // We'll fetch all and filter, but this is less efficient - consider using a raw query
+        where._count = {
+          players: {
+            gte: minMembers,
+          },
+        };
+      }
+
+      const [allClubs, totalCount] = await Promise.all([
+        prisma.club.findMany({
+          where,
+          skip,
+          take: limit,
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            players: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                players: true,
+              },
             },
           },
-          _count: {
-            select: {
-              players: true,
+          orderBy,
+        }),
+        prisma.club.count({ where }),
+      ]);
+      clubs = allClubs;
+      total = totalCount;
+
+      // Filter by minimum members if specified (post-query for cases where _count filter doesn't work)
+      if (minMembers !== undefined && minMembers > 0) {
+        const filteredClubs = clubs.filter(
+          (club) => club._count.players >= minMembers
+        );
+        // Only update if filtering actually removed items (meaning where clause didn't work)
+        if (filteredClubs.length !== clubs.length) {
+          clubs = filteredClubs;
+          total = await prisma.club.count({
+            where: {
+              ...where,
             },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-      prisma.club.count({ where }),
-    ]);
+          });
+        }
+      }
+    }
+
+    // Sort by member count if requested
+    if (sortBy === 'memberCount') {
+      clubs.sort((a, b) => {
+        const diff = a._count.players - b._count.players;
+        return sortOrder === 'asc' ? diff : -diff;
+      });
+    }
 
     return {
       data: clubs,

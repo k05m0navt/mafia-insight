@@ -439,3 +439,16 @@ model EmailLog {
   @@index([type])
   @@map("email_logs")
 }
+
+model Permission {
+  id        String   @id
+  resource  String
+  action    String
+  roles     String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resource, action], name: "resource_action")
+  @@index([resource, action])
+  @@map("permissions")
+}

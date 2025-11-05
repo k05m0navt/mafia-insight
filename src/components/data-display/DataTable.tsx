@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/SearchInput';
 import {
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Search, Filter, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
+import { Filter, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Column {
@@ -159,15 +159,12 @@ export function DataTable({
         {(onSearch || filters) && (
           <div className="mb-4 space-y-4">
             {onSearch && (
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput
+                placeholder={searchPlaceholder}
+                value={search}
+                onSearch={handleSearch}
+                debounceMs={300}
+              />
             )}
             {filters && (
               <div className="flex items-center space-x-2">

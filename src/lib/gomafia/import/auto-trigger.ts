@@ -2,6 +2,10 @@ import { PrismaClient } from '@prisma/client';
 
 const db = new PrismaClient();
 
+// Cache for database emptiness check to avoid repeated queries
+let isEmptyCache: { isEmpty: boolean; timestamp: number } | null = null;
+const CACHE_DURATION = 60 * 1000; // 1 minute cache
+
 /**
  * Auto-trigger import if database is empty.
  *
@@ -9,10 +13,22 @@ const db = new PrismaClient();
  * (e.g., /api/players, /api/games) to automatically trigger import
  * on first access.
  *
+ * Uses caching to avoid repeated database checks on every request.
+ *
  * @returns true if import was triggered, false otherwise
  */
 export async function autoTriggerImportIfNeeded(): Promise<boolean> {
   try {
+    // Check cache first (only if cache is recent)
+    const now = Date.now();
+    if (isEmptyCache && now - isEmptyCache.timestamp < CACHE_DURATION) {
+      // If cache says not empty, skip the check
+      if (!isEmptyCache.isEmpty) {
+        return false;
+      }
+      // If cache says empty, we still need to check if import is running
+    }
+
     // Check if import is already running
     const syncStatus = await db.syncStatus.findUnique({
       where: { id: 'current' },
@@ -25,13 +41,16 @@ export async function autoTriggerImportIfNeeded(): Promise<boolean> {
       return false;
     }
 
-    // Check if database is empty
+    // Check if database is empty (only if cache expired or import not running)
     const [playerCount, gameCount] = await Promise.all([
       db.player.count(),
       db.game.count(),
     ]);
 
     const isEmpty = playerCount === 0 && gameCount === 0;
+
+    // Update cache
+    isEmptyCache = { isEmpty, timestamp: now };
 
     if (!isEmpty) {
       console.log(
