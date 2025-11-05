@@ -253,6 +253,14 @@ export class ClubService {
             email: true,
           },
         },
+        president: {
+          select: {
+            id: true,
+            name: true,
+            gomafiaId: true,
+            eloRating: true,
+          },
+        },
         players: {
           include: {
             user: {

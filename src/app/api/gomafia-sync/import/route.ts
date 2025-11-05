@@ -358,15 +358,29 @@ async function startImportInBackground(
       '@/lib/gomafia/import/phases/statistics-phase'
     );
 
-    // Execute all 7 phases
+    // Import club members phase
+    const { ClubMembersPhase } = await import(
+      '@/lib/gomafia/import/phases/club-members-phase'
+    );
+    // Import tournament chief judge phase
+    const { TournamentChiefJudgePhase } = await import(
+      '@/lib/gomafia/import/phases/tournament-chief-judge-phase'
+    );
+
+    // Execute all 9 phases
     const phases = [
       { name: 'CLUBS', phase: new ClubsPhase(orchestrator) },
       { name: 'PLAYERS', phase: new PlayersPhase(orchestrator) },
+      { name: 'CLUB_MEMBERS', phase: new ClubMembersPhase(orchestrator) },
       {
         name: 'PLAYER_YEAR_STATS',
         phase: new PlayerYearStatsPhase(orchestrator),
       },
       { name: 'TOURNAMENTS', phase: new TournamentsPhase(orchestrator) },
+      {
+        name: 'TOURNAMENT_CHIEF_JUDGE',
+        phase: new TournamentChiefJudgePhase(orchestrator),
+      },
       {
         name: 'PLAYER_TOURNAMENT_HISTORY',
         phase: new PlayerTournamentPhase(orchestrator),

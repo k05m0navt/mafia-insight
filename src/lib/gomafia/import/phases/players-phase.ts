@@ -4,6 +4,7 @@ import { PlayersScraper } from '../../scrapers/players-scraper';
 import { resilientDB } from '@/lib/db-resilient';
 import { playerSchema, PlayerRawData } from '../../validators/player-schema';
 import { normalizeRegion } from '../../parsers/region-normalizer';
+import { findClubsByNames } from '../../parsers/club-matcher';
 
 /**
  * Phase 2: Import players from gomafia.pro/rating
@@ -172,34 +173,30 @@ export class PlayersPhase {
         validPlayers,
         async (batch, batchIndex, totalBatches) => {
           // Transform to Prisma format
-          const playersToInsert = await Promise.all(
-            (batch as PlayerRawData[]).map(async (player) => {
-              // Find club by name if provided
-              let clubId: string | undefined;
-              if (player.club) {
-                const club = (await resilientDB.execute((db) =>
-                  db.club.findFirst({
-                    where: { name: player.club || undefined },
-                  })
-                )) as { id: string } | null;
-                clubId = club?.id;
-              }
+          // Batch find all clubs for better performance
+          const clubNames = (batch as PlayerRawData[])
+            .map((p) => p.club)
+            .filter((c): c is string => !!c);
+          const clubMap = await findClubsByNames(clubNames);
 
-              return {
-                gomafiaId: player.gomafiaId,
-                name: player.name,
-                region: this.normalizeRegion(player.region),
-                clubId,
-                eloRating: Math.round(player.elo),
-                totalGames: player.tournaments, // Using tournaments as proxy for now
-                wins: 0, // Will be calculated later
-                losses: 0, // Will be calculated later
-                userId: systemUserId, // System user for imports
-                lastSyncAt: new Date(),
-                syncStatus: 'SYNCED' as const,
-              };
-            })
-          );
+          const playersToInsert = (batch as PlayerRawData[]).map((player) => {
+            // Find club by name if provided
+            const clubId = player.club ? clubMap.get(player.club) : undefined;
+
+            return {
+              gomafiaId: player.gomafiaId,
+              name: player.name,
+              region: this.normalizeRegion(player.region),
+              clubId,
+              eloRating: Math.round(player.elo),
+              totalGames: player.tournaments, // Using tournaments as proxy for now
+              wins: 0, // Will be calculated later
+              losses: 0, // Will be calculated later
+              userId: systemUserId, // System user for imports
+              lastSyncAt: new Date(),
+              syncStatus: 'SYNCED' as const,
+            };
+          });
 
           // Insert batch
           await resilientDB.execute((db) =>
@@ -266,35 +263,31 @@ export class PlayersPhase {
       return;
     }
 
-    // Transform to Prisma format
-    const playersToInsert = await Promise.all(
-      validPlayers.map(async (player) => {
-        // Find club by name if provided
-        let clubId: string | undefined;
-        if (player.club) {
-          const club = (await resilientDB.execute((db) =>
-            db.club.findFirst({
-              where: { name: player.club || undefined },
-            })
-          )) as { id: string } | null;
-          clubId = club?.id;
-        }
+    // Batch find all clubs for better performance
+    const clubNames = validPlayers
+      .map((p) => p.club)
+      .filter((c): c is string => !!c);
+    const clubMap = await findClubsByNames(clubNames);
 
-        return {
-          gomafiaId: player.gomafiaId,
-          name: player.name,
-          region: this.normalizeRegion(player.region),
-          clubId,
-          eloRating: Math.round(player.elo),
-          totalGames: player.tournaments,
-          wins: 0,
-          losses: 0,
-          userId: systemUserId,
-          lastSyncAt: new Date(),
-          syncStatus: 'SYNCED' as const,
-        };
-      })
-    );
+    // Transform to Prisma format
+    const playersToInsert = validPlayers.map((player) => {
+      // Find club by name if provided
+      const clubId = player.club ? clubMap.get(player.club) : undefined;
+
+      return {
+        gomafiaId: player.gomafiaId,
+        name: player.name,
+        region: this.normalizeRegion(player.region),
+        clubId,
+        eloRating: Math.round(player.elo),
+        totalGames: player.tournaments,
+        wins: 0,
+        losses: 0,
+        userId: systemUserId,
+        lastSyncAt: new Date(),
+        syncStatus: 'SYNCED' as const,
+      };
+    });
 
     // Insert batch
     try {

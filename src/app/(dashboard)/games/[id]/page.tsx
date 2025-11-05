@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,7 +81,7 @@ export default function GameDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGame = async () => {
+  const fetchGame = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -102,13 +102,13 @@ export default function GameDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     if (params.id) {
       fetchGame();
     }
-  }, [params.id]);
+  }, [params.id, fetchGame]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -297,7 +297,16 @@ export default function GameDetailsPage() {
                   Tournament
                 </label>
                 <p className="text-sm">
-                  {game.tournament?.name || 'No tournament'}
+                  {game.tournament ? (
+                    <Link
+                      href={`/tournaments/${game.tournament.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {game.tournament.name}
+                    </Link>
+                  ) : (
+                    'No tournament'
+                  )}
                 </p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,7 +77,7 @@ export default function PlayerDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPlayer = async () => {
+  const fetchPlayer = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -98,13 +98,13 @@ export default function PlayerDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     if (params.id) {
       fetchPlayer();
     }
-  }, [params.id]);
+  }, [params.id, fetchPlayer]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -261,7 +261,18 @@ export default function PlayerDetailsPage() {
                 <label className="text-sm font-medium text-gray-500">
                   Club
                 </label>
-                <p className="text-sm">{player.club?.name || 'No club'}</p>
+                <p className="text-sm">
+                  {player.club ? (
+                    <Link
+                      href={`/clubs/${player.club.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {player.club.name}
+                    </Link>
+                  ) : (
+                    'No club'
+                  )}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

@@ -10,8 +10,10 @@ export interface ImportCheckpoint {
   currentPhase:
     | 'CLUBS'
     | 'PLAYERS'
+    | 'CLUB_MEMBERS'
     | 'PLAYER_YEAR_STATS'
     | 'TOURNAMENTS'
+    | 'TOURNAMENT_CHIEF_JUDGE'
     | 'PLAYER_TOURNAMENT_HISTORY'
     | 'GAMES'
     | 'STATISTICS';

@@ -62,6 +62,21 @@ export class AnalyticsService {
     const club = await prisma.club.findUnique({
       where: { id: clubId },
       include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        president: {
+          select: {
+            id: true,
+            name: true,
+            gomafiaId: true,
+            eloRating: true,
+          },
+        },
         players: {
           include: {
             roleStats: true,

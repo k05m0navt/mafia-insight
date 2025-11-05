@@ -219,6 +219,14 @@ export class TournamentService {
             email: true,
           },
         },
+        chiefJudge: {
+          select: {
+            id: true,
+            name: true,
+            gomafiaId: true,
+            eloRating: true,
+          },
+        },
         games: {
           include: {
             participations: {

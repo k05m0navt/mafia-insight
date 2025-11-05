@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { TournamentBracket } from '@/components/analytics/TournamentBracket';
 import { LiveUpdates } from '@/components/analytics/LiveUpdates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,12 @@ interface TournamentAnalytics {
       name: string;
       email: string;
     };
+    chiefJudge?: {
+      id: string;
+      name: string;
+      gomafiaId: string;
+      eloRating: number;
+    } | null;
     games: Array<{
       id: string;
       date: string;
@@ -77,13 +84,7 @@ export default function TournamentAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (tournamentId) {
-      fetchTournamentAnalytics();
-    }
-  }, [tournamentId]);
-
-  const fetchTournamentAnalytics = async () => {
+  const fetchTournamentAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -100,7 +101,13 @@ export default function TournamentAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tournamentId]);
+
+  useEffect(() => {
+    if (tournamentId) {
+      fetchTournamentAnalytics();
+    }
+  }, [tournamentId, fetchTournamentAnalytics]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -190,6 +197,20 @@ export default function TournamentAnalyticsPage() {
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Created by {analytics.tournament.creator.name}</span>
+            {analytics.tournament.chiefJudge && (
+              <>
+                <span>•</span>
+                <span>
+                  Chief Judge:{' '}
+                  <Link
+                    href={`/players/${analytics.tournament.chiefJudge.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {analytics.tournament.chiefJudge.name}
+                  </Link>
+                </span>
+              </>
+            )}
             <span>•</span>
             <span>Started {formatDate(analytics.tournament.startDate)}</span>
             {analytics.tournament.endDate && (
