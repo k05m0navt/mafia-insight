@@ -14,7 +14,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -53,7 +53,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -92,7 +92,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -131,7 +131,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -170,7 +170,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -207,7 +207,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 
@@ -246,7 +246,7 @@ test.describe('Cross-Browser Compatibility Tests', () => {
         page.locator('[data-testid="analytics-page"]')
       ).toBeVisible();
 
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
     });
 

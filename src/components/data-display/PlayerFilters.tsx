@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/SearchInput';
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Filter, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 
 interface PlayerFiltersProps {
   onFiltersChange: (filters: PlayerFiltersData) => void;
@@ -93,15 +93,12 @@ export function PlayerFilters({
             {/* Search */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search players..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput
+                placeholder="Search players..."
+                value={filters.search}
+                onSearch={(value) => handleFilterChange('search', value)}
+                debounceMs={300}
+              />
             </div>
 
             {/* Sync Status */}

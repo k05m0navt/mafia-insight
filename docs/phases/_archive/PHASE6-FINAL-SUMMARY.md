@@ -126,7 +126,7 @@ docs/PHASE6-TEST-VERIFICATION.md [T131]
 1. `src/lib/gomafia/import/import-orchestrator.ts` - Added cancellation methods
 2. `src/app/api/gomafia-sync/import/route.ts` - Enhanced DELETE endpoint
 3. `src/components/sync/ImportControls.tsx` - Full refactor with US3 components
-4. `src/app/(dashboard)/import/page.tsx` - Error code mapping
+4. `src/app/(dashboard)/admin/import/page.tsx` - Error code mapping
 5. `tests/components/sync/ImportControls.test.tsx` - Updated for integration
 6. `prisma/schema.prisma` - Added `importCheckpoint` model
 7. `package.json` - Added `@testing-library/user-event`

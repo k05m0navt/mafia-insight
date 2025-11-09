@@ -44,7 +44,7 @@ export function ClubCard({ club, onViewAnalytics }: ClubCardProps) {
       : 0;
 
   return (
-    <Card className="w-full">
+    <Card className="w-full flex flex-col h-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>{club.name}</span>
@@ -61,7 +61,7 @@ export function ClubCard({ club, onViewAnalytics }: ClubCardProps) {
           <p className="text-sm text-muted-foreground">{club.description}</p>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col flex-1">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <p className="text-sm text-muted-foreground">Total Games</p>
@@ -104,7 +104,10 @@ export function ClubCard({ club, onViewAnalytics }: ClubCardProps) {
         </div>
 
         {onViewAnalytics && (
-          <Button onClick={() => onViewAnalytics(club.id)} className="w-full">
+          <Button
+            onClick={() => onViewAnalytics(club.id)}
+            className="w-full mt-auto"
+          >
             View Analytics
           </Button>
         )}

@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Import Retry on Network Failure E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import management page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Wait for page to load
     await expect(page.locator('h1')).toContainText('Import Management');
@@ -56,7 +56,9 @@ test.describe('Import Retry on Network Failure E2E', () => {
     await expect(page.getByText(/retrying/i)).toBeVisible({ timeout: 5000 });
 
     // Eventually should succeed
-    await expect(page.getByText(/import started successfully/i)).toBeVisible({
+    await expect(
+      page.getByText(/admin\/import started successfully/i)
+    ).toBeVisible({
       timeout: 10000,
     });
   });
@@ -148,7 +150,9 @@ test.describe('Import Retry on Network Failure E2E', () => {
     await retryButton.click();
 
     // Should eventually succeed
-    await expect(page.getByText(/import started successfully/i)).toBeVisible({
+    await expect(
+      page.getByText(/admin\/import started successfully/i)
+    ).toBeVisible({
       timeout: 10000,
     });
   });

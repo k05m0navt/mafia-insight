@@ -99,14 +99,6 @@ export function Navbar({ className = '' }: NavbarProps) {
       requiredPermissions: [],
     },
     {
-      id: 'import-progress',
-      label: 'Import Progress',
-      path: '/import-progress',
-      icon: '📈',
-      requiresAuth: true,
-      requiredPermissions: ['players:read'],
-    },
-    {
       id: 'admin',
       label: 'Admin',
       path: '/admin',

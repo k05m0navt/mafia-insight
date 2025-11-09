@@ -377,7 +377,7 @@ fi
 
 ```
 fields @timestamp, @message
-| filter @message like /import/i
+| filter @message like /admin/import/i
 | filter @message like /error|timeout|failed/i
 | stats count() by bin(5m)
 ```

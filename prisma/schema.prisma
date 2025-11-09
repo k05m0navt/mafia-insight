@@ -47,13 +47,25 @@ model Player {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
-  user           User                @relation(fields: [userId], references: [id])
-  club           Club?               @relation(fields: [clubId], references: [id], name: "ClubMembers")
-  participations GameParticipation[]
-  roleStats      PlayerRoleStats[]
-  yearStats      PlayerYearStats[]
-  tournaments    PlayerTournament[]
-  presidingClubs Club[]              @relation("ClubPresident")
+  // Judge-specific fields (judges are always players)
+  judgeCategory          String? // e.g., "Высшая категория", "1 категория"
+  judgeCanBeGs           Int? // Maximum number of games can be GS
+  judgeCanJudgeFinal     Boolean   @default(false)
+  judgeMaxTablesAsGs     Int? // Maximum tables in role of GS
+  judgeRating            Int? // Judge rating
+  judgeGamesJudged       Int? // Number of games judged
+  judgeAccreditationDate DateTime? // Accreditation date
+  judgeResponsibleFromSc String? // Responsible from SC FSM
+
+  user                   User                @relation(fields: [userId], references: [id])
+  club                   Club?               @relation(fields: [clubId], references: [id], name: "ClubMembers")
+  participations         GameParticipation[]
+  roleStats              PlayerRoleStats[]
+  yearStats              PlayerYearStats[]
+  tournaments            PlayerTournament[]
+  presidingClubs         Club[]              @relation("ClubPresident")
+  chiefJudgedTournaments Tournament[]        @relation("TournamentChiefJudge")
+  judgedGames            Game[]              @relation("GameJudge")
 
   @@map("players")
 }
@@ -95,6 +107,7 @@ model Game {
   updatedAt       DateTime          @updatedAt
 
   tournament     Tournament?         @relation(fields: [tournamentId], references: [id])
+  judge          Player?             @relation("GameJudge", fields: [judgeId], references: [id])
   participations GameParticipation[]
 
   @@map("games")
@@ -134,6 +147,7 @@ model Tournament {
   entryFee        Decimal?
   prizePool       Decimal?
   createdBy       String
+  chiefJudgeId    String?
   lastSyncAt      DateTime?
   syncStatus      EntitySyncStatus?
   gameCount       Int?              @default(0) // Number of games in this tournament
@@ -141,6 +155,7 @@ model Tournament {
   updatedAt       DateTime          @updatedAt
 
   creator           User               @relation(fields: [createdBy], references: [id])
+  chiefJudge        Player?            @relation("TournamentChiefJudge", fields: [chiefJudgeId], references: [id])
   games             Game[]
   playerTournaments PlayerTournament[]
 
@@ -219,8 +234,31 @@ model ImportCheckpoint {
   progress        Int
   lastUpdated     DateTime @updatedAt
   createdAt       DateTime @default(now())
+  isPaused        Boolean  @default(false)
 
   @@map("import_checkpoints")
+}
+
+model SkippedEntity {
+  id           String    @id @default(uuid())
+  phase        String
+  entityType   String // 'player', 'page', etc.
+  entityId     String? // Player gomafiaId or other entity ID
+  pageNumber   Int? // Page number if applicable
+  errorCode    String
+  errorMessage String
+  errorDetails Json?
+  retryCount   Int       @default(0)
+  lastRetryAt  DateTime?
+  status       String    @default("PENDING") // PENDING, RETRYING, COMPLETED, FAILED
+  syncLogId    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([phase, status])
+  @@index([entityType, entityId])
+  @@index([pageNumber])
+  @@map("skipped_entities")
 }
 
 model PlayerYearStats {
@@ -438,4 +476,17 @@ model EmailLog {
   @@index([status, createdAt])
   @@index([type])
   @@map("email_logs")
+}
+
+model Permission {
+  id        String   @id
+  resource  String
+  action    String
+  roles     String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resource, action], name: "resource_action")
+  @@index([resource, action])
+  @@map("permissions")
 }

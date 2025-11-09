@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 
@@ -57,24 +56,8 @@ export async function clearDatabase(adminId: string): Promise<{
     return deletedCounts;
   });
 
-  // Log the operation
-  await resilientDB.execute((db) =>
-    db.syncLog.create({
-      data: {
-        type: 'FULL',
-        status: 'COMPLETED',
-        startTime: new Date(),
-        endTime: new Date(),
-        recordsProcessed: 0,
-        errors: {
-          operation: 'DATABASE_CLEAR',
-          adminId,
-          deleted: deleted,
-        } as Prisma.InputJsonValue,
-      },
-    })
-  );
-
+  // Log the operation (don't create syncLog entry - deletions are not sync operations)
+  // Just log to console for audit purposes
   console.log(`Database cleared by admin: ${adminId}`, deleted);
 
   return { deleted };
@@ -90,6 +73,7 @@ export type DeletableDataType =
   | 'games'
   | 'player_statistics'
   | 'tournament_results'
+  | 'judges'
   | 'all';
 
 /**
@@ -203,30 +187,41 @@ export async function clearDataType(
       deletedCounts.playerTournament = (
         await tx.playerTournament.deleteMany({})
       ).count;
+    } else if (dataType === 'judges') {
+      // Clear all judge information from players
+      // Players are kept intact, only judge fields are nulled
+      const playersUpdated = await tx.player.updateMany({
+        where: {
+          OR: [
+            { judgeCategory: { not: null } },
+            { judgeCanBeGs: { not: null } },
+            { judgeCanJudgeFinal: true },
+            { judgeMaxTablesAsGs: { not: null } },
+            { judgeRating: { not: null } },
+            { judgeGamesJudged: { not: null } },
+            { judgeAccreditationDate: { not: null } },
+            { judgeResponsibleFromSc: { not: null } },
+          ],
+        },
+        data: {
+          judgeCategory: null,
+          judgeCanBeGs: null,
+          judgeCanJudgeFinal: false,
+          judgeMaxTablesAsGs: null,
+          judgeRating: null,
+          judgeGamesJudged: null,
+          judgeAccreditationDate: null,
+          judgeResponsibleFromSc: null,
+        },
+      });
+      deletedCounts.players_judge_fields_cleared = playersUpdated.count;
     }
 
     return deletedCounts;
   });
 
-  // Log the operation
-  await resilientDB.execute((db) =>
-    db.syncLog.create({
-      data: {
-        type: 'FULL',
-        status: 'COMPLETED',
-        startTime: new Date(),
-        endTime: new Date(),
-        recordsProcessed: 0,
-        errors: {
-          operation: 'SELECTIVE_DATA_CLEAR',
-          dataType,
-          adminId,
-          deleted: deleted,
-        } as Prisma.InputJsonValue,
-      },
-    })
-  );
-
+  // Log the operation (don't create syncLog entry - deletions are not sync operations)
+  // Just log to console for audit purposes
   console.log(`Data type "${dataType}" cleared by admin: ${adminId}`, deleted);
 
   return { deleted, dataType };

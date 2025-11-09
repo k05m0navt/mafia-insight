@@ -10,9 +10,12 @@ export interface ImportCheckpoint {
   currentPhase:
     | 'CLUBS'
     | 'PLAYERS'
+    | 'CLUB_MEMBERS'
     | 'PLAYER_YEAR_STATS'
     | 'TOURNAMENTS'
+    | 'TOURNAMENT_CHIEF_JUDGE'
     | 'PLAYER_TOURNAMENT_HISTORY'
+    | 'JUDGES'
     | 'GAMES'
     | 'STATISTICS';
   /** Current batch index within the phase */
@@ -23,6 +26,8 @@ export interface ImportCheckpoint {
   processedIds: string[];
   /** Current progress percentage (0-100) */
   progress: number;
+  /** Whether the import is paused */
+  isPaused?: boolean;
 }
 
 /**
@@ -52,6 +57,7 @@ export class CheckpointManager {
           lastProcessedId: checkpoint.lastProcessedId,
           processedIds: checkpoint.processedIds,
           progress: checkpoint.progress,
+          isPaused: checkpoint.isPaused ?? false,
         },
         update: {
           currentPhase: checkpoint.currentPhase,
@@ -59,6 +65,7 @@ export class CheckpointManager {
           lastProcessedId: checkpoint.lastProcessedId,
           processedIds: checkpoint.processedIds,
           progress: checkpoint.progress,
+          isPaused: checkpoint.isPaused ?? false,
           lastUpdated: new Date(),
         },
       })
@@ -104,6 +111,7 @@ export class CheckpointManager {
       lastProcessedId: checkpoint.lastProcessedId,
       processedIds: checkpoint.processedIds,
       progress: checkpoint.progress,
+      isPaused: checkpoint.isPaused ?? false,
     };
   }
 

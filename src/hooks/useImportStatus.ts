@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import type { ImportStatus as ImportPhaseStatus } from '@/types/importProgress';
 
 export interface ImportStatus {
   isRunning: boolean;
@@ -10,6 +11,13 @@ export interface ImportStatus {
   lastSyncType: string | null;
   lastError: string | null;
   syncLogId: string | null;
+  status?: ImportPhaseStatus;
+  syncLogStatus?: ImportPhaseStatus | null;
+  syncLogType?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  processedRecords?: number;
+  totalRecords?: number;
   validation: {
     validationRate: number | null;
     totalRecordsProcessed: number | null;

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Data Import Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   });
 
@@ -141,7 +141,7 @@ test.describe('Data Import Flow', () => {
     });
 
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Check completion summary
     await expect(

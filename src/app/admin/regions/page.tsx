@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,15 +38,7 @@ export default function RegionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRegions, setFilteredRegions] = useState<Region[]>([]);
 
-  useEffect(() => {
-    fetchRegions();
-  }, []);
-
-  useEffect(() => {
-    filterRegions();
-  }, [regions, searchQuery]);
-
-  const fetchRegions = async () => {
+  const fetchRegions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,9 +57,13 @@ export default function RegionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterRegions = () => {
+  useEffect(() => {
+    fetchRegions();
+  }, [fetchRegions]);
+
+  useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredRegions(regions);
       return;
@@ -81,7 +77,7 @@ export default function RegionsPage() {
     );
 
     setFilteredRegions(filtered);
-  };
+  }, [regions, searchQuery]);
 
   const toggleRegionStatus = async (regionCode: string) => {
     try {

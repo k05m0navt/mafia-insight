@@ -113,8 +113,8 @@
                    ▼
       ┌─────────────────────────┐
       │   API Endpoints         │
-      │  /import                │
-      │  /import/validation     │
+      │  /admin/import                │
+      │  /admin/import/validation     │
       └─────────────────────────┘
                    │
                    ▼

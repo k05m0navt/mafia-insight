@@ -213,7 +213,7 @@ src/
 │   ├── ImportProgressCard.tsx
 │   ├── ImportControls.tsx
 │   └── ImportSummary.tsx
-└── app/(dashboard)/import/
+└── app/(dashboard)/admin/import/
     └── page.tsx
 ```
 
@@ -221,7 +221,7 @@ src/
 
 ### Start an Import
 
-1. Navigate to `/import` page
+1. Navigate to `/admin/import` page
 2. Click "Start Import"
 3. Monitor progress in real-time
 4. Import runs in background (safe to navigate away)

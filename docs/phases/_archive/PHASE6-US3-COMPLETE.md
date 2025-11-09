@@ -225,7 +225,7 @@ if (orchestrator.isCancelled()) {
 **Files Modified**:
 
 - `src/components/sync/ImportControls.tsx` (complete refactor)
-- `src/app/(dashboard)/import/page.tsx` (error code mapping)
+- `src/app/(dashboard)/admin/import/page.tsx` (error code mapping)
 - `tests/components/sync/ImportControls.test.tsx` (updated)
 
 **Features**:
@@ -437,7 +437,7 @@ All components meet accessibility standards:
 - `src/lib/gomafia/import/import-orchestrator.ts` (cancellation methods)
 - `src/app/api/gomafia-sync/import/route.ts` (DELETE endpoint, AbortController)
 - `src/components/sync/ImportControls.tsx` (full refactor with US3 components)
-- `src/app/(dashboard)/import/page.tsx` (error code mapping)
+- `src/app/(dashboard)/admin/import/page.tsx` (error code mapping)
 - `tests/components/sync/ImportControls.test.tsx` (updated for integration)
 - `prisma/schema.prisma` (importCheckpoint model)
 - `package.json` (added @testing-library/user-event)

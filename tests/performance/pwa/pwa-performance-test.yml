@@ -91,7 +91,7 @@ scenarios:
       - get:
           url: '/analytics'
       - get:
-          url: '/import'
+          url: '/admin/import'
       - get:
           url: '/settings'
       - post:
@@ -117,7 +117,7 @@ scenarios:
             resources:
               - '/'
               - '/analytics'
-              - '/import'
+              - '/admin/import'
               - '/settings'
               - '/manifest.json'
               - '/sw.js'
@@ -233,7 +233,7 @@ scenarios:
                 icon: '/icon-192.png'
               - name: 'Import'
                 short_name: 'Import'
-                url: '/import'
+                url: '/admin/import'
                 icon: '/icon-192.png'
       - get:
           url: '/api/pwa/shortcuts/status'
@@ -323,7 +323,7 @@ scenarios:
             'Authorization': 'Bearer {{ $env.TEST_API_TOKEN }}'
           json:
             protocol: 'mafia-insight'
-            url: 'mafia-insight://import?source=gomafia'
+            url: 'mafia-insight://admin/import?source=gomafia'
       - get:
           url: '/api/pwa/protocol/status'
           headers:
@@ -472,7 +472,7 @@ scenarios:
       - get:
           url: '/analytics'
       - get:
-          url: '/import'
+          url: '/admin/import'
       - get:
           url: '/settings'
       - post:

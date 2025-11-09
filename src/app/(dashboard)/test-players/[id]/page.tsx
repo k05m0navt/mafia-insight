@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
@@ -47,19 +47,18 @@ export default function TestPlayerAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [isGated, setIsGated] = useState(false);
+
   const [timeRange, setTimeRange] = useState('all');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [playerId]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/test-players/${playerId}/analytics`);
       if (!response.ok) {
         if (response.status === 404) {
           setAnalytics(null);
+          setIsGated(true);
           return;
         }
         throw new Error('Failed to fetch player analytics');
@@ -67,12 +66,18 @@ export default function TestPlayerAnalyticsPage() {
 
       const data: PlayerAnalytics = await response.json();
       setAnalytics(data);
+      setIsGated(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [playerId]);
+
+  // Fetch analytics on mount and when playerId changes
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (
@@ -83,6 +88,18 @@ export default function TestPlayerAnalyticsPage() {
         cardCount={4}
         layout="cards"
       />
+    );
+  }
+
+  // Show 404 if gated
+  if (isGated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">404</h1>
+          <p className="text-gray-600">Page not found</p>
+        </div>
+      </div>
     );
   }
 

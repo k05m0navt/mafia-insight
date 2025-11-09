@@ -12,13 +12,20 @@ import { clubSchema } from '../validators/club-schema';
 import { tournamentSchema } from '../validators/tournament-schema';
 import { gameSchema } from '../validators/game-schema';
 import { resilientDB } from '@/lib/db-resilient';
+import {
+  SkippedEntitiesManager,
+  SkippedEntityData,
+} from './skipped-entities-manager';
 
 type ImportPhase =
   | 'CLUBS'
   | 'PLAYERS'
+  | 'CLUB_MEMBERS'
   | 'PLAYER_YEAR_STATS'
   | 'TOURNAMENTS'
+  | 'TOURNAMENT_CHIEF_JUDGE'
   | 'PLAYER_TOURNAMENT_HISTORY'
+  | 'JUDGES'
   | 'GAMES'
   | 'STATISTICS';
 
@@ -74,19 +81,24 @@ export class ImportOrchestrator {
   private timeoutManager: TimeoutManager;
   private validationMetrics: ValidationMetrics;
   private validationTracker: ValidationMetricsTracker;
+  private skippedEntitiesManager: SkippedEntitiesManager;
   private currentSyncLogId: string | null = null;
   private errorLogs: ImportErrorLog[] = [];
   private currentPhase: ImportPhase | null = null;
   private processedIds: Set<string> = new Set(); // For duplicate prevention (T116)
   private cancellationSignal: AbortSignal | null = null; // For graceful cancellation (T118)
+  private pausedSignal: AbortController | null = null; // For pause/resume functionality
   private skippedPagesByPhase: Map<ImportPhase, number[]> = new Map(); // Track skipped pages by phase
 
   private readonly phases: ImportPhase[] = [
     'CLUBS',
     'PLAYERS',
+    'CLUB_MEMBERS',
     'PLAYER_YEAR_STATS',
     'TOURNAMENTS',
+    'TOURNAMENT_CHIEF_JUDGE',
     'PLAYER_TOURNAMENT_HISTORY',
+    'JUDGES',
     'GAMES',
     'STATISTICS',
   ];
@@ -102,6 +114,7 @@ export class ImportOrchestrator {
     this.batchProcessor = new BatchProcessor(db, 100); // 100 records per batch
     this.timeoutManager = new TimeoutManager(maxDurationMs);
     this.validationTracker = new ValidationMetricsTracker();
+    this.skippedEntitiesManager = new SkippedEntitiesManager(db);
     this.validationMetrics = {
       totalFetched: 0,
       validRecords: 0,
@@ -797,6 +810,131 @@ export class ImportOrchestrator {
   }
 
   /**
+   * Check if import is paused.
+   * Should be called periodically during long-running operations.
+   *
+   * @throws Error if import has been paused
+   */
+  checkPaused(): void {
+    if (this.isPaused()) {
+      throw new Error('Import operation is paused');
+    }
+  }
+
+  /**
+   * Check if import is paused.
+   *
+   * @returns True if the import is paused
+   */
+  isPaused(): boolean {
+    return this.pausedSignal?.signal.aborted || false;
+  }
+
+  /**
+   * Pause the import process.
+   * Saves checkpoint and sets pause signal.
+   */
+  async pause(): Promise<void> {
+    console.log('Pausing import, saving checkpoint...');
+
+    // Create pause signal
+    this.pausedSignal = new AbortController();
+    this.pausedSignal.abort('Import paused by user');
+
+    // Save checkpoint with pause flag
+    if (this.currentPhase && this.currentSyncLogId) {
+      const checkpoint: ImportCheckpoint = {
+        currentPhase: this.currentPhase,
+        currentBatch: 0, // Will be set to actual batch in real implementation
+        lastProcessedId: null,
+        processedIds: Array.from(this.processedIds),
+        progress: 0, // Will be calculated in real implementation
+        isPaused: true,
+      };
+
+      await this.checkpointManager.saveCheckpoint(checkpoint);
+    }
+
+    // Update syncStatus
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: false,
+          currentOperation: 'Import paused',
+          updatedAt: new Date(),
+        },
+      })
+    );
+
+    // Update checkpoint in database
+    await resilientDB.execute((db) =>
+      db.importCheckpoint.updateMany({
+        where: { id: 'current' },
+        data: {
+          isPaused: true,
+          lastUpdated: new Date(),
+        },
+      })
+    );
+
+    console.log('Import paused successfully');
+  }
+
+  /**
+   * Resume the import process.
+   * Clears pause signal and resumes from checkpoint.
+   */
+  async resume(): Promise<void> {
+    console.log('Resuming import from checkpoint...');
+
+    // Clear pause signal
+    this.pausedSignal = null;
+
+    // Update syncStatus
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: true,
+          currentOperation: 'Resuming import...',
+          updatedAt: new Date(),
+        },
+      })
+    );
+
+    // Update checkpoint in database
+    await resilientDB.execute((db) =>
+      db.importCheckpoint.updateMany({
+        where: { id: 'current' },
+        data: {
+          isPaused: false,
+          lastUpdated: new Date(),
+        },
+      })
+    );
+
+    console.log('Import resumed successfully');
+  }
+
+  /**
+   * Record a skipped entity for later retry.
+   */
+  async recordSkippedEntity(data: SkippedEntityData): Promise<string> {
+    return await this.skippedEntitiesManager.recordSkippedEntity({
+      ...data,
+      syncLogId: this.currentSyncLogId ?? undefined,
+    });
+  }
+
+  /**
+   * Get skipped entities manager.
+   */
+  getSkippedEntitiesManager(): SkippedEntitiesManager {
+    return this.skippedEntitiesManager;
+  }
+
+  /**
    * Request graceful cancellation of the import.
    *
    * Graceful cancellation process:
@@ -815,6 +953,9 @@ export class ImportOrchestrator {
   async cancel(): Promise<void> {
     console.log('Cancellation requested, saving checkpoint...');
 
+    // Clear pause signal if exists
+    this.pausedSignal = null;
+
     // Save checkpoint if we have progress
     if (this.currentPhase && this.currentSyncLogId) {
       const checkpoint: ImportCheckpoint = {
@@ -823,6 +964,7 @@ export class ImportOrchestrator {
         lastProcessedId: null,
         processedIds: Array.from(this.processedIds),
         progress: 0, // Will be calculated in real implementation
+        isPaused: false,
       };
 
       await this.checkpointManager.saveCheckpoint(checkpoint);

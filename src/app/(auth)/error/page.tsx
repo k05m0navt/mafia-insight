@@ -12,19 +12,36 @@ import { AlertCircle } from 'lucide-react';
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4 sm:px-6 lg:px-8 py-12">
+    <main
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4 sm:px-6 lg:px-8 py-12"
+      role="main"
+      aria-labelledby="error-title"
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20"
+            role="img"
+            aria-label="Error icon"
+          >
+            <AlertCircle
+              className="h-6 w-6 text-red-600 dark:text-red-400"
+              aria-hidden="true"
+            />
           </div>
-          <CardTitle className="text-2xl">Authentication Error</CardTitle>
+          <CardTitle id="error-title" className="text-2xl">
+            Authentication Error
+          </CardTitle>
           <CardDescription>
             We encountered an issue during authentication
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 border border-red-200 dark:border-red-800">
+          <div
+            className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 border border-red-200 dark:border-red-800"
+            role="alert"
+            aria-live="polite"
+          >
             <p className="text-sm text-red-800 dark:text-red-200">
               There was a problem signing you in. This could be due to:
             </p>
@@ -47,13 +64,17 @@ export default function AuthErrorPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <Button asChild className="w-full">
-            <Link href="/login">Try Again</Link>
+            <Link href="/login" aria-label="Try signing in again">
+              Try Again
+            </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/">Return Home</Link>
+            <Link href="/" aria-label="Return to home page">
+              Return Home
+            </Link>
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </main>
   );
 }

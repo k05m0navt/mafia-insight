@@ -95,7 +95,7 @@ Successfully implemented User Story 1 (Initial Data Population) and User Story 2
 
 #### Page Integration
 
-- ✅ Import management page (`/import`)
+- ✅ Import management page (`/admin/import`)
 - ✅ Integrated all components with hooks
 - ✅ Error handling and loading states
 - ✅ Auto-refresh when import is running
@@ -235,7 +235,7 @@ UI Components
 - `src/components/sync/ImportProgressCard.tsx`
 - `src/components/sync/ImportControls.tsx`
 - `src/components/sync/ImportSummary.tsx`
-- `src/app/(dashboard)/import/page.tsx`
+- `src/app/(dashboard)/admin/import/page.tsx`
 
 #### Tests (26 files)
 

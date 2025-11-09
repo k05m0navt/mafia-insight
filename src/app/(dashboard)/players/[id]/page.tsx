@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, RefreshCw, Trophy, Target, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Trophy,
+  Target,
+  Users,
+  Scale,
+} from 'lucide-react';
 import Link from 'next/link';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
+import { YearFilter } from '@/components/ui/YearFilter';
 
 interface Player {
   id: string;
@@ -32,6 +40,15 @@ interface Player {
     id: string;
     name: string;
   };
+  // Judge fields (only present if player is a judge)
+  judgeCategory?: string | null;
+  judgeCanBeGs?: number | null;
+  judgeCanJudgeFinal?: boolean | null;
+  judgeMaxTablesAsGs?: number | null;
+  judgeRating?: number | null;
+  judgeGamesJudged?: number | null;
+  judgeAccreditationDate?: string | null;
+  judgeResponsibleFromSc?: string | null;
   participations: Array<{
     game: {
       id: string;
@@ -69,6 +86,7 @@ interface Player {
       }
     >;
   };
+  availableYears?: number[];
 }
 
 export default function PlayerDetailsPage() {
@@ -76,13 +94,19 @@ export default function PlayerDetailsPage() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
-  const fetchPlayer = async () => {
+  const fetchPlayer = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/players/${params.id}`);
+      const url = new URL(`/api/players/${params.id}`, window.location.origin);
+      if (selectedYear) {
+        url.searchParams.append('year', selectedYear.toString());
+      }
+
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -98,13 +122,13 @@ export default function PlayerDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, selectedYear]);
 
   useEffect(() => {
     if (params.id) {
       fetchPlayer();
     }
-  }, [params.id]);
+  }, [params.id, fetchPlayer]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -182,11 +206,27 @@ export default function PlayerDetailsPage() {
           </Button>
           <h1 className="text-3xl font-bold">{player.name}</h1>
         </div>
-        <Button onClick={fetchPlayer} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchPlayer} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Year Filter */}
+      {player.availableYears && player.availableYears.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <YearFilter
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              availableYears={player.availableYears}
+              className="max-w-xs"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Player Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -242,6 +282,97 @@ export default function PlayerDetailsPage() {
         </Card>
       </div>
 
+      {/* Judge Information */}
+      {player.judgeCategory && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5" />
+              Judge Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Category
+                </label>
+                <p className="text-sm font-semibold">{player.judgeCategory}</p>
+              </div>
+              {player.judgeCanBeGs !== null &&
+                player.judgeCanBeGs !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Can be GS
+                    </label>
+                    <p className="text-sm">{player.judgeCanBeGs} games</p>
+                  </div>
+                )}
+              {player.judgeCanJudgeFinal && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Can Judge Final
+                  </label>
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800"
+                  >
+                    Yes
+                  </Badge>
+                </div>
+              )}
+              {player.judgeMaxTablesAsGs !== null &&
+                player.judgeMaxTablesAsGs !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Max Tables as GS
+                    </label>
+                    <p className="text-sm">{player.judgeMaxTablesAsGs}</p>
+                  </div>
+                )}
+              {player.judgeRating !== null &&
+                player.judgeRating !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Judge Rating
+                    </label>
+                    <p className="text-sm font-semibold">
+                      {player.judgeRating}
+                    </p>
+                  </div>
+                )}
+              {player.judgeGamesJudged !== null &&
+                player.judgeGamesJudged !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Games Judged
+                    </label>
+                    <p className="text-sm">{player.judgeGamesJudged}</p>
+                  </div>
+                )}
+              {player.judgeAccreditationDate && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Accreditation Date
+                  </label>
+                  <p className="text-sm">
+                    {formatDate(player.judgeAccreditationDate)}
+                  </p>
+                </div>
+              )}
+              {player.judgeResponsibleFromSc && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Responsible from SC FSM
+                  </label>
+                  <p className="text-sm">{player.judgeResponsibleFromSc}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Player Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Basic Information */}
@@ -261,7 +392,18 @@ export default function PlayerDetailsPage() {
                 <label className="text-sm font-medium text-gray-500">
                   Club
                 </label>
-                <p className="text-sm">{player.club?.name || 'No club'}</p>
+                <p className="text-sm">
+                  {player.club ? (
+                    <Link
+                      href={`/clubs/${player.club.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {player.club.name}
+                    </Link>
+                  ) : (
+                    'No club'
+                  )}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

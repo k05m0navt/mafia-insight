@@ -8,8 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Users } from 'lucide-react';
 
 interface Region {
   code: string;
@@ -74,22 +72,9 @@ export function RegionFilter({
     }
   };
 
-  const removeRegion = (regionCode: string) => {
-    onRegionsChange(selectedRegions.filter((r) => r !== regionCode));
-  };
-
-  const getRegionName = (code: string) => {
-    const region = regions.find((r) => r.code === code);
-    return region ? `${region.name}, ${region.country}` : code;
-  };
-
   if (loading) {
     return (
-      <div className={`space-y-2 ${className}`}>
-        <label className="text-sm font-medium flex items-center gap-2">
-          <MapPin className="h-4 w-4" />
-          Filter by Region
-        </label>
+      <div className={className}>
         <div className="h-10 bg-muted animate-pulse rounded-md"></div>
       </div>
     );
@@ -97,23 +82,18 @@ export function RegionFilter({
 
   if (error) {
     return (
-      <div className={`space-y-2 ${className}`}>
-        <label className="text-sm font-medium flex items-center gap-2">
-          <MapPin className="h-4 w-4" />
-          Filter by Region
-        </label>
-        <div className="text-sm text-red-600">{error}</div>
+      <div className={className}>
+        <Select disabled>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Error loading regions" />
+          </SelectTrigger>
+        </Select>
       </div>
     );
   }
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      <label className="text-sm font-medium flex items-center gap-2">
-        <MapPin className="h-4 w-4" />
-        Filter by Region
-      </label>
-
+    <div className={className}>
       <Select
         value={selectedRegions.length === 0 ? 'all' : selectedRegions[0]}
         onValueChange={handleValueChange}
@@ -128,42 +108,11 @@ export function RegionFilter({
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((region) => (
               <SelectItem key={region.code} value={region.code}>
-                <div className="flex items-center justify-between w-full">
-                  <span>
-                    {region.name}, {region.country}
-                  </span>
-                  <div className="flex items-center gap-1 ml-2">
-                    <Users className="h-3 w-3" />
-                    <span className="text-xs text-muted-foreground">
-                      {region.playerCount}
-                    </span>
-                  </div>
-                </div>
+                {region.name}, {region.country}
               </SelectItem>
             ))}
         </SelectContent>
       </Select>
-
-      {/* Selected Regions */}
-      {selectedRegions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedRegions.map((regionCode) => (
-            <Badge
-              key={regionCode}
-              variant="secondary"
-              className="flex items-center gap-1"
-            >
-              {getRegionName(regionCode)}
-              <button
-                onClick={() => removeRegion(regionCode)}
-                className="ml-1 hover:text-destructive"
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

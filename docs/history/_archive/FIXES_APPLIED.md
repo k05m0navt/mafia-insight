@@ -53,7 +53,7 @@
   - `/clubs`
   - `/profile`
   - `/settings`
-  - `/import-progress`
+  - `/admin/import`
   - `/sync-status`
   - `/admin` (admin only)
 - ✅ Defined `publicRoutes` array:

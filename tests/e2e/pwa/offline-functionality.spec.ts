@@ -23,7 +23,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.goto('/analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
     await page.goto('/settings');
@@ -60,7 +60,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Create some data while offline
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-data-stored"]')
@@ -93,7 +93,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Make changes while offline
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-indicator"]')
@@ -145,7 +145,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.goto('/analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
     await page.goto('/settings');
@@ -164,7 +164,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Fill out a form
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.fill('[data-testid="import-name"]', 'Test Import');
     await page.selectOption('[data-testid="import-source"]', 'gomafia');
     await page.click('[data-testid="start-import-button"]');
@@ -190,7 +190,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Try to submit invalid data
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.fill('[data-testid="import-name"]', '');
     await page.click('[data-testid="start-import-button"]');
 
@@ -270,7 +270,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Test offline notifications
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-notification"]')
@@ -287,7 +287,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Make changes while offline
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-indicator"]')
@@ -314,7 +314,7 @@ test.describe('PWA Offline Functionality', () => {
     await page.context().setOffline(true);
 
     // Create some offline data
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-data-stored"]')
@@ -395,7 +395,7 @@ test.describe('PWA Offline Functionality', () => {
     );
 
     // Test data validation
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="validate-data-button"]');
     await expect(page.locator('[data-testid="data-validated"]')).toBeVisible();
     await expect(page.locator('[data-testid="data-validated"]')).toContainText(

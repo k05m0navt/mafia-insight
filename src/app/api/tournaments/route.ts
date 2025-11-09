@@ -10,15 +10,33 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || undefined;
     const status = searchParams.get('status') || undefined;
+    const sortBy = searchParams.get('sortBy') || 'startDate';
+    const sortOrder = (searchParams.get('sortOrder') || 'desc') as
+      | 'asc'
+      | 'desc';
+    const minPrizePool = searchParams.get('minPrizePool')
+      ? parseInt(searchParams.get('minPrizePool')!)
+      : undefined;
 
     const result = await tournamentService.getTournaments(
       page,
       limit,
       search,
-      status
+      status,
+      sortBy,
+      sortOrder,
+      minPrizePool
     );
 
-    return NextResponse.json(result);
+    const response = NextResponse.json(result);
+
+    // Add cache headers for better performance (30 seconds)
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=30, stale-while-revalidate=60'
+    );
+
+    return response;
   } catch (error) {
     console.error('Error fetching tournaments:', error);
     return NextResponse.json(

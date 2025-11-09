@@ -18,7 +18,7 @@ import { test, expect } from '@playwright/test';
 test.describe('12-Hour Import Timeout E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import management page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Wait for page to load
     await expect(page.locator('h1')).toContainText('Import Management');

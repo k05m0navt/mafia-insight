@@ -86,7 +86,7 @@ scenarios:
     weight: 20
     flow:
       - get:
-          url: '/import'
+          url: '/admin/import'
           expect:
             - statusCode: 200
       - post:

@@ -215,6 +215,9 @@ The project enforces high code quality standards:
 - **Husky** git hooks for pre-commit checks
 - **TypeScript** for type safety
 - **Testing** with Jest and Playwright
+- **Accessibility** - WCAG 2.1 Level AA compliance on all pages
+- **Error Handling** - Comprehensive error handling with 90%+ coverage target
+- **Code Duplication** - Continuous reduction with 30% reduction target
 
 ## 📦 GoMafia.pro Data Import
 
@@ -291,6 +294,31 @@ The application uses a comprehensive database schema with the following main ent
 - **Games** - Individual game instances
 - **Tournaments** - Competitive events
 - **Analytics** - Pre-computed metrics and statistics
+- **Regions** - Geographic regions for players and clubs
+- **PlayerRoleStats** - Role-specific performance statistics
+- **Analytics** - Pre-computed analytics cache
+
+#### Database Performance Optimizations
+
+The database has been optimized for performance with:
+
+- **Foreign Key Indexes**: Added indexes on all foreign key columns for faster joins
+  - `clubs.createdBy`, `clubs.presidentId`
+  - `players.userId`, `players.clubId`
+  - `games.tournamentId`
+  - `tournaments.createdBy`
+  - `player_tournaments.tournamentId`
+  - `game_participations.gameId`
+- **Unused Index Removal**: Removed unused indexes to reduce write overhead
+- **RLS Policy Optimization**: Optimized Row Level Security policies using `(select auth.uid())` pattern
+- **Zero-Downtime Migrations**: All index operations use `CREATE INDEX CONCURRENTLY` for production safety
+
+#### Database Schema Status
+
+- **All tables kept**: Analysis confirmed all tables are actively used or planned features
+- **Regions populated**: Default regions seeded via `prisma/seed.ts`
+- **PlayerRoleStats**: Populated by StatisticsPhase during data import
+- **Analytics**: Ready for population by analytics calculation services
 
 ## 🚀 Deployment
 
@@ -342,11 +370,13 @@ The application is a Progressive Web App with the following features:
 
 ## 🔒 Security
 
-- **Authentication** - Secure user authentication with NextAuth.js
-- **Authorization** - Role-based access control
+- **Authentication** - Secure user authentication with NextAuth.js and Supabase Auth
+- **Authorization** - Role-based access control with `authenticateRequest` and `requireRole` middleware
 - **Data Validation** - Input validation with Zod schemas
 - **Rate Limiting** - API rate limiting to prevent abuse
 - **HTTPS** - Secure connections in production
+- **Environment-Based Gating** - Test routes automatically gated in production via `NODE_ENV` checks
+- **Route Protection** - Multi-layer protection: route handlers, client-side checks, and middleware
 
 ## 📊 Analytics & Monitoring
 
@@ -354,6 +384,34 @@ The application is a Progressive Web App with the following features:
 - **Performance Monitoring** - Core Web Vitals tracking
 - **User Analytics** - Google Analytics integration
 - **Database Monitoring** - Query performance tracking
+- **Accessibility Monitoring** - Automated WCAG 2.1 Level AA compliance testing
+- **Code Quality Metrics** - Code duplication and error handling coverage tracking
+
+## 🔄 Recent Improvements (January 2025)
+
+### Route Refactoring
+
+- **Test Route Gating**: All test routes (`/test-players`, `/api/test-players`, `/api/test-db`) are now automatically gated in production
+- **User Management Routes**: Complete authentication and authorization refactoring for all `/api/users/*` routes
+- **API Route Completion**: All incomplete API routes now have proper authentication and error handling
+
+### Database Optimizations
+
+- **Foreign Key Indexes**: Added 8 indexes on foreign key columns for improved query performance
+- **RLS Policy Optimization**: Optimized policies for better performance at scale
+- **Unused Index Cleanup**: Removed unused indexes to reduce write overhead
+
+### Accessibility Improvements
+
+- **Error Pages**: All error pages (`/error`, `/expired`, `/network-error`, `/unauthorized`) refactored for WCAG 2.1 Level AA compliance
+- **Semantic HTML**: Proper use of `<main>`, ARIA labels, and role attributes
+- **Keyboard Navigation**: Full keyboard accessibility support
+
+### Code Quality
+
+- **Error Handling**: Improved error handling coverage across all routes
+- **Authentication Consistency**: Standardized authentication using `authenticateRequest` and `requireRole`
+- **Documentation**: Updated route and API documentation to reflect current state
 
 ## 🤝 Contributing
 

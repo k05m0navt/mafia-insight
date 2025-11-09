@@ -17,7 +17,9 @@ test.describe('Import Flow E2E', () => {
     await importButton.click();
 
     // Wait for import to start
-    await expect(page.getByText(/import started|importing/i)).toBeVisible({
+    await expect(
+      page.getByText(/admin\/import (started|importing)/i)
+    ).toBeVisible({
       timeout: 10000,
     });
 

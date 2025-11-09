@@ -218,7 +218,7 @@ Implemented retry and timeout infrastructure:
 
 - **Services**: 4 (ValidationMetricsTracker, IntegrityChecker, RetryManager, TimeoutManager)
 - **Components**: 3 (ValidationSummaryCard, ImportProgressCard, ImportControls)
-- **API Endpoints**: 2 (/import, /import/validation)
+- **API Endpoints**: 2 (/admin/import, /admin/import/validation)
 - **Test Suites**: 15+ (unit, integration, component)
 - **Migrations**: 1 (validation metrics schema)
 - **Documentation**: 4 comprehensive docs

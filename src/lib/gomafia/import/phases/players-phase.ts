@@ -4,6 +4,7 @@ import { PlayersScraper } from '../../scrapers/players-scraper';
 import { resilientDB } from '@/lib/db-resilient';
 import { playerSchema, PlayerRawData } from '../../validators/player-schema';
 import { normalizeRegion } from '../../parsers/region-normalizer';
+import { findClubsByNames } from '../../parsers/club-matcher';
 
 /**
  * Phase 2: Import players from gomafia.pro/rating
@@ -54,35 +55,83 @@ export class PlayersPhase {
     let totalSaved = 0;
 
     // Scrape all players with progress callback and incremental saving
-    const result = await this.playersScraper.scrapeAllPlayers({
-      year: new Date().getFullYear(),
-      region: 'all',
-      skipOnError: true, // Skip problematic pages instead of failing completely
-      onProgress: (pageNumber: number, currentTotal: number) => {
-        // Update metrics during scraping so UI sees progress
-        this.orchestrator.updateValidationMetrics({
-          totalFetched: currentTotal,
+    // Changed: skipOnError is now false - we want to track errors, not skip silently
+    const result = await this.playersScraper
+      .scrapeAllPlayers({
+        year: new Date().getFullYear(),
+        region: 'all',
+        skipOnError: false, // Changed: Don't skip - record errors instead
+        onProgress: (pageNumber: number, currentTotal: number) => {
+          // Check for pause before processing next page
+          this.orchestrator.checkPaused();
+          this.orchestrator.checkCancellation();
+
+          // Update metrics during scraping so UI sees progress
+          this.orchestrator.updateValidationMetrics({
+            totalFetched: currentTotal,
+          });
+        },
+        onPageData: async (pageNumber: number, pageData: PlayerRawData[]) => {
+          // Check for pause before saving
+          this.orchestrator.checkPaused();
+          this.orchestrator.checkCancellation();
+
+          // Incrementally save each page's data as it's scraped
+          // This ensures we don't lose data if scraping fails later
+          await this.savePageData(pageData, systemUserId, savedPlayerIds);
+          totalSaved += pageData.length;
+          console.log(
+            `[PlayersPhase] Saved page ${pageNumber}: ${pageData.length} players (total saved: ${totalSaved})`
+          );
+        },
+      })
+      .catch(async (error) => {
+        // Record error as skipped entity instead of failing completely
+        console.error(`[PlayersPhase] Error during scraping:`, error);
+
+        // Try to extract page number from error if available
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const pageMatch = errorMessage.match(/page[:\s]*(\d+)/i);
+        const pageNumber = pageMatch ? parseInt(pageMatch[1], 10) : undefined;
+
+        // Record skipped page for manual retry
+        await this.orchestrator.recordSkippedEntity({
+          phase: 'PLAYERS',
+          entityType: 'page',
+          pageNumber,
+          errorCode: 'SCRAPE_ERROR',
+          errorMessage,
+          errorDetails: {
+            error: errorMessage,
+            stack: error instanceof Error ? error.stack : undefined,
+          },
         });
-      },
-      onPageData: async (pageNumber: number, pageData: PlayerRawData[]) => {
-        // Incrementally save each page's data as it's scraped
-        // This ensures we don't lose data if scraping fails later
-        await this.savePageData(pageData, systemUserId, savedPlayerIds);
-        totalSaved += pageData.length;
-        console.log(
-          `[PlayersPhase] Saved page ${pageNumber}: ${pageData.length} players (total saved: ${totalSaved})`
-        );
-      },
-    });
+
+        // Return empty result to continue processing
+        return { data: [], skippedPages: pageNumber ? [pageNumber] : [] };
+      });
 
     const rawPlayers = result.data;
     const skippedPages = result.skippedPages;
 
-    // Store skipped pages in orchestrator for later retrieval
+    // Store skipped pages in orchestrator for later retrieval and record them
     if (skippedPages.length > 0) {
       this.orchestrator.recordSkippedPages('PLAYERS', skippedPages);
+
+      // Record each skipped page as a skipped entity
+      for (const pageNumber of skippedPages) {
+        await this.orchestrator.recordSkippedEntity({
+          phase: 'PLAYERS',
+          entityType: 'page',
+          pageNumber,
+          errorCode: 'PAGE_SKIP',
+          errorMessage: `Page ${pageNumber} was skipped during scraping`,
+        });
+      }
+
       console.warn(
-        `[PlayersPhase] Skipped pages detected: ${skippedPages.join(', ')}`
+        `[PlayersPhase] Skipped pages detected: ${skippedPages.join(', ')} (recorded for manual retry)`
       );
     }
 
@@ -172,34 +221,30 @@ export class PlayersPhase {
         validPlayers,
         async (batch, batchIndex, totalBatches) => {
           // Transform to Prisma format
-          const playersToInsert = await Promise.all(
-            (batch as PlayerRawData[]).map(async (player) => {
-              // Find club by name if provided
-              let clubId: string | undefined;
-              if (player.club) {
-                const club = (await resilientDB.execute((db) =>
-                  db.club.findFirst({
-                    where: { name: player.club || undefined },
-                  })
-                )) as { id: string } | null;
-                clubId = club?.id;
-              }
+          // Batch find all clubs for better performance
+          const clubNames = (batch as PlayerRawData[])
+            .map((p) => p.club)
+            .filter((c): c is string => !!c);
+          const clubMap = await findClubsByNames(clubNames);
 
-              return {
-                gomafiaId: player.gomafiaId,
-                name: player.name,
-                region: this.normalizeRegion(player.region),
-                clubId,
-                eloRating: Math.round(player.elo),
-                totalGames: player.tournaments, // Using tournaments as proxy for now
-                wins: 0, // Will be calculated later
-                losses: 0, // Will be calculated later
-                userId: systemUserId, // System user for imports
-                lastSyncAt: new Date(),
-                syncStatus: 'SYNCED' as const,
-              };
-            })
-          );
+          const playersToInsert = (batch as PlayerRawData[]).map((player) => {
+            // Find club by name if provided
+            const clubId = player.club ? clubMap.get(player.club) : undefined;
+
+            return {
+              gomafiaId: player.gomafiaId,
+              name: player.name,
+              region: this.normalizeRegion(player.region),
+              clubId,
+              eloRating: Math.round(player.elo),
+              totalGames: player.tournaments, // Using tournaments as proxy for now
+              wins: 0, // Will be calculated later
+              losses: 0, // Will be calculated later
+              userId: systemUserId, // System user for imports
+              lastSyncAt: new Date(),
+              syncStatus: 'SYNCED' as const,
+            };
+          });
 
           // Insert batch
           await resilientDB.execute((db) =>
@@ -266,35 +311,31 @@ export class PlayersPhase {
       return;
     }
 
-    // Transform to Prisma format
-    const playersToInsert = await Promise.all(
-      validPlayers.map(async (player) => {
-        // Find club by name if provided
-        let clubId: string | undefined;
-        if (player.club) {
-          const club = (await resilientDB.execute((db) =>
-            db.club.findFirst({
-              where: { name: player.club || undefined },
-            })
-          )) as { id: string } | null;
-          clubId = club?.id;
-        }
+    // Batch find all clubs for better performance
+    const clubNames = validPlayers
+      .map((p) => p.club)
+      .filter((c): c is string => !!c);
+    const clubMap = await findClubsByNames(clubNames);
 
-        return {
-          gomafiaId: player.gomafiaId,
-          name: player.name,
-          region: this.normalizeRegion(player.region),
-          clubId,
-          eloRating: Math.round(player.elo),
-          totalGames: player.tournaments,
-          wins: 0,
-          losses: 0,
-          userId: systemUserId,
-          lastSyncAt: new Date(),
-          syncStatus: 'SYNCED' as const,
-        };
-      })
-    );
+    // Transform to Prisma format
+    const playersToInsert = validPlayers.map((player) => {
+      // Find club by name if provided
+      const clubId = player.club ? clubMap.get(player.club) : undefined;
+
+      return {
+        gomafiaId: player.gomafiaId,
+        name: player.name,
+        region: this.normalizeRegion(player.region),
+        clubId,
+        eloRating: Math.round(player.elo),
+        totalGames: player.tournaments,
+        wins: 0,
+        losses: 0,
+        userId: systemUserId,
+        lastSyncAt: new Date(),
+        syncStatus: 'SYNCED' as const,
+      };
+    });
 
     // Insert batch
     try {

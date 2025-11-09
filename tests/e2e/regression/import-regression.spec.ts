@@ -14,7 +14,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
     // Test file upload
@@ -34,7 +34,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload invalid file
     await page.setInputFiles(
@@ -57,7 +57,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload valid file
     await page.setInputFiles(
@@ -84,7 +84,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload file
     await page.setInputFiles('[data-testid="file-upload-input"]', 'data.csv');
@@ -111,7 +111,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload file with duplicates
     await page.setInputFiles(
@@ -137,7 +137,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Simulate import error
     await page.route('**/api/import/**', (route) => {
@@ -162,7 +162,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Complete import
     await page.setInputFiles('[data-testid="file-upload-input"]', 'data.csv');
@@ -188,7 +188,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Test import history
     await page.click('[data-testid="history-tab"]');
@@ -205,7 +205,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload file
     await page.setInputFiles('[data-testid="file-upload-input"]', 'data.csv');
@@ -224,7 +224,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload large file
     await page.setInputFiles(
@@ -252,7 +252,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload file
     await page.setInputFiles('[data-testid="file-upload-input"]', 'data.csv');
@@ -281,7 +281,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Upload file
     await page.setInputFiles('[data-testid="file-upload-input"]', 'data.csv');
@@ -305,7 +305,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Test scheduled import
     await page.click('[data-testid="schedule-import-button"]');
@@ -329,7 +329,7 @@ test.describe('Import Regression Tests', () => {
     page,
   }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Test data sync
     await page.click('[data-testid="sync-button"]');

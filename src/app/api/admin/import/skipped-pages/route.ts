@@ -6,6 +6,9 @@ import {
   saveRetriedClubs,
   saveRetriedTournaments,
 } from '@/lib/gomafia/import/save-retried-data';
+import type { PlayersScraper } from '@/lib/gomafia/scrapers/players-scraper';
+import type { ClubsScraper } from '@/lib/gomafia/scrapers/clubs-scraper';
+import type { TournamentsScraper } from '@/lib/gomafia/scrapers/tournaments-scraper';
 
 /**
  * GET /api/admin/import/skipped-pages
@@ -161,7 +164,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { entityType, pageNumbers, options } = body;
+    const { entityType, pageNumbers } = body;
+    const options: Record<string, unknown> =
+      typeof body.options === 'object' && body.options !== null
+        ? body.options
+        : {};
 
     if (
       !entityType ||
@@ -193,93 +200,107 @@ export async function POST(request: NextRequest) {
     const { chromium } = await import('playwright');
     const { RateLimiter } = await import('@/lib/gomafia/import/rate-limiter');
 
-    let scraper;
     const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
-    const rateLimiter = new RateLimiter(2000);
-
     try {
+      const page = await browser.newPage();
+      const rateLimiter = new RateLimiter(2000);
+
+      let recordsRetrieved = 0;
+      let saveResult: {
+        saved: number;
+        skipped: number;
+        errors: number;
+      } | null = null;
+
       switch (entityType) {
         case 'players': {
           const { PlayersScraper } = await import(
             '@/lib/gomafia/scrapers/players-scraper'
           );
-          scraper = new PlayersScraper(page, rateLimiter);
+          const scraper: PlayersScraper = new PlayersScraper(page, rateLimiter);
+          const retryOptions: Parameters<
+            PlayersScraper['retrySkippedPages']
+          >[1] = {
+            year:
+              typeof options.year === 'number'
+                ? options.year
+                : new Date().getFullYear(),
+            region: typeof options.region === 'string' ? options.region : 'all',
+          };
+          const retriedData = await scraper.retrySkippedPages(
+            pageNumbers,
+            retryOptions
+          );
+          recordsRetrieved = retriedData.length;
+          saveResult = await saveRetriedPlayers(retriedData);
           break;
         }
         case 'clubs': {
           const { ClubsScraper } = await import(
             '@/lib/gomafia/scrapers/clubs-scraper'
           );
-          scraper = new ClubsScraper(page, rateLimiter);
+          const scraper: ClubsScraper = new ClubsScraper(page, rateLimiter);
+          const retryOptions: Parameters<ClubsScraper['retrySkippedPages']>[1] =
+            {
+              year:
+                typeof options.year === 'number'
+                  ? options.year
+                  : new Date().getFullYear(),
+              region:
+                typeof options.region === 'string' ? options.region : 'all',
+            };
+          const retriedData = await scraper.retrySkippedPages(
+            pageNumbers,
+            retryOptions
+          );
+          recordsRetrieved = retriedData.length;
+          saveResult = await saveRetriedClubs(retriedData);
           break;
         }
         case 'tournaments': {
           const { TournamentsScraper } = await import(
             '@/lib/gomafia/scrapers/tournaments-scraper'
           );
-          scraper = new TournamentsScraper(page, rateLimiter);
-          break;
-        }
-      }
-
-      if (
-        !scraper ||
-        typeof (scraper as any).retrySkippedPages !== 'function'
-      ) {
-        throw new Error(`Scraper for ${entityType} does not support retry`);
-      }
-
-      // Prepare options based on entity type
-      let retryOptions: any = {};
-      if (entityType === 'players' || entityType === 'clubs') {
-        retryOptions = {
-          year: options?.year || new Date().getFullYear(),
-          region: options?.region || 'all',
-        };
-      } else if (entityType === 'tournaments') {
-        retryOptions = {
-          timeFilter: options?.timeFilter || 'all',
-        };
-      }
-
-      // Retry pages
-      const retriedData = await (scraper as any).retrySkippedPages(
-        pageNumbers,
-        retryOptions
-      );
-
-      await browser.close();
-
-      // Save retried data to database
-      let saveResult;
-      switch (entityType) {
-        case 'players':
-          saveResult = await saveRetriedPlayers(retriedData);
-          break;
-        case 'clubs':
-          saveResult = await saveRetriedClubs(retriedData);
-          break;
-        case 'tournaments':
+          const scraper: TournamentsScraper = new TournamentsScraper(
+            page,
+            rateLimiter
+          );
+          const retryOptions: Parameters<
+            TournamentsScraper['retrySkippedPages']
+          >[1] = {
+            timeFilter:
+              typeof options.timeFilter === 'string'
+                ? (options.timeFilter as 'all' | 'upcoming' | 'past')
+                : 'all',
+          };
+          const retriedData = await scraper.retrySkippedPages(
+            pageNumbers,
+            retryOptions
+          );
+          recordsRetrieved = retriedData.length;
           saveResult = await saveRetriedTournaments(retriedData);
           break;
+        }
         default:
           throw new Error(`Unknown entity type: ${entityType}`);
+      }
+
+      if (!saveResult) {
+        throw new Error(`No result returned for entity type ${entityType}`);
       }
 
       return NextResponse.json({
         success: true,
         entityType,
         pagesRetried: pageNumbers,
-        recordsRetrieved: retriedData.length,
+        recordsRetrieved,
         saved: saveResult.saved,
         skipped: saveResult.skipped,
         errors: saveResult.errors,
-        message: `Successfully retried ${retriedData.length} records from ${pageNumbers.length} pages. Saved: ${saveResult.saved}, Skipped: ${saveResult.skipped}, Errors: ${saveResult.errors}`,
+        message: `Successfully retried ${recordsRetrieved} records from ${pageNumbers.length} pages. Saved: ${saveResult.saved}, Skipped: ${saveResult.skipped}, Errors: ${saveResult.errors}`,
       });
-    } catch (error) {
+    } finally {
       await browser.close();
-      throw error;
     }
   } catch (error: unknown) {
     console.error('Error retrying skipped pages:', error);

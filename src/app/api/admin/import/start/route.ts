@@ -10,10 +10,14 @@ import { resilientDB } from '@/lib/db-resilient';
 // Strategy to Phase mapping
 import { ClubsPhase } from '@/lib/gomafia/import/phases/clubs-phase';
 import { PlayersPhase } from '@/lib/gomafia/import/phases/players-phase';
+import { ClubMembersPhase } from '@/lib/gomafia/import/phases/club-members-phase';
 import { TournamentsPhase } from '@/lib/gomafia/import/phases/tournaments-phase';
+import { TournamentChiefJudgePhase } from '@/lib/gomafia/import/phases/tournament-chief-judge-phase';
 import { GamesPhase } from '@/lib/gomafia/import/phases/games-phase';
 import { PlayerYearStatsPhase } from '@/lib/gomafia/import/phases/player-year-stats-phase';
 import { PlayerTournamentPhase } from '@/lib/gomafia/import/phases/player-tournament-phase';
+import { JudgesPhase } from '@/lib/gomafia/import/phases/judges-phase';
+import { StatisticsPhase } from '@/lib/gomafia/import/phases/statistics-phase';
 
 /**
  * Global map of AbortControllers for import cancellation.
@@ -54,10 +58,14 @@ const requestSchema = z.object({
   strategy: z.enum([
     'players',
     'clubs',
+    'club_members',
     'tournaments',
+    'tournament_chief_judge',
     'games',
     'player_stats',
     'tournament_results',
+    'judges',
+    'statistics',
   ]),
 });
 
@@ -194,10 +202,14 @@ function getPhaseClass(strategy: string) {
   const map = {
     players: PlayersPhase,
     clubs: ClubsPhase,
+    club_members: ClubMembersPhase,
     tournaments: TournamentsPhase,
+    tournament_chief_judge: TournamentChiefJudgePhase,
     games: GamesPhase,
     player_stats: PlayerYearStatsPhase,
     tournament_results: PlayerTournamentPhase,
+    judges: JudgesPhase,
+    statistics: StatisticsPhase,
   };
   return map[strategy as keyof typeof map];
 }

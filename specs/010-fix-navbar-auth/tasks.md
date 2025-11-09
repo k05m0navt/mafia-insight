@@ -75,8 +75,8 @@
 - [x] T019 [US2] Fix authentication check in src/app/api/import/progress/route.ts POST handler to properly validate auth-token cookie
 - [x] T020 [US2] Fix authentication check in src/app/api/import/progress/route.ts PUT handler to properly validate auth-token cookie
 - [x] T021 [US2] Fix authentication check in src/app/api/import/progress/route.ts DELETE handler to properly validate auth-token cookie
-- [x] T022 [US2] Ensure import page component at src/app/(admin)/import/page.tsx properly handles auth state via Zustand (if it uses auth state)
-- [x] T023 [US2] Ensure import-progress page component at src/app/(dashboard)/import-progress/page.tsx properly handles auth state via Zustand (if it uses auth state)
+- [x] T022 [US2] Ensure import page component at src/app/admin/import/page.tsx properly handles auth state via Zustand (if it uses auth state)
+- [x] T023 [US2] Ensure import page route is restricted to admin users only (redirect or deny access otherwise)
 - [x] T024 [US2] Test import page access: authenticated user navigates to import page → verify page loads without errors
 - [x] T025 [US2] Test import progress viewing: authenticated user views import progress → verify data displays correctly
 - [x] T026 [US2] Test import operations: authenticated user starts/stops import → verify operations succeed without auth errors
@@ -204,7 +204,7 @@ Task T021: "Fix DELETE handler authentication check"
 
 # Page component updates:
 Task T022: "Ensure import page component uses Zustand"
-Task T023: "Ensure import-progress page uses Zustand"
+Task T023: "Ensure import page uses Zustand"
 ```
 
 ---

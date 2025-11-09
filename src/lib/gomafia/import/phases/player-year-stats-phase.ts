@@ -113,7 +113,8 @@ export class PlayerYearStatsPhase {
         }> = [];
 
         for (let i = 0; i < batch.length; i += chunkSize) {
-          // Check for cancellation before processing next chunk
+          // Check for pause/cancellation before processing next chunk
+          this.orchestrator.checkPaused();
           this.orchestrator.checkCancellation();
 
           const chunk = (
@@ -188,10 +189,35 @@ export class PlayerYearStatsPhase {
                   return { success: true, stats: 0, hasStats: false };
                 }
               } catch (error) {
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
                 console.error(
                   `[PlayerYearStatsPhase] Failed to scrape stats for player ${player.name} (ID: ${player.gomafiaId}):`,
-                  error instanceof Error ? error.message : error
+                  errorMessage
                 );
+
+                // Record skipped player for manual retry
+                try {
+                  await this.orchestrator.recordSkippedEntity({
+                    phase: 'PLAYER_YEAR_STATS',
+                    entityType: 'player',
+                    entityId: player.gomafiaId,
+                    errorCode: 'SCRAPE_ERROR',
+                    errorMessage,
+                    errorDetails: {
+                      playerId: player.id,
+                      playerName: player.name,
+                      error: errorMessage,
+                      stack: error instanceof Error ? error.stack : undefined,
+                    },
+                  });
+                } catch (recordError) {
+                  console.error(
+                    `[PlayerYearStatsPhase] Failed to record skipped entity:`,
+                    recordError
+                  );
+                }
+
                 return { success: false, stats: 0, hasStats: false };
               }
             })

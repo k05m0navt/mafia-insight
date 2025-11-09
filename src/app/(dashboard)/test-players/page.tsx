@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
@@ -49,12 +49,9 @@ export default function TestPlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [isGated, setIsGated] = useState(false);
 
-  useEffect(() => {
-    fetchPlayers();
-  }, [search, selectedRole]);
-
-  const fetchPlayers = async () => {
+  const fetchPlayers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -66,17 +63,65 @@ export default function TestPlayersPage() {
 
       const response = await fetch(`/api/test-players?${params}`);
       if (!response.ok) {
+        if (response.status === 404) {
+          setIsGated(true);
+          setPlayers([]);
+          return;
+        }
         throw new Error('Failed to fetch players');
       }
 
       const data: PlayersResponse = await response.json();
       setPlayers(data.data);
+      setIsGated(false);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, selectedRole]);
+
+  useEffect(() => {
+    const checkAccessAndLoad = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/test-players?limit=1');
+        if (response.status === 404) {
+          setIsGated(true);
+          setPlayers([]);
+          setLoading(false);
+          return;
+        }
+        setIsGated(false);
+        await fetchPlayers();
+      } catch {
+        setIsGated(true);
+        setPlayers([]);
+        setLoading(false);
+      }
+    };
+
+    checkAccessAndLoad();
+  }, [fetchPlayers]);
+
+  useEffect(() => {
+    if (!isGated) {
+      fetchPlayers();
+    }
+  }, [fetchPlayers, isGated]);
+
+  // Show 404 if gated
+  if (isGated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">404</h1>
+          <p className="text-gray-600">Page not found</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

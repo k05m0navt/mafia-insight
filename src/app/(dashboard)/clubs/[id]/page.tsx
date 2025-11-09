@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { TeamStats } from '@/components/analytics/TeamStats';
 import { MemberList } from '@/components/analytics/MemberList';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,12 @@ interface ClubAnalytics {
       name: string;
       email: string;
     };
+    president?: {
+      id: string;
+      name: string;
+      gomafiaId: string;
+      eloRating: number;
+    } | null;
     players: Array<{
       id: string;
       name: string;
@@ -59,13 +66,7 @@ export default function ClubAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (clubId) {
-      fetchClubAnalytics();
-    }
-  }, [clubId]);
-
-  const fetchClubAnalytics = async () => {
+  const fetchClubAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/clubs/${clubId}/analytics`);
@@ -80,7 +81,13 @@ export default function ClubAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId]);
+
+  useEffect(() => {
+    if (clubId) {
+      fetchClubAnalytics();
+    }
+  }, [clubId, fetchClubAnalytics]);
 
   const handleViewPlayer = (playerId: string) => {
     window.location.href = `/players/${playerId}`;
@@ -141,6 +148,20 @@ export default function ClubAnalyticsPage() {
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Created by {analytics.club.creator.name}</span>
+            {analytics.club.president && (
+              <>
+                <span>•</span>
+                <span>
+                  President:{' '}
+                  <Link
+                    href={`/players/${analytics.club.president.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {analytics.club.president.name}
+                  </Link>
+                </span>
+              </>
+            )}
           </div>
         </div>
 

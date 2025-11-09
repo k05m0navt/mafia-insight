@@ -16,26 +16,27 @@ interface UseMobileMenuReturn {
 }
 
 export function useMobileMenu(): UseMobileMenuReturn {
-  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const isOpen = openPath === pathname;
 
   const open = useCallback(() => {
-    setIsOpen(true);
-  }, []);
+    setOpenPath(pathname);
+  }, [pathname]);
 
   const close = useCallback(() => {
-    setIsOpen(false);
+    setOpenPath(null);
   }, []);
 
   const toggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
+    setOpenPath((previous) => (previous === pathname ? null : pathname));
+  }, [pathname]);
 
   // Auto-close when screen size changes from mobile to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768 && isOpen) {
-        setIsOpen(false);
+      if (window.innerWidth >= 768) {
+        close();
       }
     };
 
@@ -46,13 +47,13 @@ export function useMobileMenu(): UseMobileMenuReturn {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [isOpen]);
+  }, [close]);
 
   // Close on escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+      if (event.key === 'Escape') {
+        close();
       }
     };
 
@@ -63,21 +64,12 @@ export function useMobileMenu(): UseMobileMenuReturn {
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen]);
-
-  // Close on route change (Next.js App Router)
-  useEffect(() => {
-    if (isOpen) {
-      setIsOpen(false);
-    }
-  }, [pathname]); // Close menu when pathname changes
+  }, [close, isOpen]);
 
   // Also handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      if (isOpen) {
-        setIsOpen(false);
-      }
+      close();
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -85,7 +77,7 @@ export function useMobileMenu(): UseMobileMenuReturn {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isOpen]);
+  }, [close]);
 
   return {
     isOpen,

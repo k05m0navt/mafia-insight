@@ -1,6 +1,9 @@
 import { Page } from 'playwright';
 import { RetryManager } from '../import/retry-manager';
-import { GameRawData } from '../validators/game-schema';
+import {
+  GameRawData,
+  GameParticipationRawData,
+} from '../validators/game-schema';
 
 /**
  * Scraper for tournament games from gomafia.pro/tournament/{id}?tab=games endpoint.
@@ -102,6 +105,10 @@ export class TournamentGamesScraper {
    */
   async extractGamesFromPage(tournamentId: string): Promise<GameRawData[]> {
     return await this.retryManager.execute(async () => {
+      type EvaluatedGame = GameRawData & {
+        participations: GameParticipationRawData[];
+      };
+
       return await this.page.evaluate((tournamentIdParam) => {
         const parseWinnerTeam = (
           text: string
@@ -227,8 +234,7 @@ export class TournamentGamesScraper {
 
         // Find all game tables on the page
         const tables = document.querySelectorAll('table');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const games: any[] = [];
+        const games: EvaluatedGame[] = [];
 
         tables.forEach((table, tableIndex) => {
           // Skip if table doesn't have the expected structure (less than 2 rows in thead)
@@ -254,8 +260,7 @@ export class TournamentGamesScraper {
           if (playerRows.length === 0) return;
 
           // Extract participations from player rows
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const participations: any[] = [];
+          const participations: GameParticipationRawData[] = [];
 
           playerRows.forEach((row, _playerIndex) => {
             const cells = row.querySelectorAll('td');

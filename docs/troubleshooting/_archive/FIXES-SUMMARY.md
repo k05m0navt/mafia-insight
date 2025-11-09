@@ -110,10 +110,10 @@ Updated `tournaments-scraper.ts` to:
 
 ---
 
-### 4. ✅ Empty Summary on /import Page
+### 4. ✅ Empty Summary on /admin/import Page
 
 **Problem**:
-The /import page showed "0 Players", "0 Clubs", "0 Games", "0 Tournaments" even after data was imported.
+The /admin/import page showed "0 Players", "0 Clubs", "0 Games", "0 Tournaments" even after data was imported.
 
 **Root Cause**:
 This was actually already implemented correctly! The GET `/api/gomafia-sync/import` endpoint returns summary counts from the database. The issue was that:
@@ -185,7 +185,7 @@ yarn start
 
 ✅ **Progress Monitoring**:
 
-- Real-time progress updates on /import page
+- Real-time progress updates on /admin/import page
 - Polls every 2 seconds while running
 - Shows current operation (e.g., "Executing PLAYERS phase")
 - Progress percentage updates through all 7 phases
@@ -197,7 +197,7 @@ yarn start
 
 ✅ **Summary Counts**:
 
-- After import, /import page shows:
+- After import, /admin/import page shows:
   - Players: 10
   - Clubs: 10
   - Tournaments: 10

@@ -1,10 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from './usePermissions';
 import { NavigationState, NavigationItem } from '@/types/navigation';
+
+const scheduleMicrotask = (callback: () => void) => {
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(callback);
+  } else {
+    Promise.resolve().then(callback);
+  }
+};
 
 export function useNavigation() {
   const pathname = usePathname();
@@ -17,40 +25,43 @@ export function useNavigation() {
     lastUpdated: new Date(),
   });
 
-  const navigationItems: NavigationItem[] = [
-    {
-      id: 'home',
-      label: 'Home',
-      path: '/',
-      icon: '🏠',
-      requiresAuth: false,
-      requiredPermissions: [],
-    },
-    {
-      id: 'players',
-      label: 'Players',
-      path: '/players',
-      icon: '👥',
-      requiresAuth: true,
-      requiredPermissions: ['read:players'],
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      path: '/analytics',
-      icon: '📊',
-      requiresAuth: true,
-      requiredPermissions: ['read:analytics'],
-    },
-    {
-      id: 'admin',
-      label: 'Admin',
-      path: '/admin',
-      icon: '⚙️',
-      requiresAuth: true,
-      requiredPermissions: ['admin:admin'],
-    },
-  ];
+  const navigationItems: NavigationItem[] = useMemo(
+    () => [
+      {
+        id: 'home',
+        label: 'Home',
+        path: '/',
+        icon: '🏠',
+        requiresAuth: false,
+        requiredPermissions: [],
+      },
+      {
+        id: 'players',
+        label: 'Players',
+        path: '/players',
+        icon: '👥',
+        requiresAuth: true,
+        requiredPermissions: ['read:players'],
+      },
+      {
+        id: 'analytics',
+        label: 'Analytics',
+        path: '/analytics',
+        icon: '📊',
+        requiresAuth: true,
+        requiredPermissions: ['read:analytics'],
+      },
+      {
+        id: 'admin',
+        label: 'Admin',
+        path: '/admin',
+        icon: '⚙️',
+        requiresAuth: true,
+        requiredPermissions: ['admin:admin'],
+      },
+    ],
+    []
+  );
 
   const updateVisiblePages = useCallback(() => {
     const visiblePages = navigationItems
@@ -66,7 +77,7 @@ export function useNavigation() {
       visiblePages,
       lastUpdated: new Date(),
     }));
-  }, [isAuthenticated, canAccessPage]);
+  }, [isAuthenticated, canAccessPage, navigationItems]);
 
   const setActivePage = useCallback((pageId: string) => {
     setNavigationState((prev) => ({
@@ -80,7 +91,7 @@ export function useNavigation() {
     return navigationItems.filter((item) =>
       navigationState.visiblePages.includes(item.id)
     );
-  }, [navigationState.visiblePages]);
+  }, [navigationItems, navigationState.visiblePages]);
 
   const isPageVisible = useCallback(
     (pageId: string): boolean => {
@@ -93,21 +104,27 @@ export function useNavigation() {
   useEffect(() => {
     const currentPage = navigationItems.find((item) => item.path === pathname);
     if (currentPage) {
-      setActivePage(currentPage.id);
+      scheduleMicrotask(() => {
+        setActivePage(currentPage.id);
+      });
     }
-  }, [pathname, setActivePage]);
+  }, [navigationItems, pathname, setActivePage]);
 
   // Update visible pages when auth state or permissions change
   useEffect(() => {
-    updateVisiblePages();
+    scheduleMicrotask(() => {
+      updateVisiblePages();
+    });
   }, [updateVisiblePages]);
 
   // Update user ID when auth state changes
   useEffect(() => {
-    setNavigationState((prev) => ({
-      ...prev,
-      userId: user?.id || null,
-    }));
+    scheduleMicrotask(() => {
+      setNavigationState((prev) => ({
+        ...prev,
+        userId: user?.id || null,
+      }));
+    });
   }, [user?.id]);
 
   return {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Import Progress Tracking', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   });
 

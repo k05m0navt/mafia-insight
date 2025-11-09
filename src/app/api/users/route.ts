@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userService } from '@/lib/users/user-service';
+import { authenticateRequest, requireRole } from '@/lib/apiAuth';
 import { z } from 'zod';
-import { requireAuthCookie } from '@/lib/utils/apiAuth';
 
 // Query parameters validation schema
 const UsersQuerySchema = z.object({
@@ -28,11 +28,9 @@ const CreateUserSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const authError = requireAuthCookie(request);
-    if (authError) {
-      return authError;
-    }
+    // Authenticate request - only admins can list all users
+    const { role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
 
     const { searchParams } = new URL(request.url);
     const query = UsersQuerySchema.parse(Object.fromEntries(searchParams));
@@ -50,6 +48,27 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching users:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -63,29 +82,43 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication (admin only - but checking for any auth first)
-    const authError = requireAuthCookie(request);
-    if (authError) {
-      return authError;
-    }
+    // Authenticate request - only admins can create users
+    const { user: currentUser, role } = await authenticateRequest(request);
+    requireRole(role, 'admin');
 
     const body = await request.json();
     const data = CreateUserSchema.parse(body);
-
-    // TODO: Get current user from session
-    // For now, use a placeholder
-    const invitedBy = '00000000-0000-0000-0000-000000000000';
 
     const user = await userService.createUser({
       email: data.email,
       name: data.name,
       role: data.role,
-      invitedBy,
+      invitedBy: currentUser.id,
     });
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
     console.error('Error creating user:', error);
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Role 'admin' required")
+    ) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

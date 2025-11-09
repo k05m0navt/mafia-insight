@@ -1,3 +1,5 @@
+import { useEffect, useRef, useCallback } from 'react';
+
 /**
  * Performance Monitoring Utilities
  *
@@ -218,6 +220,7 @@ export function usePerformanceMeasure(
   metadata?: Record<string, unknown>
 ) {
   const measureRef = useRef<(() => void) | null>(null);
+  const metadataKey = JSON.stringify(metadata);
 
   useEffect(() => {
     measureRef.current = performanceMonitor.startMeasure(name, metadata);
@@ -225,11 +228,19 @@ export function usePerformanceMeasure(
     return () => {
       if (measureRef.current) {
         measureRef.current();
+        measureRef.current = null;
       }
     };
-  }, [name, JSON.stringify(metadata)]);
+  }, [name, metadata, metadataKey]);
 
-  return measureRef.current;
+  const endMeasure = useCallback(() => {
+    if (measureRef.current) {
+      measureRef.current();
+      measureRef.current = null;
+    }
+  }, []);
+
+  return endMeasure;
 }
 
 /**
@@ -296,6 +307,3 @@ export const authPerformance = {
 
   getStats: () => performanceMonitor.getPerformanceStats('auth-completion'),
 };
-
-// React imports for hooks
-import { useRef, useEffect } from 'react';

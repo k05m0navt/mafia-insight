@@ -120,7 +120,7 @@
 ### 5. Test Data Import
 
 - [ ] **Test import in staging with real gomafia.pro data**
-  - Visit `/import` page
+  - Visit `/admin/import` page
   - Click "Start Import"
   - Verify progress updates every 2 seconds
   - Monitor for 15-30 minutes
@@ -204,7 +204,7 @@
 
 2. **Trigger initial import**
    - Option A: Visit `/players` page (auto-trigger)
-   - Option B: Visit `/import` page and click "Start Import"
+   - Option B: Visit `/admin/import` page and click "Start Import"
 
 3. **Monitor import progress**
    - Check SyncStatus table for progress updates

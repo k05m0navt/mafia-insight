@@ -473,7 +473,7 @@ describe('PWAService', () => {
 
         const result = await mockPWAService.registerAppShortcuts([
           { name: 'Analytics', url: '/analytics' },
-          { name: 'Import', url: '/import' },
+          { name: 'Import', url: '/admin/import' },
         ]);
 
         expect(result).toEqual(mockResult);

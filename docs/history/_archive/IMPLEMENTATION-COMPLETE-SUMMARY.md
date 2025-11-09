@@ -58,7 +58,7 @@ Successfully completed **Phase 5 (User Story 4 - Validation & Quality Assurance)
 - `src/components/sync/DataIntegrityPanel.tsx` - Integrity check results
 - `tests/components/sync/ValidationSummaryCard.test.tsx` - Component tests
 - `tests/components/sync/DataIntegrityPanel.test.tsx` - Component tests
-- `src/app/(dashboard)/import/page.tsx` - Integrated new components
+- `src/app/(dashboard)/admin/import/page.tsx` - Integrated new components
 
 **Key Features:**
 

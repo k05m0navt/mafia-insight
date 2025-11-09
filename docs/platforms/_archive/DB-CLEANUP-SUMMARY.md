@@ -65,7 +65,7 @@ This user is preserved to avoid foreign key constraint violations during future 
 
 The database is now in a clean state and ready for a fresh import run. You can:
 
-1. Navigate to `/import` page
+1. Navigate to `/admin/import` page
 2. Click **"Start Import"** button
 3. Watch the import progress in real-time
 4. See live updates of data counts

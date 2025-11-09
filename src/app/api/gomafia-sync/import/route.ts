@@ -3,6 +3,11 @@ import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
 import { prisma as db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 import { Prisma } from '@prisma/client';
+import { ImportOrchestrator } from '@/lib/gomafia/import/import-orchestrator';
+
+declare global {
+  var currentOrchestratorInstance: ImportOrchestrator | null | undefined;
+}
 
 /**
  * Global AbortController for import cancellation.
@@ -10,6 +15,17 @@ import { Prisma } from '@prisma/client';
  * Pattern inspired by p-queue's AbortController usage for graceful cancellation.
  */
 let currentImportController: AbortController | null = null;
+
+/**
+ * Global orchestrator reference for pause/resume operations
+ * Exported for use by pause/resume endpoints
+ */
+export let currentOrchestratorInstance: ImportOrchestrator | null = null;
+
+// Also store in global for easier access
+if (typeof globalThis !== 'undefined') {
+  globalThis.currentOrchestratorInstance = currentOrchestratorInstance;
+}
 
 /**
  * GET /api/gomafia-sync/import
@@ -21,10 +37,16 @@ export async function GET() {
       where: { id: 'current' },
     });
 
-    const syncLog = await db.syncLog.findFirst({
+    const runningSyncLog = await db.syncLog.findFirst({
       where: { status: 'RUNNING' },
       orderBy: { startTime: 'desc' },
     });
+
+    const latestSyncLog =
+      runningSyncLog ||
+      (await db.syncLog.findFirst({
+        orderBy: { startTime: 'desc' },
+      }));
 
     // Get record counts for summary
     const [playerCount, clubCount, gameCount, tournamentCount] =
@@ -35,6 +57,21 @@ export async function GET() {
         db.tournament.count(),
       ]);
 
+    const resolvedStatus = syncStatus?.isRunning
+      ? 'RUNNING'
+      : latestSyncLog?.status ||
+        (syncStatus?.lastError
+          ? 'FAILED'
+          : syncStatus?.progress === 100
+            ? 'COMPLETED'
+            : 'PENDING');
+
+    const processedRecords =
+      syncStatus?.validRecords ?? latestSyncLog?.recordsProcessed ?? 0;
+
+    const totalRecords =
+      syncStatus?.totalRecordsProcessed ?? latestSyncLog?.recordsProcessed ?? 0;
+
     const response = NextResponse.json({
       isRunning: syncStatus?.isRunning || false,
       progress: syncStatus?.progress || 0,
@@ -42,11 +79,16 @@ export async function GET() {
       lastSyncTime: syncStatus?.lastSyncTime?.toISOString() || null,
       lastSyncType: syncStatus?.lastSyncType || null,
       lastError: syncStatus?.lastError || null,
-      syncLogId: syncLog?.id || null,
+      syncLogId: latestSyncLog?.id || null,
+      syncLogStatus: latestSyncLog?.status || null,
+      syncLogType: latestSyncLog?.type || null,
+      startTime: latestSyncLog?.startTime?.toISOString() || null,
+      endTime: latestSyncLog?.endTime?.toISOString() || null,
+      status: resolvedStatus,
       // Map validRecords/totalRecordsProcessed to processedRecords/totalRecords for UI compatibility
       // For games phase, these represent tournaments processed/total tournaments
-      processedRecords: syncStatus?.validRecords || 0,
-      totalRecords: syncStatus?.totalRecordsProcessed || 0,
+      processedRecords,
+      totalRecords,
       validation: {
         validationRate: syncStatus?.validationRate || null,
         totalRecordsProcessed: syncStatus?.totalRecordsProcessed || null,
@@ -337,6 +379,12 @@ async function startImportInBackground(
     // Create orchestrator
     const orchestrator = new ImportOrchestrator(db, browser);
 
+    // Store orchestrator instance globally for pause/resume operations
+    currentOrchestratorInstance = orchestrator;
+    if (typeof globalThis !== 'undefined') {
+      globalThis.currentOrchestratorInstance = orchestrator;
+    }
+
     // Set cancellation signal for graceful shutdown
     orchestrator.setCancellationSignal(cancellationSignal);
     console.log('[Import] Cancellation signal configured');
@@ -358,19 +406,38 @@ async function startImportInBackground(
       '@/lib/gomafia/import/phases/statistics-phase'
     );
 
-    // Execute all 7 phases
+    // Import club members phase
+    const { ClubMembersPhase } = await import(
+      '@/lib/gomafia/import/phases/club-members-phase'
+    );
+    // Import tournament chief judge phase
+    const { TournamentChiefJudgePhase } = await import(
+      '@/lib/gomafia/import/phases/tournament-chief-judge-phase'
+    );
+    // Import judges phase
+    const { JudgesPhase } = await import(
+      '@/lib/gomafia/import/phases/judges-phase'
+    );
+
+    // Execute all 10 phases
     const phases = [
       { name: 'CLUBS', phase: new ClubsPhase(orchestrator) },
       { name: 'PLAYERS', phase: new PlayersPhase(orchestrator) },
+      { name: 'CLUB_MEMBERS', phase: new ClubMembersPhase(orchestrator) },
       {
         name: 'PLAYER_YEAR_STATS',
         phase: new PlayerYearStatsPhase(orchestrator),
       },
       { name: 'TOURNAMENTS', phase: new TournamentsPhase(orchestrator) },
       {
+        name: 'TOURNAMENT_CHIEF_JUDGE',
+        phase: new TournamentChiefJudgePhase(orchestrator),
+      },
+      {
         name: 'PLAYER_TOURNAMENT_HISTORY',
         phase: new PlayerTournamentPhase(orchestrator),
       },
+      { name: 'JUDGES', phase: new JudgesPhase(orchestrator) },
       { name: 'GAMES', phase: new GamesPhase(orchestrator) },
       { name: 'STATISTICS', phase: new StatisticsPhase(orchestrator) },
     ];
@@ -386,6 +453,24 @@ async function startImportInBackground(
         // Clear the global controller
         currentImportController = null;
         return; // Exit gracefully
+      }
+
+      // Check if import is paused
+      if (orchestrator.isPaused()) {
+        console.log('[Import] Import is paused, waiting for resume...');
+
+        // Wait for resume (polling)
+        while (orchestrator.isPaused()) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          // Check if cancelled while paused
+          if (orchestrator.isCancelled()) {
+            await orchestrator.cancel();
+            currentImportController = null;
+            return;
+          }
+        }
+
+        console.log('[Import] Import resumed, continuing...');
       }
 
       const { name, phase } = phases[i];
@@ -413,11 +498,11 @@ async function startImportInBackground(
         console.log(`[Import] Completed phase: ${name}`);
       } catch (error: unknown) {
         // Check if it's a cancellation error
-        if (
-          error instanceof Error
-            ? error.message
-            : 'Unknown error'?.includes('cancelled')
-        ) {
+        const isCancellationError =
+          error instanceof Error &&
+          error.message.toLowerCase().includes('cancelled');
+
+        if (isCancellationError) {
           console.log(
             '[Import] Phase cancelled, calling orchestrator.cancel()...'
           );
@@ -469,8 +554,12 @@ async function startImportInBackground(
 
     console.log('[Import] Import completed successfully');
 
-    // Clear the global controller
+    // Clear the global controller and orchestrator
     currentImportController = null;
+    currentOrchestratorInstance = null;
+    if (typeof globalThis !== 'undefined') {
+      globalThis.currentOrchestratorInstance = null;
+    }
   } catch (error: unknown) {
     console.error('[Import] Import failed:', error);
 
@@ -495,8 +584,12 @@ async function startImportInBackground(
       },
     });
 
-    // Clear the global controller on error
+    // Clear the global controller and orchestrator on error
     currentImportController = null;
+    currentOrchestratorInstance = null;
+    if (typeof globalThis !== 'undefined') {
+      globalThis.currentOrchestratorInstance = null;
+    }
 
     throw error;
   } finally {

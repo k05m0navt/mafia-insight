@@ -1,56 +1,172 @@
 import { prisma } from '@/lib/db';
 import { ClubSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+
+const clubInclude = {
+  creator: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  players: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  },
+  _count: {
+    select: {
+      players: true,
+    },
+  },
+} as const;
+
+type ClubWithRelations = Prisma.ClubGetPayload<{
+  include: typeof clubInclude;
+}>;
 
 export class ClubService {
-  async getClubs(page: number = 1, limit: number = 20, search?: string) {
-    const skip = (page - 1) * limit;
+  async getClubs(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    minMembers?: number,
+    region?: string
+  ) {
+    // Build orderBy clause
+    const orderBy: Prisma.ClubOrderByWithRelationInput =
+      sortBy === 'memberCount'
+        ? { createdAt: sortOrder }
+        : ({ [sortBy]: sortOrder } as Prisma.ClubOrderByWithRelationInput);
 
-    const where = {
-      ...(search && {
+    const hasSearch = !!search;
+    const searchTerm = search?.toLowerCase() || '';
+    let clubs: ClubWithRelations[] = [];
+    let total = 0;
+
+    if (hasSearch && searchTerm) {
+      // For search queries, fetch exact matches and partial matches separately
+      // to ensure exact matches are always included, even when sorting by other fields
+
+      // Build where clause for exact matches
+      const exactWhere: Prisma.ClubWhereInput = {
+        name: {
+          equals: search,
+          mode: 'insensitive' as const,
+        },
+      };
+
+      if (region) {
+        exactWhere.region = region;
+      }
+
+      // Build where clause for all matches (contains)
+      const allMatchesWhere: Prisma.ClubWhereInput = {
         name: {
           contains: search,
           mode: 'insensitive' as const,
         },
-      }),
-    };
+      };
 
-    const [clubs, total] = await Promise.all([
-      prisma.club.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      if (region) {
+        allMatchesWhere.region = region;
+      }
+
+      // Fetch exact matches (no limit, sorted by user's preference)
+      // Fetch all matches (larger set to ensure good pagination, up to 1000)
+      const fetchLimit = Math.min(1000, limit * 10);
+
+      const [exactMatches, allMatches, allCount] = await Promise.all([
+        prisma.club.findMany({
+          where: exactWhere,
+          orderBy,
+          include: clubInclude,
+        }),
+        prisma.club.findMany({
+          where: allMatchesWhere,
+          orderBy,
+          take: fetchLimit,
+          include: clubInclude,
+        }),
+        prisma.club.count({ where: allMatchesWhere }),
+      ]);
+
+      const meetsMemberThreshold = (club: ClubWithRelations) =>
+        minMembers === undefined || club._count.players >= minMembers;
+
+      const filteredExactMatches = exactMatches.filter(meetsMemberThreshold);
+      const filteredAllMatches = allMatches.filter(meetsMemberThreshold);
+
+      // Filter out exact matches from allMatches to get only partial matches
+      const exactMatchIds = new Set(filteredExactMatches.map((c) => c.id));
+      const partialMatches = filteredAllMatches.filter(
+        (c) => !exactMatchIds.has(c.id)
+      );
+
+      // Combine: exact matches first, then partial matches
+      const allClubs = [...filteredExactMatches, ...partialMatches];
+      const combinedTotal = filteredExactMatches.length + partialMatches.length;
+      total = minMembers !== undefined ? combinedTotal : allCount;
+
+      // Apply pagination
+      const paginatedSkip = (page - 1) * limit;
+      clubs = allClubs.slice(paginatedSkip, paginatedSkip + limit);
+    } else {
+      // For non-search queries, use normal pagination
+      const skip = (page - 1) * limit;
+      const where: Prisma.ClubWhereInput = {};
+
+      if (region) {
+        where.region = region;
+      }
+
+      const [allClubs, totalCount] = await Promise.all([
+        prisma.club.findMany({
+          where,
+          skip,
+          take: limit,
+          include: clubInclude,
+          orderBy,
+        }),
+        prisma.club.count({ where }),
+      ]);
+      clubs = allClubs;
+      total = totalCount;
+
+      // Filter by minimum members if specified (post-query for cases where _count filter doesn't work)
+      if (minMembers !== undefined && minMembers > 0) {
+        const filteredClubs = clubs.filter(
+          (club) => club._count.players >= minMembers
+        );
+        // Only update if filtering actually removed items (meaning where clause didn't work)
+        if (filteredClubs.length !== clubs.length) {
+          clubs = filteredClubs;
+          total = await prisma.club.count({
+            where: {
+              ...where,
             },
-          },
-          players: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              players: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-      prisma.club.count({ where }),
-    ]);
+          });
+        }
+      }
+    }
+
+    // Sort by member count if requested
+    if (sortBy === 'memberCount') {
+      clubs.sort((a, b) => {
+        const diff = a._count.players - b._count.players;
+        return sortOrder === 'asc' ? diff : -diff;
+      });
+    }
 
     return {
       data: clubs,
@@ -72,6 +188,14 @@ export class ClubService {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        president: {
+          select: {
+            id: true,
+            name: true,
+            gomafiaId: true,
+            eloRating: true,
           },
         },
         players: {

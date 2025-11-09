@@ -1,6 +1,19 @@
 import { db } from '@/lib/db';
 import type { UserRole } from '@/types/navigation';
+import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+type DbUser = Prisma.UserGetPayload<{ select: typeof userSelect }>;
 
 /**
  * User creation input
@@ -181,30 +194,89 @@ export class UserService {
   async searchUsers(filters: UserFilters = {}) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
-    const skip = (page - 1) * limit;
+    const hasSearch = !!filters.search;
+    const searchTerm = filters.search?.toLowerCase() || '';
 
-    const where: Record<string, unknown> = {};
-
-    if (filters.search) {
-      where.OR = [
-        { email: { contains: filters.search, mode: 'insensitive' } },
-        { name: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
-
+    const baseWhere: Prisma.UserWhereInput = {};
     if (filters.role) {
-      where.role = filters.role;
+      baseWhere.role = filters.role;
     }
 
-    const [users, total] = await Promise.all([
-      db.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.user.count({ where }),
-    ]);
+    let users: DbUser[] = [];
+    let total = 0;
+
+    if (hasSearch && searchTerm) {
+      // For search queries, fetch exact matches and partial matches separately
+      // to ensure exact matches are always included
+
+      // Build where clause for exact matches (email or name)
+      const exactWhere: Prisma.UserWhereInput = {
+        ...baseWhere,
+        OR: [
+          { email: { equals: filters.search, mode: 'insensitive' } },
+          { name: { equals: filters.search, mode: 'insensitive' } },
+        ],
+      };
+
+      // Build where clause for all matches (contains)
+      const allMatchesWhere: Prisma.UserWhereInput = {
+        ...baseWhere,
+        OR: [
+          { email: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+
+      // Fetch exact matches (no limit, sorted by user's preference)
+      // Fetch all matches (larger set to ensure good pagination, up to 1000)
+      const fetchLimit = Math.min(1000, limit * 10);
+
+      const [exactMatches, allMatches, _exactCount, allCount] =
+        await Promise.all([
+          db.user.findMany({
+            where: exactWhere,
+            orderBy: { createdAt: 'desc' },
+            select: userSelect,
+          }),
+          db.user.findMany({
+            where: allMatchesWhere,
+            orderBy: { createdAt: 'desc' },
+            take: fetchLimit,
+            select: userSelect,
+          }),
+          db.user.count({ where: exactWhere }),
+          db.user.count({ where: allMatchesWhere }),
+        ]);
+
+      // Filter out exact matches from allMatches to get only partial matches
+      const exactMatchIds = new Set(exactMatches.map((u) => u.id));
+      const partialMatches = allMatches.filter((u) => !exactMatchIds.has(u.id));
+
+      // Combine: exact matches first, then partial matches
+      const allUsers = [...exactMatches, ...partialMatches];
+      total = allCount;
+
+      // Apply pagination
+      const paginatedSkip = (page - 1) * limit;
+      users = allUsers.slice(paginatedSkip, paginatedSkip + limit);
+    } else {
+      // For non-search queries, use normal pagination
+      const skip = (page - 1) * limit;
+      const where: Prisma.UserWhereInput = { ...baseWhere };
+
+      const [allUsers, totalCount] = await Promise.all([
+        db.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          select: userSelect,
+        }),
+        db.user.count({ where }),
+      ]);
+      users = allUsers;
+      total = totalCount;
+    }
 
     return {
       users,
@@ -223,6 +295,7 @@ export class UserService {
   async getUserById(userId: string) {
     const user = await db.user.findUnique({
       where: { id: userId },
+      select: userSelect,
     });
 
     if (!user) {
@@ -239,6 +312,10 @@ export class UserService {
     // Validate deleter has permission
     const deleter = await db.user.findUnique({
       where: { id: deletedBy },
+      select: {
+        id: true,
+        role: true,
+      },
     });
 
     if (!deleter || deleter.role !== 'admin') {
