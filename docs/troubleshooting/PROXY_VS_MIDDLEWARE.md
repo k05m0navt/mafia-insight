@@ -29,7 +29,7 @@ const protectedRoutes = [
   '/clubs',
   '/profile',
   '/settings',
-  '/import-progress',
+  '/admin/import',
   '/sync-status',
   '/admin',
 ];

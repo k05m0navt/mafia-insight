@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,16 +48,7 @@ export function LiveUpdates({ tournamentId }: LiveUpdatesProps) {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => {
-    fetchUpdates();
-
-    if (autoRefresh) {
-      const interval = setInterval(fetchUpdates, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [tournamentId, autoRefresh]);
-
-  const fetchUpdates = async () => {
+  const fetchUpdates = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/tournaments/${tournamentId}/live`);
@@ -73,7 +64,20 @@ export function LiveUpdates({ tournamentId }: LiveUpdatesProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tournamentId]);
+
+  useEffect(() => {
+    fetchUpdates();
+  }, [fetchUpdates]);
+
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
+    }
+
+    const interval = setInterval(fetchUpdates, 30000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, fetchUpdates]);
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {

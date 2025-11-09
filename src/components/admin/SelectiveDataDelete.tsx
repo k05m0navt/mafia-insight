@@ -226,11 +226,13 @@ export function SelectiveDataDelete() {
               <AlertDialogTitle>
                 Delete {selectedOption?.label}?
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                {selectedOption && (
-                  <div className="space-y-2">
-                    <p>{selectedOption.description}</p>
-                    <p className="font-medium text-destructive">
+              {selectedOption && (
+                <>
+                  <AlertDialogDescription>
+                    {selectedOption.description}
+                  </AlertDialogDescription>
+                  <div className="space-y-2 mt-4">
+                    <p className="font-medium text-destructive text-sm">
                       This action cannot be undone. All related data will also
                       be deleted.
                     </p>
@@ -310,8 +312,8 @@ export function SelectiveDataDelete() {
                       </ul>
                     )}
                   </div>
-                )}
-              </AlertDialogDescription>
+                </>
+              )}
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting}>

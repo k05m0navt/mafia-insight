@@ -146,7 +146,17 @@ function TournamentsPageContent() {
       if (urlEndDate !== endDate) setEndDate(urlEndDate);
     }
     skipNextUrlUpdate.current = false;
-  }, [searchParams]);
+  }, [
+    searchParams,
+    search,
+    currentPage,
+    selectedStatus,
+    sortBy,
+    sortOrder,
+    minPrizePool,
+    startDate,
+    endDate,
+  ]);
 
   // Sync URL params when state changes (user interactions)
   useEffect(() => {
@@ -185,24 +195,7 @@ function TournamentsPageContent() {
     searchParams,
   ]);
 
-  useEffect(() => {
-    // Wait for permissions to load before checking access
-    if (!permissionsLoading) {
-      fetchTournaments();
-    }
-  }, [
-    search,
-    selectedStatus,
-    currentPage,
-    sortBy,
-    sortOrder,
-    minPrizePool,
-    startDate,
-    endDate,
-    permissionsLoading,
-  ]);
-
-  const fetchTournaments = async () => {
+  const fetchTournaments = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -236,7 +229,23 @@ function TournamentsPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    currentPage,
+    minPrizePool,
+    pageSize,
+    search,
+    selectedStatus,
+    sortBy,
+    sortOrder,
+    startDate,
+    endDate,
+  ]);
+
+  useEffect(() => {
+    if (!permissionsLoading) {
+      fetchTournaments();
+    }
+  }, [fetchTournaments, permissionsLoading]);
 
   const handleSearch = (value: string) => {
     setSearch(value);

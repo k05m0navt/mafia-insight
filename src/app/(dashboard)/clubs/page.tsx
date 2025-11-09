@@ -152,7 +152,15 @@ function ClubsPageContent() {
       }
     }
     skipNextUrlUpdate.current = false;
-  }, [searchParams]);
+  }, [
+    searchParams,
+    search,
+    currentPage,
+    sortBy,
+    sortOrder,
+    minMembers,
+    selectedRegions,
+  ]);
 
   // Sync URL params when state changes (user interactions)
   useEffect(() => {
@@ -187,23 +195,7 @@ function ClubsPageContent() {
     searchParams,
   ]);
 
-  useEffect(() => {
-    // Wait for permissions to load before checking access
-    if (!permissionsLoading) {
-      fetchClubs();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    search,
-    currentPage,
-    sortBy,
-    sortOrder,
-    minMembers,
-    selectedRegions,
-    permissionsLoading,
-  ]);
-
-  const fetchClubs = async () => {
+  const fetchClubs = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -236,7 +228,21 @@ function ClubsPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    currentPage,
+    minMembers,
+    pageSize,
+    search,
+    selectedRegions,
+    sortBy,
+    sortOrder,
+  ]);
+
+  useEffect(() => {
+    if (!permissionsLoading) {
+      fetchClubs();
+    }
+  }, [fetchClubs, permissionsLoading]);
 
   const handleSearch = (value: string) => {
     setSearch(value);

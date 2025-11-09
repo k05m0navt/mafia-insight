@@ -68,7 +68,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.goto('/analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
     // Check offline indicator
@@ -85,7 +85,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.context().setOffline(true);
 
     // Make some changes while offline
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-indicator"]')
@@ -206,7 +206,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.context().setOffline(true);
 
     // Make changes that need sync
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
     await expect(
       page.locator('[data-testid="offline-indicator"]')
@@ -340,7 +340,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.goto('mafia-insight://analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('mafia-insight://import');
+    await page.goto('mafia-insight://admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   });
 

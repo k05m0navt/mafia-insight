@@ -234,8 +234,31 @@ model ImportCheckpoint {
   progress        Int
   lastUpdated     DateTime @updatedAt
   createdAt       DateTime @default(now())
+  isPaused        Boolean  @default(false)
 
   @@map("import_checkpoints")
+}
+
+model SkippedEntity {
+  id           String    @id @default(uuid())
+  phase        String
+  entityType   String // 'player', 'page', etc.
+  entityId     String? // Player gomafiaId or other entity ID
+  pageNumber   Int? // Page number if applicable
+  errorCode    String
+  errorMessage String
+  errorDetails Json?
+  retryCount   Int       @default(0)
+  lastRetryAt  DateTime?
+  status       String    @default("PENDING") // PENDING, RETRYING, COMPLETED, FAILED
+  syncLogId    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([phase, status])
+  @@index([entityType, entityId])
+  @@index([pageNumber])
+  @@map("skipped_entities")
 }
 
 model PlayerYearStats {

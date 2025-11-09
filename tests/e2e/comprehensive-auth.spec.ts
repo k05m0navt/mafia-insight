@@ -29,8 +29,7 @@ test.describe('Comprehensive Authentication Tests', () => {
     '/clubs',
     '/profile',
     '/settings',
-    '/import-progress',
-    '/sync-status',
+    '/admin/import',
     '/admin',
   ];
 

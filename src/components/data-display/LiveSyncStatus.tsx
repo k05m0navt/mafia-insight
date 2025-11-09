@@ -43,7 +43,25 @@ export function LiveSyncStatus({ className }: LiveSyncStatusProps) {
         throw new Error('Failed to fetch sync status');
       }
       const data = await response.json();
-      setSyncStatus(data);
+      // Extract status from response - API returns {status: {...}, metrics: {...}, health: {...}}
+      const statusObj = data.status || data;
+      setSyncStatus({
+        status: statusObj.isRunning
+          ? 'RUNNING'
+          : statusObj.lastError
+            ? 'FAILED'
+            : 'IDLE',
+        progress: statusObj.progress || 0,
+        currentPhase: statusObj.currentOperation || '',
+        recordsProcessed: statusObj.processedRecords || 0,
+        totalRecords: statusObj.totalRecords || 0,
+        startTime: statusObj.lastSyncTime || new Date().toISOString(),
+        endTime:
+          statusObj.lastSyncTime && !statusObj.isRunning
+            ? statusObj.lastSyncTime
+            : undefined,
+        error: statusObj.lastError || undefined,
+      });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

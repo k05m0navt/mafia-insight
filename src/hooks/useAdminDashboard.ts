@@ -6,6 +6,7 @@ export interface DashboardMetrics {
     totalGames: number;
     totalTournaments: number;
     totalClubs: number;
+    totalJudges: number;
   };
   importStatus: {
     isRunning: boolean;

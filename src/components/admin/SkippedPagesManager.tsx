@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -70,11 +70,7 @@ export function SkippedPagesManager({
     { id: 'tournaments', label: 'Tournaments', phase: 'TOURNAMENTS' },
   ];
 
-  useEffect(() => {
-    fetchSkippedPages();
-  }, [entityType]);
-
-  const fetchSkippedPages = async () => {
+  const fetchSkippedPages = useCallback(async () => {
     try {
       setLoading(true);
       const url = entityType
@@ -98,7 +94,11 @@ export function SkippedPagesManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [entityType]);
+
+  useEffect(() => {
+    fetchSkippedPages();
+  }, [fetchSkippedPages]);
 
   const handleRetry = async (pages: number[], entity: string) => {
     try {

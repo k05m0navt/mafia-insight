@@ -125,7 +125,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedAPIMocks(page);
 
       // Navigate to import page (both admin and dashboard versions)
-      const importPaths = ['/(admin)/import', '/(dashboard)/import-progress'];
+      const importPaths = ['/admin/import', '/admin/import'];
 
       for (const path of importPaths) {
         await page.goto(path);
@@ -151,7 +151,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(admin)/import');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Verify login/signup buttons are NOT visible
@@ -175,7 +175,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(dashboard)/import-progress');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Verify progress data is displayed
@@ -196,7 +196,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(dashboard)/import-progress');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Check that API was called successfully
@@ -237,7 +237,7 @@ test.describe('Import Page Authentication', () => {
         }
       });
 
-      await page.goto('/(dashboard)/import-progress');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Should display empty state or "no progress" message
@@ -254,7 +254,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(admin)/import');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Find and click start import button
@@ -284,7 +284,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(dashboard)/import-progress');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Find and click stop/cancel button
@@ -315,7 +315,7 @@ test.describe('Import Page Authentication', () => {
       await setupAuthenticatedSession(page);
       await setupAuthenticatedAPIMocks(page);
 
-      await page.goto('/(admin)/import');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Perform multiple operations
@@ -354,7 +354,7 @@ test.describe('Import Page Authentication', () => {
         });
       });
 
-      await page.goto('/(admin)/import');
+      await page.goto('/admin/import');
 
       // Should either:
       // 1. Redirect to login page
@@ -413,7 +413,7 @@ test.describe('Import Page Authentication', () => {
         });
       });
 
-      await page.goto('/(admin)/import');
+      await page.goto('/admin/import');
       await page.waitForLoadState('networkidle');
 
       // Try to start import

@@ -4,8 +4,6 @@ import { DashboardMetrics } from '@/components/admin/DashboardMetrics';
 import { RecentActivity } from '@/components/admin/RecentActivity';
 import { SystemHealthBadge } from '@/components/admin/SystemHealthBadge';
 import { QuickActions } from '@/components/admin/QuickActions';
-import { ImportControls } from '@/components/admin/ImportControls';
-import { SelectiveDataDelete } from '@/components/admin/SelectiveDataDelete';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { RefreshCw } from 'lucide-react';
@@ -64,8 +62,6 @@ export default function AdminDashboardPage() {
         <RecentActivity />
         <div className="space-y-6">
           <QuickActions />
-          <ImportControls />
-          <SelectiveDataDelete />
         </div>
       </div>
     </div>

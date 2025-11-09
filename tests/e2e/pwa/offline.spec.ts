@@ -26,7 +26,7 @@ test.describe('PWA Offline Testing', () => {
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
     // Navigate to import
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   });
 

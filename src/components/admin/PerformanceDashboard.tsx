@@ -5,7 +5,7 @@
  * and ensuring performance requirements are met.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { performanceMonitor, PERFORMANCE_THRESHOLDS } from '@/lib/performance';
 import { themeManager } from '@/lib/theme-optimized';
 import { navigationManager } from '@/lib/navigation-optimized';
@@ -25,18 +25,15 @@ export const PerformanceDashboard: React.FC = () => {
   const [stats, setStats] = useState<PerformanceStats[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(false);
 
-  useEffect(() => {
-    updateStats();
-
-    // Subscribe to performance updates
-    const unsubscribe = performanceMonitor.subscribe(() => {
-      updateStats();
-    });
-
-    return unsubscribe;
+  const scheduleMicrotask = useCallback((callback: () => void) => {
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(callback);
+    } else {
+      Promise.resolve().then(callback);
+    }
   }, []);
 
-  const updateStats = () => {
+  const updateStats = useCallback(() => {
     const newStats: PerformanceStats[] = [];
 
     // Get stats for each tracked operation
@@ -72,7 +69,18 @@ export const PerformanceDashboard: React.FC = () => {
     });
 
     setStats(newStats);
-  };
+  }, []);
+
+  useEffect(() => {
+    scheduleMicrotask(updateStats);
+
+    // Subscribe to performance updates
+    const unsubscribe = performanceMonitor.subscribe(() => {
+      scheduleMicrotask(updateStats);
+    });
+
+    return unsubscribe;
+  }, [scheduleMicrotask, updateStats]);
 
   const startMonitoring = () => {
     setIsMonitoring(true);

@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Data Integrity Checks Display', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
   });
 
   test('should display data integrity panel after import', async ({ page }) => {

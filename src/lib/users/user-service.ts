@@ -1,6 +1,19 @@
 import { db } from '@/lib/db';
 import type { UserRole } from '@/types/navigation';
+import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+type DbUser = Prisma.UserGetPayload<{ select: typeof userSelect }>;
 
 /**
  * User creation input
@@ -184,12 +197,12 @@ export class UserService {
     const hasSearch = !!filters.search;
     const searchTerm = filters.search?.toLowerCase() || '';
 
-    const baseWhere: Record<string, unknown> = {};
+    const baseWhere: Prisma.UserWhereInput = {};
     if (filters.role) {
       baseWhere.role = filters.role;
     }
 
-    let users: any[] = [];
+    let users: DbUser[] = [];
     let total = 0;
 
     if (hasSearch && searchTerm) {
@@ -197,7 +210,7 @@ export class UserService {
       // to ensure exact matches are always included
 
       // Build where clause for exact matches (email or name)
-      const exactWhere: Record<string, unknown> = {
+      const exactWhere: Prisma.UserWhereInput = {
         ...baseWhere,
         OR: [
           { email: { equals: filters.search, mode: 'insensitive' } },
@@ -206,7 +219,7 @@ export class UserService {
       };
 
       // Build where clause for all matches (contains)
-      const allMatchesWhere: Record<string, unknown> = {
+      const allMatchesWhere: Prisma.UserWhereInput = {
         ...baseWhere,
         OR: [
           { email: { contains: filters.search, mode: 'insensitive' } },
@@ -223,11 +236,13 @@ export class UserService {
           db.user.findMany({
             where: exactWhere,
             orderBy: { createdAt: 'desc' },
+            select: userSelect,
           }),
           db.user.findMany({
             where: allMatchesWhere,
             orderBy: { createdAt: 'desc' },
             take: fetchLimit,
+            select: userSelect,
           }),
           db.user.count({ where: exactWhere }),
           db.user.count({ where: allMatchesWhere }),
@@ -247,7 +262,7 @@ export class UserService {
     } else {
       // For non-search queries, use normal pagination
       const skip = (page - 1) * limit;
-      const where: Record<string, unknown> = { ...baseWhere };
+      const where: Prisma.UserWhereInput = { ...baseWhere };
 
       const [allUsers, totalCount] = await Promise.all([
         db.user.findMany({
@@ -255,6 +270,7 @@ export class UserService {
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
+          select: userSelect,
         }),
         db.user.count({ where }),
       ]);
@@ -279,6 +295,7 @@ export class UserService {
   async getUserById(userId: string) {
     const user = await db.user.findUnique({
       where: { id: userId },
+      select: userSelect,
     });
 
     if (!user) {
@@ -295,6 +312,10 @@ export class UserService {
     // Validate deleter has permission
     const deleter = await db.user.findUnique({
       where: { id: deletedBy },
+      select: {
+        id: true,
+        role: true,
+      },
     });
 
     if (!deleter || deleter.role !== 'admin') {

@@ -26,27 +26,39 @@ interface FormDataPreservationProps {
   className?: string;
 }
 
+const scheduleMicrotask = (callback: () => void) => {
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(callback);
+  } else {
+    Promise.resolve().then(callback);
+  }
+};
+
 export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
   formKey,
   onDataRestored,
   className = '',
 }) => {
-  const [hasStoredData, setHasStoredData] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
+  const [storedData, setStoredData] = useState<Record<string, unknown> | null>(
+    () => formPreservationService.getFormData(formKey)
+  );
+  const hasStoredData = storedData !== null;
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving] = useState(false);
 
-  // Check for stored data on mount
   useEffect(() => {
-    const storedData = formPreservationService.getFormData(formKey);
-    if (storedData) {
-      setHasStoredData(true);
-      onDataRestored?.(storedData);
-    }
-  }, [formKey, onDataRestored]);
+    scheduleMicrotask(() => {
+      const data = formPreservationService.getFormData(formKey);
+      setStoredData(data);
+      if (data) {
+        onDataRestored?.(data);
+      }
+    });
+  }, [formKey, refreshIndex, onDataRestored]);
 
   // Restore data
   const handleRestore = () => {
-    const storedData = formPreservationService.getFormData(formKey);
     if (storedData) {
       onDataRestored?.(storedData);
     }
@@ -56,7 +68,7 @@ export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
   const handleClear = () => {
     try {
       formPreservationService.removeFormData(formKey);
-      setHasStoredData(false);
+      setRefreshIndex((index) => index + 1);
       setLastSaved(null);
     } catch (error) {
       console.error('Clear failed:', error);
@@ -67,7 +79,7 @@ export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
   const handleClearAll = () => {
     try {
       formPreservationService.clearAllFormData();
-      setHasStoredData(false);
+      setRefreshIndex((index) => index + 1);
       setLastSaved(null);
     } catch (error) {
       console.error('Clear all failed:', error);
@@ -178,35 +190,38 @@ export const FormDataPreservation: React.FC<FormDataPreservationProps> = ({
 
 // Hook for form data preservation
 export const useFormDataPreservation = (formKey: string) => {
-  const [hasStoredData, setHasStoredData] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [storedData, setStoredData] = useState<Record<string, unknown> | null>(
+    () => formPreservationService.getFormData(formKey)
+  );
+  const hasStoredData = storedData !== null;
 
   useEffect(() => {
-    const storedData = formPreservationService.getFormData(formKey);
-    setHasStoredData(!!storedData);
-  }, [formKey]);
+    scheduleMicrotask(() => {
+      setStoredData(formPreservationService.getFormData(formKey));
+    });
+  }, [formKey, refreshIndex]);
 
   const saveData = (data: Record<string, unknown>) => {
     if (Object.keys(data).length === 0) return;
 
     try {
       formPreservationService.saveFormData(formKey, data);
-      setHasStoredData(true);
       setLastSaved(new Date());
+      setRefreshIndex((index) => index + 1);
     } catch (error) {
       console.error('Save failed:', error);
     }
   };
 
-  const restoreData = () => {
-    return formPreservationService.getFormData(formKey);
-  };
+  const restoreData = () => storedData;
 
   const clearData = () => {
     try {
       formPreservationService.removeFormData(formKey);
-      setHasStoredData(false);
       setLastSaved(null);
+      setRefreshIndex((index) => index + 1);
     } catch (error) {
       console.error('Clear failed:', error);
     }

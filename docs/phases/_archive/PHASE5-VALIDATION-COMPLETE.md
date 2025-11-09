@@ -200,7 +200,7 @@ Added `validation` field to response:
 
 #### Updated Import Page
 
-**File**: `src/app/(dashboard)/import/page.tsx`
+**File**: `src/app/(dashboard)/admin/import/page.tsx`
 
 - Integrated `ValidationSummaryCard` into import dashboard
 - Conditionally renders when validation data is available
@@ -374,7 +374,7 @@ meetsThreshold = validationRate >= 98;
 1. `src/lib/gomafia/import/import-orchestrator.ts` - Integrated validation tracking
 2. `src/app/api/gomafia-sync/import/route.ts` - Added validation field to response
 3. `src/hooks/useImportStatus.ts` - Updated interface for validation data
-4. `src/app/(dashboard)/import/page.tsx` - Added ValidationSummaryCard
+4. `src/app/(dashboard)/admin/import/page.tsx` - Added ValidationSummaryCard
 5. `tests/unit/hooks/useImportStatus.test.ts` - Updated mock data
 6. `prisma/schema.prisma` - Added validation metrics fields
 

@@ -60,11 +60,19 @@ export function SearchInput({
         !isTyping // Don't sync if typing indicator is active
       ) {
         // Only sync if the controlled value is actually different AND not during typing
-        setInternalValue(controlledValue);
+        startTransition(() => {
+          setInternalValue(controlledValue);
+        });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlledValue, isControlled, isFocused, isTyping]);
+  }, [
+    controlledValue,
+    internalValue,
+    isControlled,
+    isFocused,
+    isTyping,
+    startTransition,
+  ]);
 
   // Debounce the search value with longer delay to prevent interference when typing fast
   // Use a longer debounce to ensure user can finish typing before URL updates
@@ -112,8 +120,7 @@ export function SearchInput({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedValue]);
+  }, [debouncedValue, onSearch, startTransition]);
 
   // Handle input change - always update internal state immediately for responsive UI
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

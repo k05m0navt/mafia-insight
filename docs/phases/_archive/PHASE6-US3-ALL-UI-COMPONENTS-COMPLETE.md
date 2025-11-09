@@ -401,7 +401,7 @@ Integrate all components into:
 
 - `ImportControls.tsx`: Add error handling and retry/cancel buttons
 - `ImportProgressCard.tsx`: Add error display
-- `/import/page.tsx`: Wire up error states
+- `/admin/import/page.tsx`: Wire up error states
 
 ### T127-T129: E2E Tests
 

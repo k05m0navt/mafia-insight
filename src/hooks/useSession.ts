@@ -8,19 +8,36 @@ export interface Session {
   isValid: boolean;
 }
 
-export function useSession(): Session & { refreshSession: () => { success: boolean; error?: string }; isExpired: () => boolean; needsRefresh: () => boolean } {
-  const [session, setSession] = useState<Session>({
-    user: null,
-    token: null,
-    expiresAt: null,
-    isValid: false,
+const scheduleMicrotask = (callback: () => void) => {
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(callback);
+  } else {
+    Promise.resolve().then(callback);
+  }
+};
+
+export function useSession(): Session & {
+  refreshSession: () => { success: boolean; error?: string };
+  isExpired: () => boolean;
+  needsRefresh: () => boolean;
+} {
+  const [session, setSession] = useState<Session>(() => {
+    const authSession = authService.getSession();
+    const validation = authService.validateSession();
+
+    return {
+      user: authSession.user,
+      token: authSession.token,
+      expiresAt: authSession.expiresAt,
+      isValid: validation.valid,
+    };
   });
 
   // Update session state
   const updateSession = useCallback(() => {
     const authSession = authService.getSession();
     const validation = authService.validateSession();
-    
+
     setSession({
       user: authSession.user,
       token: authSession.token,
@@ -31,22 +48,18 @@ export function useSession(): Session & { refreshSession: () => { success: boole
 
   // Initialize session
   useEffect(() => {
-    updateSession();
-
-    // Set up interval to check session validity
     const interval = setInterval(updateSession, 1000);
-
     return () => clearInterval(interval);
   }, [updateSession]);
 
   // Refresh session
   const refreshSession = useCallback(() => {
     const refreshResult = authService.refreshToken();
-    
+
     if (refreshResult.success) {
       updateSession();
     }
-    
+
     return refreshResult;
   }, [updateSession]);
 
@@ -66,7 +79,9 @@ export function useSession(): Session & { refreshSession: () => { success: boole
   // Auto-refresh session if needed
   useEffect(() => {
     if (session.isValid && needsRefresh()) {
-      refreshSession();
+      scheduleMicrotask(() => {
+        refreshSession();
+      });
     }
   }, [session.isValid, needsRefresh, refreshSession]);
 

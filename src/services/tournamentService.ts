@@ -1,7 +1,41 @@
 import { prisma } from '@/lib/db';
 import { TournamentSchema } from '@/lib/validations';
 import { z } from 'zod';
-import { TournamentStatus } from '@prisma/client';
+import { Prisma, TournamentStatus } from '@prisma/client';
+
+const tournamentInclude = {
+  creator: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  games: {
+    include: {
+      participations: {
+        include: {
+          player: {
+            select: {
+              id: true,
+              name: true,
+              eloRating: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  _count: {
+    select: {
+      games: true,
+    },
+  },
+} as const;
+
+type TournamentWithRelations = Prisma.TournamentGetPayload<{
+  include: typeof tournamentInclude;
+}>;
 
 export class TournamentService {
   async getTournaments(
@@ -14,21 +48,20 @@ export class TournamentService {
     minPrizePool?: number
   ) {
     // Build orderBy clause
-    let orderBy: any = {};
-    if (sortBy === 'prizePool') {
-      // For prize pool, we need to handle null values
-      orderBy = { prizePool: sortOrder };
-    } else {
-      orderBy[sortBy] = sortOrder;
-    }
+    const orderBy: Prisma.TournamentOrderByWithRelationInput =
+      sortBy === 'prizePool'
+        ? { prizePool: sortOrder }
+        : ({
+            [sortBy]: sortOrder,
+          } as Prisma.TournamentOrderByWithRelationInput);
 
     const hasSearch = !!search;
     const searchTerm = search?.toLowerCase() || '';
-    let tournaments: any[] = [];
+    let tournaments: TournamentWithRelations[] = [];
     let total = 0;
 
     // Base where clause for filters other than search
-    const baseWhere: any = {
+    const baseWhere: Prisma.TournamentWhereInput = {
       ...(status && { status: status as TournamentStatus }),
       ...(minPrizePool !== undefined &&
         minPrizePool > 0 && {
@@ -43,7 +76,7 @@ export class TournamentService {
       // to ensure exact matches are always included, even when sorting by other fields
 
       // Build where clause for exact matches
-      const exactWhere: any = {
+      const exactWhere: Prisma.TournamentWhereInput = {
         ...baseWhere,
         name: {
           equals: search,
@@ -52,7 +85,7 @@ export class TournamentService {
       };
 
       // Build where clause for all matches (contains)
-      const allMatchesWhere: any = {
+      const allMatchesWhere: Prisma.TournamentWhereInput = {
         ...baseWhere,
         name: {
           contains: search,
@@ -64,78 +97,20 @@ export class TournamentService {
       // Fetch all matches (larger set to ensure good pagination, up to 1000)
       const fetchLimit = Math.min(1000, limit * 10);
 
-      const [exactMatches, allMatches, _exactCount, allCount] =
-        await Promise.all([
-          prisma.tournament.findMany({
-            where: exactWhere,
-            orderBy,
-            include: {
-              creator: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              games: {
-                include: {
-                  participations: {
-                    include: {
-                      player: {
-                        select: {
-                          id: true,
-                          name: true,
-                          eloRating: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  games: true,
-                },
-              },
-            },
-          }),
-          prisma.tournament.findMany({
-            where: allMatchesWhere,
-            orderBy,
-            take: fetchLimit,
-            include: {
-              creator: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              games: {
-                include: {
-                  participations: {
-                    include: {
-                      player: {
-                        select: {
-                          id: true,
-                          name: true,
-                          eloRating: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  games: true,
-                },
-              },
-            },
-          }),
-          prisma.tournament.count({ where: exactWhere }),
-          prisma.tournament.count({ where: allMatchesWhere }),
-        ]);
+      const [exactMatches, allMatches, allCount] = await Promise.all([
+        prisma.tournament.findMany({
+          where: exactWhere,
+          orderBy,
+          include: tournamentInclude,
+        }),
+        prisma.tournament.findMany({
+          where: allMatchesWhere,
+          orderBy,
+          take: fetchLimit,
+          include: tournamentInclude,
+        }),
+        prisma.tournament.count({ where: allMatchesWhere }),
+      ]);
 
       // Filter out exact matches from allMatches to get only partial matches
       const exactMatchIds = new Set(exactMatches.map((t) => t.id));
@@ -151,42 +126,14 @@ export class TournamentService {
     } else {
       // For non-search queries, use normal pagination
       const skip = (page - 1) * limit;
-      const where: any = { ...baseWhere };
+      const where: Prisma.TournamentWhereInput = { ...baseWhere };
 
       const [allTournaments, totalCount] = await Promise.all([
         prisma.tournament.findMany({
           where,
           skip,
           take: limit,
-          include: {
-            creator: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            games: {
-              include: {
-                participations: {
-                  include: {
-                    player: {
-                      select: {
-                        id: true,
-                        name: true,
-                        eloRating: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            _count: {
-              select: {
-                games: true,
-              },
-            },
-          },
+          include: tournamentInclude,
           orderBy,
         }),
         prisma.tournament.count({ where }),

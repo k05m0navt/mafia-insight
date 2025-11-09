@@ -133,7 +133,7 @@ This document provides actionable, dependency-ordered tasks for implementing com
 - [x] T047 [US4] Create ImportProgress component in src/components/sync/ImportProgressCard.tsx
 - [x] T048 [US4] Create import progress API endpoint in src/app/api/import/progress/route.ts
 - [x] T049 [US4] Create Server-Sent Events endpoint for real-time updates in src/app/api/import/progress/stream/route.ts
-- [x] T050 [US4] Create import progress page in src/app/(dashboard)/import-progress/page.tsx
+- [x] T050 [US4] Create import progress page in src/app/admin/import/page.tsx
 - [ ] T051 [US4] Update import orchestrator to track progress in src/lib/gomafia/import/
 - [ ] T052 [US4] Test real-time progress updates
 - [ ] T053 [US4] Test progress accuracy and error handling

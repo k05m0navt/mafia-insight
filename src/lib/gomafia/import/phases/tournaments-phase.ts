@@ -308,11 +308,24 @@ export class TournamentsPhase {
     const result = tournamentSchema.safeParse(data);
     if (!result.success) {
       // Log validation errors for debugging
-      const errors = result.error.issues.map((err) => ({
-        path: err.path.join('.'),
-        message: err.message,
-        value: err.path.reduce((obj: any, key) => obj?.[key], data),
-      }));
+      const errors = result.error.issues.map((err) => {
+        const value = err.path.reduce<unknown>((current, key) => {
+          if (
+            current !== null &&
+            typeof current === 'object' &&
+            key in (current as Record<string, unknown>)
+          ) {
+            return (current as Record<string, unknown>)[key as string];
+          }
+          return undefined;
+        }, data);
+
+        return {
+          path: err.path.join('.'),
+          message: err.message,
+          value,
+        };
+      });
       console.warn(
         `[TournamentsPhase] Validation failed for tournament ${data.gomafiaId}:`,
         errors

@@ -2,6 +2,7 @@ import { ImportOrchestrator } from '../import-orchestrator';
 import { JudgesScraper } from '../../scrapers/judges-scraper';
 import { resilientDB } from '@/lib/db-resilient';
 import { JudgeRawData } from '@/types/gomafia-entities';
+import { importOrchestrator } from '../orchestrator';
 
 /**
  * Phase: Import judges from gomafia.pro/judges
@@ -66,26 +67,77 @@ export class JudgesPhase {
     const totalSkipped = 0;
     let errorCount = 0;
     let skippedPages: number[] = [];
+    let totalJudges = 0;
+
+    // Get active import for progress updates
+    const activeImport = await resilientDB.execute((db) =>
+      db.importProgress.findFirst({
+        where: {
+          operation: 'judges',
+          status: 'RUNNING',
+        },
+        orderBy: { startTime: 'desc' },
+      })
+    );
+
+    if (activeImport) {
+      // Initial progress update
+      await importOrchestrator.updateProgress(activeImport.id, 0, 0);
+    }
 
     // Scrape all judges with progress callback
     const result = await this.judgesScraper.scrapeAllJudges({
       skipOnError: true,
-      onProgress: (pageNumber: number, currentTotal: number) => {
+      onProgress: async (pageNumber: number, currentTotal: number) => {
         // Update metrics during scraping
         this.orchestrator.updateValidationMetrics({
           totalFetched: currentTotal,
         });
+
+        // Update progress if we have an active import
+        if (activeImport) {
+          totalJudges = currentTotal;
+          await importOrchestrator.updateProgress(
+            activeImport.id,
+            totalUpdated,
+            errorCount,
+            currentTotal
+          );
+        }
       },
       onPageData: async (pageNumber: number, pageData: JudgeRawData[]) => {
         // Process each page's data as it's scraped
         for (const judgeData of pageData) {
+          // Validate data before processing
+          if (
+            !judgeData.gomafiaId ||
+            !judgeData.name ||
+            judgeData.gomafiaId.trim() === ''
+          ) {
+            console.warn(
+              `[JudgesPhase] Invalid judge data on page ${pageNumber}: gomafiaId="${judgeData.gomafiaId}", name="${judgeData.name}" - skipping`
+            );
+            errorCount++;
+            continue;
+          }
+
           try {
             await this.updatePlayerWithJudgeData(judgeData);
             updatedJudgeIds.add(judgeData.gomafiaId);
             totalUpdated++;
+
+            // Update progress periodically (every 10 records)
+            if (activeImport && totalUpdated % 10 === 0) {
+              await importOrchestrator.updateProgress(
+                activeImport.id,
+                totalUpdated,
+                errorCount,
+                totalJudges
+              );
+            }
           } catch (error) {
             console.error(
-              `[JudgesPhase] Error updating judge ${judgeData.gomafiaId}:`,
+              `[JudgesPhase] Error updating judge ${judgeData.name} (${judgeData.gomafiaId}):`,
               error
             );
             errorCount++;
@@ -94,6 +146,16 @@ export class JudgesPhase {
         console.log(
           `[JudgesPhase] Processed page ${pageNumber}: ${pageData.length} judges`
         );
+
+        // Update progress after each page
+        if (activeImport) {
+          await importOrchestrator.updateProgress(
+            activeImport.id,
+            totalUpdated,
+            errorCount,
+            totalJudges
+          );
+        }
       },
     });
 
@@ -168,6 +230,16 @@ export class JudgesPhase {
       invalidRecords: errorCount,
     });
 
+    // Final progress update
+    if (activeImport) {
+      await importOrchestrator.updateProgress(
+        activeImport.id,
+        totalUpdated,
+        errorCount,
+        totalJudges
+      );
+    }
+
     console.log(
       `[JudgesPhase] Judges import complete. Updated: ${totalUpdated}, Skipped: ${totalSkipped}, Errors: ${errorCount}`
     );
@@ -189,8 +261,14 @@ export class JudgesPhase {
 
     if (!player) {
       console.warn(
-        `[JudgesPhase] Player not found for judge ${judgeData.name} (${judgeData.gomafiaId}) - skipping judge update`
+        `[JudgesPhase] Player not found for judge "${judgeData.name}" (gomafiaId: "${judgeData.gomafiaId}") - skipping judge update`
       );
+      // Log additional debug info
+      if (!judgeData.gomafiaId || judgeData.gomafiaId.trim() === '') {
+        console.error(
+          `[JudgesPhase] ERROR: Empty gomafiaId for judge "${judgeData.name}" - this indicates a scraping issue!`
+        );
+      }
       return;
     }
 

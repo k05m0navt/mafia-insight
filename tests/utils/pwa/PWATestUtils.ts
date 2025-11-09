@@ -54,7 +54,7 @@ export class PWATestUtils {
     await page.goto('/analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
     await page.goto('/settings');
@@ -286,7 +286,7 @@ export class PWATestUtils {
     await page.goto('mafia-insight://analytics');
     await expect(page.locator('[data-testid="analytics-page"]')).toBeVisible();
 
-    await page.goto('mafia-insight://import');
+    await page.goto('mafia-insight://admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   }
 

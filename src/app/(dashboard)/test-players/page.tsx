@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
 
@@ -51,27 +51,65 @@ export default function TestPlayersPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isGated, setIsGated] = useState(false);
 
-  useEffect(() => {
-    // Check if route is gated by trying to fetch from API
-    // If API returns 404, the page is gated
-    fetch('/api/test-players?limit=1')
-      .then((response) => {
+  const fetchPlayers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '20',
+        ...(search && { search }),
+        ...(selectedRole && { role: selectedRole }),
+      });
+
+      const response = await fetch(`/api/test-players?${params}`);
+      if (!response.ok) {
         if (response.status === 404) {
           setIsGated(true);
-        } else {
-          fetchPlayers();
+          setPlayers([]);
+          return;
         }
-      })
-      .catch(() => {
+        throw new Error('Failed to fetch players');
+      }
+
+      const data: PlayersResponse = await response.json();
+      setPlayers(data.data);
+      setIsGated(false);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, selectedRole]);
+
+  useEffect(() => {
+    const checkAccessAndLoad = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/test-players?limit=1');
+        if (response.status === 404) {
+          setIsGated(true);
+          setPlayers([]);
+          setLoading(false);
+          return;
+        }
+        setIsGated(false);
+        await fetchPlayers();
+      } catch {
         setIsGated(true);
-      });
-  }, []);
+        setPlayers([]);
+        setLoading(false);
+      }
+    };
+
+    checkAccessAndLoad();
+  }, [fetchPlayers]);
 
   useEffect(() => {
     if (!isGated) {
       fetchPlayers();
     }
-  }, [search, selectedRole, isGated]);
+  }, [fetchPlayers, isGated]);
 
   // Show 404 if gated
   if (isGated) {
@@ -84,30 +122,6 @@ export default function TestPlayersPage() {
       </div>
     );
   }
-
-  const fetchPlayers = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '20',
-        ...(search && { search }),
-        ...(selectedRole && { role: selectedRole }),
-      });
-
-      const response = await fetch(`/api/test-players?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch players');
-      }
-
-      const data: PlayersResponse = await response.json();
-      setPlayers(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

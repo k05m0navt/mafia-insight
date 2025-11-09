@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
@@ -51,28 +51,14 @@ export default function TestPlayerAnalyticsPage() {
 
   const [timeRange, setTimeRange] = useState('all');
 
-  // Check if route is gated
-  useEffect(() => {
-    fetch(`/api/test-players/${playerId}/analytics`)
-      .then((response) => {
-        if (response.status === 404) {
-          setIsGated(true);
-        } else {
-          fetchAnalytics();
-        }
-      })
-      .catch(() => {
-        setIsGated(true);
-      });
-  }, [playerId]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/test-players/${playerId}/analytics`);
       if (!response.ok) {
         if (response.status === 404) {
           setAnalytics(null);
+          setIsGated(true);
           return;
         }
         throw new Error('Failed to fetch player analytics');
@@ -80,12 +66,18 @@ export default function TestPlayerAnalyticsPage() {
 
       const data: PlayerAnalytics = await response.json();
       setAnalytics(data);
+      setIsGated(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [playerId]);
+
+  // Fetch analytics on mount and when playerId changes
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (

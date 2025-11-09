@@ -3,6 +3,12 @@ import { authService } from '@/services/AuthService';
 import { permissionService } from '@/lib/permissions';
 import { Permission as ApiPermission } from '@/types/permissions';
 
+declare global {
+  interface Window {
+    clearPermissionsCache?: () => void;
+  }
+}
+
 export interface Permission {
   canAccessPage: (page: string) => boolean;
   canPerformAction: (action: string) => boolean;
@@ -20,7 +26,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Function to force clear cache (useful for debugging)
 if (typeof window !== 'undefined') {
-  (window as any).clearPermissionsCache = () => {
+  window.clearPermissionsCache = () => {
     permissionsCache = null;
     cacheTimestamp = 0;
     console.log('[Permissions] Cache cleared manually');

@@ -456,7 +456,7 @@ test.describe('PWA Performance Tests', () => {
     await page.context().setOffline(true);
 
     // Make some changes
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await page.click('[data-testid="start-import-button"]');
 
     // Go back online

@@ -2,17 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Users,
-  Database,
-  Settings,
-  Activity,
-  Shield,
-  BarChart3,
-  LayoutDashboard,
-  Lock,
-} from 'lucide-react';
+import { Users, Database, LayoutDashboard, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,69 +45,26 @@ export default function AdminPage() {
       description: 'System health metrics, import status, and quick actions',
       icon: LayoutDashboard,
       href: '/admin/dashboard',
-      status: 'active',
     },
     {
       title: 'User Management',
       description: 'Manage user accounts, roles, and permissions',
       icon: Users,
       href: '/admin/users',
-      status: 'active',
     },
     {
       title: 'Data Import',
       description: 'Import and sync data from GoMafia',
       icon: Database,
       href: '/admin/import',
-      status: 'active',
     },
     {
       title: 'Permissions',
       description: 'Manage page access permissions for different user roles',
       icon: Lock,
       href: '/admin/permissions',
-      status: 'active',
-    },
-    {
-      title: 'System Settings',
-      description: 'Configure system-wide settings and preferences',
-      icon: Settings,
-      href: '/admin/settings',
-      status: 'coming-soon',
-    },
-    {
-      title: 'Activity Monitor',
-      description: 'Monitor system activity and performance',
-      icon: Activity,
-      href: '/admin/activity',
-      status: 'coming-soon',
-    },
-    {
-      title: 'Security Audit',
-      description: 'Review security logs and access patterns',
-      icon: Shield,
-      href: '/admin/security',
-      status: 'coming-soon',
-    },
-    {
-      title: 'Analytics Dashboard',
-      description: 'Advanced analytics and reporting tools',
-      icon: BarChart3,
-      href: '/admin/analytics',
-      status: 'coming-soon',
     },
   ];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'coming-soon':
-        return <Badge variant="secondary">Coming Soon</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
 
   return (
     <>
@@ -144,7 +91,6 @@ export default function AdminPage() {
                     </div>
                     <CardTitle className="text-lg">{feature.title}</CardTitle>
                   </div>
-                  {getStatusBadge(feature.status)}
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col flex-1">
@@ -155,14 +101,9 @@ export default function AdminPage() {
                   variant="outline"
                   size="sm"
                   className="w-full mt-auto"
-                  disabled={feature.status === 'coming-soon'}
-                  asChild={feature.status !== 'coming-soon'}
+                  asChild
                 >
-                  {feature.status === 'coming-soon' ? (
-                    'Coming Soon'
-                  ) : (
-                    <Link href={feature.href}>Access</Link>
-                  )}
+                  <Link href={feature.href}>Access</Link>
                 </Button>
               </CardContent>
             </Card>

@@ -109,6 +109,14 @@ export default [
       'no-var': 'error',
       'no-case-declarations': 'error',
       'no-undef': 'off', // Turn off since we're using TypeScript
+      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+    },
+  },
+  {
+    files: ['tests/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

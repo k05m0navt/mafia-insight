@@ -179,9 +179,9 @@ These routes require users to be logged in.
 
 ### Progress Tracking
 
-- **`/import-progress`** - Import Progress
-  - Description: Track data import from gomafia.pro
-  - Access: Authenticated users
+- **`/admin/import`** - Import Center
+  - Description: Manage and monitor full data imports from gomafia.pro
+  - Access: ✅ **Admin only**
   - Features:
     - Real-time progress updates
     - Current operation
@@ -244,7 +244,7 @@ These routes are restricted to users with the `admin` role.
     - View region statistics
     - Assign clubs to regions
 
-- **`/(admin)/import`** - Data Import (Admin Group)
+- **`/(admin)/admin/import`** - Data Import (Admin Group)
   - Description: Trigger and monitor data imports
   - Access: ✅ **Admin only**
   - Features:
@@ -614,7 +614,7 @@ These routes are restricted to users with the `admin` role.
 | `/clubs`            | ✅ **Yes**    | User          | **Protected**                 |
 | `/profile`          | ✅ Yes        | User          | Protected                     |
 | `/settings`         | ✅ Yes        | User          | Protected                     |
-| `/import-progress`  | ✅ Yes        | User          | Protected                     |
+| `/admin/import`     | ✅ Yes        | User          | Protected                     |
 | `/sync-status`      | ✅ Yes        | User          | Protected                     |
 | `/admin/**`         | ✅ Yes        | Admin         | Admin only (except bootstrap) |
 | `/admin/bootstrap`  | ❌ No         | -             | One-time public access        |

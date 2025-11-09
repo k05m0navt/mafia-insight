@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -13,11 +13,7 @@ export function AdminBootstrapGuard({ children }: AdminBootstrapGuardProps) {
   const [needsBootstrap, setNeedsBootstrap] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    checkBootstrapStatus();
-  }, []);
-
-  const checkBootstrapStatus = async () => {
+  const checkBootstrapStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/bootstrap');
       const data = await response.json();
@@ -35,7 +31,11 @@ export function AdminBootstrapGuard({ children }: AdminBootstrapGuardProps) {
     } finally {
       setIsChecking(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkBootstrapStatus();
+  }, [checkBootstrapStatus]);
 
   if (isChecking) {
     return (

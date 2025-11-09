@@ -6,6 +6,7 @@ export interface DashboardMetrics {
     totalGames: number;
     totalTournaments: number;
     totalClubs: number;
+    totalJudges: number;
   };
   importStatus: {
     isRunning: boolean;
@@ -43,6 +44,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     totalGames,
     totalTournaments,
     totalClubs,
+    totalJudges,
     syncStatus,
     recentImports,
     systemHealth,
@@ -51,6 +53,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     db.game.count(),
     db.tournament.count(),
     db.club.count(),
+    db.player.count({ where: { judgeCategory: { not: null } } }),
     db.syncStatus.findUnique({ where: { id: 'current' } }),
     getRecentImports(),
     getSystemHealth(),
@@ -62,6 +65,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       totalGames,
       totalTournaments,
       totalClubs,
+      totalJudges,
     },
     importStatus: syncStatus
       ? {

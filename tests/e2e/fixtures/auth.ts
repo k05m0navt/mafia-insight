@@ -8,8 +8,8 @@ export interface AuthFixtures {
 }
 
 export const test = base.extend<AuthFixtures>({
-  loginAsAdmin: async ({ page }, use) => {
-    await use(async () => {
+  loginAsAdmin: async ({ page }, run) => {
+    await run(async () => {
       await page.goto('/login');
       await page.fill('[data-testid="email"]', 'admin@example.com');
       await page.fill('[data-testid="password"]', 'admin123');
@@ -21,8 +21,8 @@ export const test = base.extend<AuthFixtures>({
     });
   },
 
-  loginAsUser: async ({ page }, use) => {
-    await use(async () => {
+  loginAsUser: async ({ page }, run) => {
+    await run(async () => {
       await page.goto('/login');
       await page.fill('[data-testid="email"]', 'user@example.com');
       await page.fill('[data-testid="password"]', 'user123');
@@ -34,8 +34,8 @@ export const test = base.extend<AuthFixtures>({
     });
   },
 
-  loginAsGuest: async ({ page }, use) => {
-    await use(async () => {
+  loginAsGuest: async ({ page }, run) => {
+    await run(async () => {
       await page.goto('/');
       await expect(page.locator('[data-testid="user-role"]')).toContainText(
         'guest'
@@ -43,8 +43,8 @@ export const test = base.extend<AuthFixtures>({
     });
   },
 
-  logout: async ({ page }, use) => {
-    await use(async () => {
+  logout: async ({ page }, run) => {
+    await run(async () => {
       await page.click('[data-testid="logout-button"]');
       await expect(page).toHaveURL('/login');
       await expect(page.locator('[data-testid="user-role"]')).toContainText(

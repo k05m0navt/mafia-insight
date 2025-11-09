@@ -93,7 +93,7 @@ test.describe('Error Handling and Recovery Tests', () => {
 
   test('should handle validation errors gracefully', async ({ page }) => {
     // Navigate to a form page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Submit invalid data
     await page.fill('[data-testid="import-name"]', '');
@@ -247,7 +247,7 @@ test.describe('Error Handling and Recovery Tests', () => {
 
   test('should handle file upload errors gracefully', async ({ page }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Try to upload invalid file
     await page.setInputFiles(

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
+import { YearFilter } from '@/components/ui/YearFilter';
 
 interface Player {
   id: string;
@@ -85,6 +86,7 @@ interface Player {
       }
     >;
   };
+  availableYears?: number[];
 }
 
 export default function PlayerDetailsPage() {
@@ -92,13 +94,19 @@ export default function PlayerDetailsPage() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const fetchPlayer = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/players/${params.id}`);
+      const url = new URL(`/api/players/${params.id}`, window.location.origin);
+      if (selectedYear) {
+        url.searchParams.append('year', selectedYear.toString());
+      }
+
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -114,7 +122,7 @@ export default function PlayerDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [params.id, selectedYear]);
 
   useEffect(() => {
     if (params.id) {
@@ -198,11 +206,27 @@ export default function PlayerDetailsPage() {
           </Button>
           <h1 className="text-3xl font-bold">{player.name}</h1>
         </div>
-        <Button onClick={fetchPlayer} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchPlayer} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Year Filter */}
+      {player.availableYears && player.availableYears.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <YearFilter
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              availableYears={player.availableYears}
+              className="max-w-xs"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Player Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

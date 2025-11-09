@@ -4,6 +4,7 @@ import { requireAuthCookie } from '@/lib/utils/apiAuth';
 import { prisma } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 import { Permission, PermissionUpdate } from '@/types/permissions';
+import { Prisma } from '@prisma/client';
 
 // Cache to track if default permissions have been initialized
 let defaultPermissionsInitialized = false;
@@ -249,9 +250,12 @@ export async function PUT(request: NextRequest) {
             roles: update.roles,
           },
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If permission doesn't exist, log warning but don't fail the entire request
-        if (error.code === 'P2025') {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2025'
+        ) {
           console.warn(`Permission with id ${update.id} not found in database`);
           return null;
         }

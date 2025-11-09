@@ -24,7 +24,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test mobile-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test orientation change
@@ -67,7 +67,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test mobile-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test haptic feedback
@@ -113,7 +113,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test mobile-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test Android-specific features
@@ -160,7 +160,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test mobile-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test Samsung-specific features
@@ -223,7 +223,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test tablet-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test tablet layout
@@ -261,7 +261,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test tablet-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test tablet layout
@@ -299,7 +299,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test tablet-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test tablet layout
@@ -329,7 +329,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test desktop-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test desktop layout
@@ -373,7 +373,7 @@ test.describe('Device Compatibility Tests', () => {
       await expect(page.locator('[data-testid="app-root"]')).toBeVisible();
 
       // Test desktop-specific functionality
-      await page.goto('/import');
+      await page.goto('/admin/import');
       await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
 
       // Test desktop layout

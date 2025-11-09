@@ -1,6 +1,37 @@
 import { prisma } from '@/lib/db';
 import { ClubSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+
+const clubInclude = {
+  creator: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  players: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  },
+  _count: {
+    select: {
+      players: true,
+    },
+  },
+} as const;
+
+type ClubWithRelations = Prisma.ClubGetPayload<{
+  include: typeof clubInclude;
+}>;
 
 export class ClubService {
   async getClubs(
@@ -13,19 +44,14 @@ export class ClubService {
     region?: string
   ) {
     // Build orderBy clause
-    let orderBy: any = {};
-    if (sortBy === 'memberCount') {
-      // For member count, we need to sort by _count.players
-      // This requires a more complex query, so we'll sort by name for now
-      // and handle member count filtering separately
-      orderBy = { createdAt: sortOrder };
-    } else {
-      orderBy[sortBy] = sortOrder;
-    }
+    const orderBy: Prisma.ClubOrderByWithRelationInput =
+      sortBy === 'memberCount'
+        ? { createdAt: sortOrder }
+        : ({ [sortBy]: sortOrder } as Prisma.ClubOrderByWithRelationInput);
 
     const hasSearch = !!search;
     const searchTerm = search?.toLowerCase() || '';
-    let clubs: any[] = [];
+    let clubs: ClubWithRelations[] = [];
     let total = 0;
 
     if (hasSearch && searchTerm) {
@@ -33,7 +59,7 @@ export class ClubService {
       // to ensure exact matches are always included, even when sorting by other fields
 
       // Build where clause for exact matches
-      const exactWhere: any = {
+      const exactWhere: Prisma.ClubWhereInput = {
         name: {
           equals: search,
           mode: 'insensitive' as const,
@@ -43,16 +69,9 @@ export class ClubService {
       if (region) {
         exactWhere.region = region;
       }
-      if (minMembers !== undefined) {
-        exactWhere._count = {
-          players: {
-            gte: minMembers,
-          },
-        };
-      }
 
       // Build where clause for all matches (contains)
-      const allMatchesWhere: any = {
+      const allMatchesWhere: Prisma.ClubWhereInput = {
         name: {
           contains: search,
           mode: 'insensitive' as const,
@@ -62,90 +81,42 @@ export class ClubService {
       if (region) {
         allMatchesWhere.region = region;
       }
-      if (minMembers !== undefined) {
-        allMatchesWhere._count = {
-          players: {
-            gte: minMembers,
-          },
-        };
-      }
 
       // Fetch exact matches (no limit, sorted by user's preference)
       // Fetch all matches (larger set to ensure good pagination, up to 1000)
       const fetchLimit = Math.min(1000, limit * 10);
 
-      const [exactMatches, allMatches, _exactCount, allCount] =
-        await Promise.all([
-          prisma.club.findMany({
-            where: exactWhere,
-            orderBy,
-            include: {
-              creator: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              players: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  players: true,
-                },
-              },
-            },
-          }),
-          prisma.club.findMany({
-            where: allMatchesWhere,
-            orderBy,
-            take: fetchLimit,
-            include: {
-              creator: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              players: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  players: true,
-                },
-              },
-            },
-          }),
-          prisma.club.count({ where: exactWhere }),
-          prisma.club.count({ where: allMatchesWhere }),
-        ]);
+      const [exactMatches, allMatches, allCount] = await Promise.all([
+        prisma.club.findMany({
+          where: exactWhere,
+          orderBy,
+          include: clubInclude,
+        }),
+        prisma.club.findMany({
+          where: allMatchesWhere,
+          orderBy,
+          take: fetchLimit,
+          include: clubInclude,
+        }),
+        prisma.club.count({ where: allMatchesWhere }),
+      ]);
+
+      const meetsMemberThreshold = (club: ClubWithRelations) =>
+        minMembers === undefined || club._count.players >= minMembers;
+
+      const filteredExactMatches = exactMatches.filter(meetsMemberThreshold);
+      const filteredAllMatches = allMatches.filter(meetsMemberThreshold);
 
       // Filter out exact matches from allMatches to get only partial matches
-      const exactMatchIds = new Set(exactMatches.map((c) => c.id));
-      const partialMatches = allMatches.filter((c) => !exactMatchIds.has(c.id));
+      const exactMatchIds = new Set(filteredExactMatches.map((c) => c.id));
+      const partialMatches = filteredAllMatches.filter(
+        (c) => !exactMatchIds.has(c.id)
+      );
 
       // Combine: exact matches first, then partial matches
-      const allClubs = [...exactMatches, ...partialMatches];
-      total = allCount;
+      const allClubs = [...filteredExactMatches, ...partialMatches];
+      const combinedTotal = filteredExactMatches.length + partialMatches.length;
+      total = minMembers !== undefined ? combinedTotal : allCount;
 
       // Apply pagination
       const paginatedSkip = (page - 1) * limit;
@@ -153,20 +124,10 @@ export class ClubService {
     } else {
       // For non-search queries, use normal pagination
       const skip = (page - 1) * limit;
-      const where: any = {};
+      const where: Prisma.ClubWhereInput = {};
 
       if (region) {
         where.region = region;
-      }
-      if (minMembers !== undefined && minMembers > 0) {
-        // For member count filtering, we need to use a different approach
-        // since Prisma doesn't support filtering by _count directly in where clause
-        // We'll fetch all and filter, but this is less efficient - consider using a raw query
-        where._count = {
-          players: {
-            gte: minMembers,
-          },
-        };
       }
 
       const [allClubs, totalCount] = await Promise.all([
@@ -174,31 +135,7 @@ export class ClubService {
           where,
           skip,
           take: limit,
-          include: {
-            creator: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            players: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
-              },
-            },
-            _count: {
-              select: {
-                players: true,
-              },
-            },
-          },
+          include: clubInclude,
           orderBy,
         }),
         prisma.club.count({ where }),

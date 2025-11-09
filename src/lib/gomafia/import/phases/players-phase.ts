@@ -55,35 +55,83 @@ export class PlayersPhase {
     let totalSaved = 0;
 
     // Scrape all players with progress callback and incremental saving
-    const result = await this.playersScraper.scrapeAllPlayers({
-      year: new Date().getFullYear(),
-      region: 'all',
-      skipOnError: true, // Skip problematic pages instead of failing completely
-      onProgress: (pageNumber: number, currentTotal: number) => {
-        // Update metrics during scraping so UI sees progress
-        this.orchestrator.updateValidationMetrics({
-          totalFetched: currentTotal,
+    // Changed: skipOnError is now false - we want to track errors, not skip silently
+    const result = await this.playersScraper
+      .scrapeAllPlayers({
+        year: new Date().getFullYear(),
+        region: 'all',
+        skipOnError: false, // Changed: Don't skip - record errors instead
+        onProgress: (pageNumber: number, currentTotal: number) => {
+          // Check for pause before processing next page
+          this.orchestrator.checkPaused();
+          this.orchestrator.checkCancellation();
+
+          // Update metrics during scraping so UI sees progress
+          this.orchestrator.updateValidationMetrics({
+            totalFetched: currentTotal,
+          });
+        },
+        onPageData: async (pageNumber: number, pageData: PlayerRawData[]) => {
+          // Check for pause before saving
+          this.orchestrator.checkPaused();
+          this.orchestrator.checkCancellation();
+
+          // Incrementally save each page's data as it's scraped
+          // This ensures we don't lose data if scraping fails later
+          await this.savePageData(pageData, systemUserId, savedPlayerIds);
+          totalSaved += pageData.length;
+          console.log(
+            `[PlayersPhase] Saved page ${pageNumber}: ${pageData.length} players (total saved: ${totalSaved})`
+          );
+        },
+      })
+      .catch(async (error) => {
+        // Record error as skipped entity instead of failing completely
+        console.error(`[PlayersPhase] Error during scraping:`, error);
+
+        // Try to extract page number from error if available
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const pageMatch = errorMessage.match(/page[:\s]*(\d+)/i);
+        const pageNumber = pageMatch ? parseInt(pageMatch[1], 10) : undefined;
+
+        // Record skipped page for manual retry
+        await this.orchestrator.recordSkippedEntity({
+          phase: 'PLAYERS',
+          entityType: 'page',
+          pageNumber,
+          errorCode: 'SCRAPE_ERROR',
+          errorMessage,
+          errorDetails: {
+            error: errorMessage,
+            stack: error instanceof Error ? error.stack : undefined,
+          },
         });
-      },
-      onPageData: async (pageNumber: number, pageData: PlayerRawData[]) => {
-        // Incrementally save each page's data as it's scraped
-        // This ensures we don't lose data if scraping fails later
-        await this.savePageData(pageData, systemUserId, savedPlayerIds);
-        totalSaved += pageData.length;
-        console.log(
-          `[PlayersPhase] Saved page ${pageNumber}: ${pageData.length} players (total saved: ${totalSaved})`
-        );
-      },
-    });
+
+        // Return empty result to continue processing
+        return { data: [], skippedPages: pageNumber ? [pageNumber] : [] };
+      });
 
     const rawPlayers = result.data;
     const skippedPages = result.skippedPages;
 
-    // Store skipped pages in orchestrator for later retrieval
+    // Store skipped pages in orchestrator for later retrieval and record them
     if (skippedPages.length > 0) {
       this.orchestrator.recordSkippedPages('PLAYERS', skippedPages);
+
+      // Record each skipped page as a skipped entity
+      for (const pageNumber of skippedPages) {
+        await this.orchestrator.recordSkippedEntity({
+          phase: 'PLAYERS',
+          entityType: 'page',
+          pageNumber,
+          errorCode: 'PAGE_SKIP',
+          errorMessage: `Page ${pageNumber} was skipped during scraping`,
+        });
+      }
+
       console.warn(
-        `[PlayersPhase] Skipped pages detected: ${skippedPages.join(', ')}`
+        `[PlayersPhase] Skipped pages detected: ${skippedPages.join(', ')} (recorded for manual retry)`
       );
     }
 

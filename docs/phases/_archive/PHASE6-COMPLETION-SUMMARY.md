@@ -95,7 +95,7 @@ Linter Errors: 0 ✅
 - `src/lib/gomafia/import/import-orchestrator.ts` - Added cancellation methods
 - `src/app/api/gomafia-sync/import/route.ts` - Enhanced DELETE endpoint
 - `src/components/sync/ImportControls.tsx` - Full refactor with error recovery
-- `src/app/(dashboard)/import/page.tsx` - Error code mapping
+- `src/app/(dashboard)/admin/import/page.tsx` - Error code mapping
 - `tests/components/sync/ImportControls.test.tsx` - Updated for integration
 - `prisma/schema.prisma` - Added `importCheckpoint` model
 - `package.json` - Added `@testing-library/user-event`

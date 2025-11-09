@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 
@@ -57,24 +56,8 @@ export async function clearDatabase(adminId: string): Promise<{
     return deletedCounts;
   });
 
-  // Log the operation
-  await resilientDB.execute((db) =>
-    db.syncLog.create({
-      data: {
-        type: 'FULL',
-        status: 'COMPLETED',
-        startTime: new Date(),
-        endTime: new Date(),
-        recordsProcessed: 0,
-        errors: {
-          operation: 'DATABASE_CLEAR',
-          adminId,
-          deleted: deleted,
-        } as Prisma.InputJsonValue,
-      },
-    })
-  );
-
+  // Log the operation (don't create syncLog entry - deletions are not sync operations)
+  // Just log to console for audit purposes
   console.log(`Database cleared by admin: ${adminId}`, deleted);
 
   return { deleted };
@@ -237,25 +220,8 @@ export async function clearDataType(
     return deletedCounts;
   });
 
-  // Log the operation
-  await resilientDB.execute((db) =>
-    db.syncLog.create({
-      data: {
-        type: 'FULL',
-        status: 'COMPLETED',
-        startTime: new Date(),
-        endTime: new Date(),
-        recordsProcessed: 0,
-        errors: {
-          operation: 'SELECTIVE_DATA_CLEAR',
-          dataType,
-          adminId,
-          deleted: deleted,
-        } as Prisma.InputJsonValue,
-      },
-    })
-  );
-
+  // Log the operation (don't create syncLog entry - deletions are not sync operations)
+  // Just log to console for audit purposes
   console.log(`Data type "${dataType}" cleared by admin: ${adminId}`, deleted);
 
   return { deleted, dataType };

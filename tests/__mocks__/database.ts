@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import type { Prisma } from '@prisma/client';
 
 // Mock implementation of database operations for testing
 export const database = {
@@ -6,32 +7,36 @@ export const database = {
   prisma: {
     // Mock user operations
     user: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-user-id',
-          email: data.data.email,
-          name: data.data.name,
-          role: data.data.role || 'user',
-          isActive: data.data.isActive !== false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findUnique: vi.fn().mockImplementation(async (query: any) => {
-        if (query.where.email === 'test@example.com') {
+      create: vi
+        .fn()
+        .mockImplementation(async (data: Prisma.UserCreateArgs) => {
           return {
             id: 'mock-user-id',
-            email: 'test@example.com',
-            name: 'Test User',
-            role: 'user',
-            isActive: true,
+            email: data.data.email,
+            name: data.data.name,
+            role: data.data.role || 'user',
+            isActive: data.data.isActive !== false,
             createdAt: new Date(),
             updatedAt: new Date(),
           };
-        }
-        return null;
-      }),
+        }),
+
+      findUnique: vi
+        .fn()
+        .mockImplementation(async (query: Prisma.UserFindUniqueArgs) => {
+          if (query.where?.email === 'test@example.com') {
+            return {
+              id: 'mock-user-id',
+              email: 'test@example.com',
+              name: 'Test User',
+              role: 'user',
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          }
+          return null;
+        }),
 
       findMany: vi.fn().mockImplementation(async () => {
         return [
@@ -56,17 +61,22 @@ export const database = {
         ];
       }),
 
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          email: query.data.email || 'test@example.com',
-          name: query.data.name || 'Test User',
-          role: query.data.role || 'user',
-          isActive: query.data.isActive !== false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      update: vi
+        .fn()
+        .mockImplementation(async (query: Prisma.UserUpdateArgs) => {
+          return {
+            id: query.where?.id as string,
+            email: (query.data?.email as string) || 'test@example.com',
+            name: (query.data?.name as string) || 'Test User',
+            role: (query.data?.role as string) || 'user',
+            isActive:
+              query.data?.isActive !== undefined
+                ? (query.data.isActive as boolean)
+                : true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
 
       delete: vi.fn().mockImplementation(async (_query: unknown) => {
         return {
@@ -83,25 +93,29 @@ export const database = {
 
     // Mock game operations
     game: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-game-id',
-          name: data.data.name,
-          status: data.data.status || 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      create: vi
+        .fn()
+        .mockImplementation(async (data: Prisma.GameCreateArgs) => {
+          return {
+            id: 'mock-game-id',
+            name: data.data.name as string,
+            status: (data.data.status as string) || 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
 
-      findUnique: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: 'Mock Game',
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      findUnique: vi
+        .fn()
+        .mockImplementation(async (query: Prisma.GameFindUniqueArgs) => {
+          return {
+            id: query.where?.id as string,
+            name: 'Mock Game',
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
 
       findMany: vi.fn().mockImplementation(async () => {
         return [
@@ -122,25 +136,29 @@ export const database = {
         ];
       }),
 
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: query.data.name || 'Updated Game',
-          status: query.data.status || 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      update: vi
+        .fn()
+        .mockImplementation(async (query: Prisma.GameUpdateArgs) => {
+          return {
+            id: query.where?.id as string,
+            name: (query.data?.name as string) || 'Updated Game',
+            status: (query.data?.status as string) || 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
 
-      delete: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: 'Deleted Game',
-          status: 'cancelled',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      delete: vi
+        .fn()
+        .mockImplementation(async (query: Prisma.GameDeleteArgs) => {
+          return {
+            id: query.where?.id as string,
+            name: 'Deleted Game',
+            status: 'cancelled',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
     },
 
     // Mock player operations

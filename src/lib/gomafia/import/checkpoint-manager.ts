@@ -26,6 +26,8 @@ export interface ImportCheckpoint {
   processedIds: string[];
   /** Current progress percentage (0-100) */
   progress: number;
+  /** Whether the import is paused */
+  isPaused?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ export class CheckpointManager {
           lastProcessedId: checkpoint.lastProcessedId,
           processedIds: checkpoint.processedIds,
           progress: checkpoint.progress,
+          isPaused: checkpoint.isPaused ?? false,
         },
         update: {
           currentPhase: checkpoint.currentPhase,
@@ -62,6 +65,7 @@ export class CheckpointManager {
           lastProcessedId: checkpoint.lastProcessedId,
           processedIds: checkpoint.processedIds,
           progress: checkpoint.progress,
+          isPaused: checkpoint.isPaused ?? false,
           lastUpdated: new Date(),
         },
       })
@@ -107,6 +111,7 @@ export class CheckpointManager {
       lastProcessedId: checkpoint.lastProcessedId,
       processedIds: checkpoint.processedIds,
       progress: checkpoint.progress,
+      isPaused: checkpoint.isPaused ?? false,
     };
   }
 

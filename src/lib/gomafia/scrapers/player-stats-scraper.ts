@@ -1,4 +1,4 @@
-import { Page } from 'playwright';
+import { Page, type Request } from 'playwright';
 import { RetryManager } from '../import/retry-manager';
 import { PlayerYearStatsRawData } from '@/types/gomafia-entities';
 
@@ -95,48 +95,196 @@ export class PlayerStatsScraper {
       });
     }
 
-    // Click year selector (custom dropdown component)
+    // Get the current stats snapshot before changing year
+    // This helps us detect when stats actually change after year selection
+    let previousStatsSnapshot: string | null = null;
     try {
-      // Step 1: Click the dropdown trigger to open it
-      await this.page.click(`span.Select_select__selected-span__QTMy5`, {
-        timeout: 5000,
-      });
-
-      // Step 2: Wait for dropdown to appear
-      await this.page.waitForSelector(`text="${year}"`, { timeout: 3000 });
-
-      // Step 3: Click the specific year option
-      await this.page.click(`text="${year}"`, { timeout: 3000 });
-
-      // OPTIMIZED: Removed unnecessary waitForTimeout(500) - data refreshes immediately
-    } catch {
-      // Year selector might not exist or year not available
-      console.warn(`Year ${year} selector not found for player ${gomafiaId}`);
-    }
-
-    // Wait for dynamic content to load after year selection
-    // CRITICAL: Must wait for the API call to complete before extracting data
-    // Use networkidle to ensure the API request finishes and DOM updates
-    // Promise.race ensures we don't wait forever if network never idles
-    await Promise.race([
-      this.page.waitForLoadState('networkidle', { timeout: 10000 }),
-      new Promise((resolve) => setTimeout(resolve, 5000)), // Fallback: wait 5 seconds minimum
-    ]);
-
-    // Wait for stats element to ensure data is loaded
-    try {
-      await this.page.waitForSelector(
-        '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz',
-        {
-          timeout: 3000,
-        }
+      const totalGamesElement = await this.page.$(
+        '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz'
       );
+      if (totalGamesElement) {
+        previousStatsSnapshot =
+          (await totalGamesElement.textContent())?.trim() || null;
+      }
     } catch {
-      // Stats might not exist for this year
+      // If we can't get current stats, that's okay - we'll proceed
     }
 
-    // Extract stats
-    return await this.extractYearStats(year);
+    // Set up network request monitoring to detect API calls when year changes
+    // The page likely makes an API call to fetch stats for the selected year
+    let apiRequestDetected = false;
+    const requestHandler = (request: Request) => {
+      const url = request.url();
+      // Monitor for API requests that might be related to stats loading
+      // Common patterns: /api/stats, /stats/, or requests containing the player ID
+      if (
+        url.includes('/api/') ||
+        url.includes('/stats/') ||
+        (url.includes(gomafiaId) &&
+          (url.includes('year') || url.includes('stats')))
+      ) {
+        apiRequestDetected = true;
+      }
+    };
+    this.page.on('request', requestHandler);
+
+    try {
+      // Click year selector (custom dropdown component)
+      try {
+        // Step 1: Click the dropdown trigger to open it
+        await this.page.click(`span.Select_select__selected-span__QTMy5`, {
+          timeout: 5000,
+        });
+
+        // Step 2: Wait for dropdown to appear and the year option to be visible
+        await this.page.waitForSelector(`text="${year}"`, {
+          timeout: 3000,
+          state: 'visible',
+        });
+
+        // Step 3: Click the specific year option
+        // Reset API request flag before clicking
+        apiRequestDetected = false;
+        await this.page.click(`text="${year}"`, { timeout: 3000 });
+
+        // Step 4: Wait for dropdown to close and selected year to be visible in the selector
+        // This ensures the selection was processed
+        await this.page.waitForFunction(
+          (yearParam) => {
+            const selector = document.querySelector(
+              'span.Select_select__selected-span__QTMy5'
+            );
+            return selector?.textContent?.includes(yearParam.toString());
+          },
+          year,
+          { timeout: 5000 }
+        );
+      } catch (error) {
+        // Year selector might not exist or year not available
+        console.warn(
+          `Year ${year} selector not found for player ${gomafiaId}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+
+      // CRITICAL FIX: Wait for stats to actually change after year selection
+      // The page uses client-side state (likely React) that updates asynchronously
+      // We need to wait for the stats to stabilize and be different from previous
+      const maxWaitTime = 15000; // 15 seconds max wait
+      const stabilityCheckInterval = 300; // Check every 300ms
+      const stabilityRequiredTime = 800; // Stats must be stable for 800ms
+      const minWaitAfterApiCall = 1000; // Wait at least 1 second after API call
+      const startTime = Date.now();
+      let lastStatsValue: string | null = null;
+      let statsStableSince: number | null = null;
+      let statsStabilized = false;
+      let apiCallDetected = false;
+
+      while (Date.now() - startTime < maxWaitTime && !statsStabilized) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, stabilityCheckInterval)
+        );
+
+        try {
+          // Get the current total games value as a string to detect changes
+          const totalGamesElement = await this.page.$(
+            '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz'
+          );
+
+          if (totalGamesElement) {
+            const currentStatsText =
+              (await totalGamesElement.textContent())?.trim() || '';
+
+            // Check if stats have changed from previous snapshot
+            const statsChanged =
+              previousStatsSnapshot &&
+              currentStatsText !== previousStatsSnapshot;
+
+            // If stats text has changed, reset stability timer
+            if (currentStatsText !== lastStatsValue) {
+              lastStatsValue = currentStatsText;
+              statsStableSince = Date.now();
+              // If we detected an API call, mark it
+              if (apiRequestDetected) {
+                apiCallDetected = true;
+              }
+            } else if (lastStatsValue && statsStableSince) {
+              // Stats haven't changed - check if they've been stable long enough
+              const stableDuration = Date.now() - statsStableSince;
+              const timeSinceStart = Date.now() - startTime;
+
+              // If we detected an API call, wait at least minWaitAfterApiCall
+              const minWaitTime = apiCallDetected ? minWaitAfterApiCall : 1000;
+
+              if (
+                stableDuration >= stabilityRequiredTime &&
+                timeSinceStart >= minWaitTime
+              ) {
+                // Verify that stats actually changed from previous (if we had previous stats)
+                if (previousStatsSnapshot) {
+                  if (statsChanged) {
+                    // Stats changed, we're good
+                    statsStabilized = true;
+                    break;
+                  } else if (timeSinceStart < 5000) {
+                    // Stats haven't changed yet, but we haven't waited long enough
+                    // Continue waiting
+                    continue;
+                  } else {
+                    // Stats haven't changed after 5 seconds - might be same data or error
+                    // Log warning but proceed
+                    console.warn(
+                      `Stats did not change after year selection for player ${gomafiaId}, year ${year}. ` +
+                        `Previous: ${previousStatsSnapshot}, Current: ${currentStatsText}`
+                    );
+                    statsStabilized = true;
+                    break;
+                  }
+                } else {
+                  // No previous stats to compare, stats are stable, proceed
+                  statsStabilized = true;
+                  break;
+                }
+              }
+            } else if (!lastStatsValue && currentStatsText) {
+              // First time we got stats, start tracking
+              lastStatsValue = currentStatsText;
+              statsStableSince = Date.now();
+            }
+          }
+        } catch {
+          // Element might not exist yet, continue waiting
+        }
+      }
+
+      // Additional wait for network requests to complete
+      try {
+        await Promise.race([
+          this.page.waitForLoadState('networkidle', { timeout: 5000 }),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
+      } catch {
+        // Network idle might not happen, that's okay
+      }
+
+      // Final wait for stats element to ensure data is loaded
+      try {
+        await this.page.waitForSelector(
+          '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz',
+          {
+            timeout: 3000,
+          }
+        );
+      } catch {
+        // Stats might not exist for this year
+      }
+
+      // Extract stats
+      return await this.extractYearStats(year);
+    } finally {
+      // Remove request handler after we're done
+      this.page.off('request', requestHandler);
+    }
   }
 
   /**

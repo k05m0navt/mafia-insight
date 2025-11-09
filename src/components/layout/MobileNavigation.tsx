@@ -14,6 +14,9 @@ import {
   Gamepad2,
   Activity,
   Settings,
+  LayoutDashboard,
+  Database,
+  Lock,
 } from 'lucide-react';
 import { getNavigationMenu, UserRole } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
@@ -30,6 +33,9 @@ const iconMap = {
   Gamepad2,
   Activity,
   Settings,
+  LayoutDashboard,
+  Database,
+  Lock,
 };
 
 export function MobileNavigation({
@@ -73,22 +79,42 @@ export function MobileNavigation({
             </div>
 
             {/* Navigation Items */}
-            <nav className="flex-1 p-4">
-              <div className="space-y-2">
+            <nav className="flex-1 p-4 overflow-y-auto">
+              <div className="space-y-1">
                 {menuItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={item.path}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors',
-                      isActive(item.path)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  <div key={item.id}>
+                    <Link
+                      href={item.path}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors',
+                        isActive(item.path)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <Icon name={item.icon} />
+                      {item.label}
+                    </Link>
+                    {item.children && item.children.length > 0 && (
+                      <div className="ml-6 mt-1 space-y-1 border-l pl-3">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={child.path}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                              isActive(child.path)
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            )}
+                          >
+                            <Icon name={child.icon} />
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
                     )}
-                  >
-                    <Icon name={item.icon} />
-                    {item.label}
-                  </Link>
+                  </div>
                 ))}
               </div>
             </nav>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 // Progress component not used in this implementation
@@ -56,11 +56,7 @@ export function PlayerStatistics({ playerId, year }: PlayerStatisticsProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear] = useState<number | null>(year || null);
 
-  useEffect(() => {
-    fetchPlayerStats();
-  }, [playerId, selectedYear]);
-
-  const fetchPlayerStats = async () => {
+  const fetchPlayerStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -85,7 +81,11 @@ export function PlayerStatistics({ playerId, year }: PlayerStatisticsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [playerId, selectedYear]);
+
+  useEffect(() => {
+    fetchPlayerStats();
+  }, [fetchPlayerStats]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {

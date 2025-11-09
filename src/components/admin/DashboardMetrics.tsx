@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Trophy, Calendar, Building2 } from 'lucide-react';
+import { Users, Trophy, Calendar, Building2, Scale } from 'lucide-react';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -10,8 +10,8 @@ export function DashboardMetrics() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {[1, 2, 3, 4, 5].map((i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
@@ -61,10 +61,16 @@ export function DashboardMetrics() {
       icon: Building2,
       color: 'text-orange-600',
     },
+    {
+      title: 'Judges',
+      value: data.dataVolumes.totalJudges.toLocaleString(),
+      icon: Scale,
+      color: 'text-indigo-600',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {metrics.map((metric) => {
         const Icon = metric.icon;
         return (

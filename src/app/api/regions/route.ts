@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { Prisma, Region } from '@prisma/client';
 
 const querySchema = z.object({
   active: z
@@ -19,13 +20,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Build base where clause (non-search filters)
-    const baseWhere: {
-      isActive?: boolean;
-      country?: {
-        contains: string;
-        mode: 'insensitive';
-      };
-    } = {};
+    const baseWhere: Prisma.RegionWhereInput = {};
 
     if (active !== undefined) {
       baseWhere.isActive = active;
@@ -40,30 +35,14 @@ export async function GET(request: NextRequest) {
 
     const hasSearch = !!search;
     const searchTerm = search?.toLowerCase() || '';
-    let regions: any[] = [];
+    let regions: Region[] = [];
 
     if (hasSearch && searchTerm) {
       // For search queries, fetch exact matches and partial matches separately
       // to ensure exact matches are always included
 
       // Build where clause for exact matches (name or country equals search)
-      const exactWhere: {
-        isActive?: boolean;
-        country?: {
-          contains: string;
-          mode: 'insensitive';
-        };
-        OR: Array<{
-          name?: {
-            equals: string;
-            mode: 'insensitive';
-          };
-          country?: {
-            equals: string;
-            mode: 'insensitive';
-          };
-        }>;
-      } = {
+      const exactWhere: Prisma.RegionWhereInput = {
         ...baseWhere,
         OR: [
           {
@@ -82,23 +61,7 @@ export async function GET(request: NextRequest) {
       };
 
       // Build where clause for all matches (name or country contains search)
-      const allMatchesWhere: {
-        isActive?: boolean;
-        country?: {
-          contains: string;
-          mode: 'insensitive';
-        };
-        OR: Array<{
-          name?: {
-            contains: string;
-            mode: 'insensitive';
-          };
-          country?: {
-            contains: string;
-            mode: 'insensitive';
-          };
-        }>;
-      } = {
+      const allMatchesWhere: Prisma.RegionWhereInput = {
         ...baseWhere,
         OR: [
           {
@@ -138,13 +101,7 @@ export async function GET(request: NextRequest) {
       regions = [...exactMatches, ...partialMatches];
     } else {
       // For non-search queries, use normal query
-      const where: {
-        isActive?: boolean;
-        country?: {
-          contains: string;
-          mode: 'insensitive';
-        };
-      } = { ...baseWhere };
+      const where: Prisma.RegionWhereInput = { ...baseWhere };
 
       regions = await prisma.region.findMany({
         where,

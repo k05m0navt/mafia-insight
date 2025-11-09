@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { autoTriggerImportIfNeeded } from '@/lib/gomafia/import/auto-trigger';
+import { Prisma } from '@prisma/client';
 
 // Query parameters validation schema
 const GamesQuerySchema = z.object({
@@ -62,7 +63,36 @@ export async function GET(request: NextRequest) {
 
     const hasSearch = !!query.search;
     const searchTerm = query.search?.toLowerCase() || '';
-    let games: any[] = [];
+    const gameSelect = {
+      id: true,
+      gomafiaId: true,
+      date: true,
+      winnerTeam: true,
+      status: true,
+      lastSyncAt: true,
+      syncStatus: true,
+      tournamentId: true,
+      participations: {
+        select: {
+          player: {
+            select: {
+              id: true,
+              name: true,
+              eloRating: true,
+            },
+          },
+          role: true,
+          team: true,
+          isWinner: true,
+        },
+      },
+    } as const;
+
+    type GameWithParticipations = Prisma.GameGetPayload<{
+      select: typeof gameSelect;
+    }>;
+
+    let games: GameWithParticipations[] = [];
     let total = 0;
 
     if (hasSearch && searchTerm) {
@@ -108,59 +138,13 @@ export async function GET(request: NextRequest) {
           db.game.findMany({
             where: exactWhere,
             orderBy,
-            select: {
-              id: true,
-              gomafiaId: true,
-              date: true,
-              winnerTeam: true,
-              status: true,
-              lastSyncAt: true,
-              syncStatus: true,
-              tournamentId: true,
-              participations: {
-                select: {
-                  player: {
-                    select: {
-                      id: true,
-                      name: true,
-                      eloRating: true,
-                    },
-                  },
-                  role: true,
-                  team: true,
-                  isWinner: true,
-                },
-              },
-            },
+            select: gameSelect,
           }),
           db.game.findMany({
             where: allMatchesWhere,
             orderBy,
             take: fetchLimit,
-            select: {
-              id: true,
-              gomafiaId: true,
-              date: true,
-              winnerTeam: true,
-              status: true,
-              lastSyncAt: true,
-              syncStatus: true,
-              tournamentId: true,
-              participations: {
-                select: {
-                  player: {
-                    select: {
-                      id: true,
-                      name: true,
-                      eloRating: true,
-                    },
-                  },
-                  role: true,
-                  team: true,
-                  isWinner: true,
-                },
-              },
-            },
+            select: gameSelect,
           }),
           db.game.count({ where: exactWhere }),
           db.game.count({ where: allMatchesWhere }),
@@ -188,30 +172,7 @@ export async function GET(request: NextRequest) {
           orderBy,
           skip,
           take: query.limit,
-          select: {
-            id: true,
-            gomafiaId: true,
-            date: true,
-            winnerTeam: true,
-            status: true,
-            lastSyncAt: true,
-            syncStatus: true,
-            tournamentId: true,
-            participations: {
-              select: {
-                player: {
-                  select: {
-                    id: true,
-                    name: true,
-                    eloRating: true,
-                  },
-                },
-                role: true,
-                team: true,
-                isWinner: true,
-              },
-            },
-          },
+          select: gameSelect,
         }),
         db.game.count({ where }),
       ]);

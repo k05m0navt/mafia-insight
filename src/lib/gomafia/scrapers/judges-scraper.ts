@@ -97,6 +97,42 @@ export class JudgesScraper {
    */
   async extractJudgesFromPage(): Promise<JudgeRawData[]> {
     return await this.retryManager.execute(async () => {
+      // Wait for table to load (important for tab-based pages)
+      // The judges page uses tabs, so content loads dynamically
+      try {
+        // Wait for table structure - try multiple selectors
+        await Promise.race([
+          this.page.waitForSelector('table tbody tr', { timeout: 10000 }),
+          this.page.waitForSelector('table tr', { timeout: 10000 }),
+          this.page.waitForSelector('tbody tr', { timeout: 10000 }),
+        ]);
+      } catch (_error) {
+        // If table doesn't appear, page might be empty or tab not active
+        console.warn('[JudgesScraper] Table not found, page might be empty');
+        // Check if page loaded at all
+        const hasTable = await this.page.$('table').catch(() => null);
+        if (!hasTable) {
+          console.warn('[JudgesScraper] No table element found on page');
+        }
+        return [];
+      }
+
+      // Additional wait for network to ensure tab content is fully loaded
+      await Promise.race([
+        this.page.waitForLoadState('networkidle', { timeout: 5000 }),
+        new Promise((resolve) => setTimeout(resolve, 2000)), // Fallback: wait 2 seconds
+      ]);
+
+      // Verify table has rows before extracting
+      const rowCount = await this.page.$$eval(
+        'table tbody tr',
+        (rows) => rows.length
+      );
+      if (rowCount === 0) {
+        console.warn('[JudgesScraper] Table found but no rows detected');
+        return [];
+      }
+
       return await this.page.$$eval('table tbody tr', (rows) => {
         const parseBoolean = (text: string | null | undefined): boolean => {
           if (!text) return false;
@@ -142,33 +178,50 @@ export class JudgesScraper {
           return null;
         };
 
-        return rows.map((row) => {
+        const judges: JudgeRawData[] = [];
+
+        for (const row of rows) {
           const cells = row.querySelectorAll('td');
 
-          // Cell 0: Judge (link to /stats/{id})
-          const judgeCell = cells[0];
+          // Skip header row - check if this row has header-like content
+          const firstCellText = cells[0]?.textContent?.trim() || '';
+          if (firstCellText === 'Судья' || cells.length < 9) {
+            continue; // Skip header row
+          }
+
+          // Cell 0: Empty (checkbox or index column)
+          // Cell 1: Judge (link to /stats/{id}) - THIS IS THE ACTUAL JUDGE CELL
+          const judgeCell = cells[1]; // Changed from cells[0] to cells[1]
           const judgeLink = judgeCell?.querySelector(
             'a[href*="/stats/"]'
           ) as HTMLAnchorElement;
-          const name = judgeLink?.textContent?.trim() || '';
-          const gomafiaId = judgeLink?.href?.split('/').pop() || '';
 
-          // Cell 1: Category (e.g., "Высшая категория", "1 категория")
-          const category = cells[1]?.textContent?.trim() || null;
+          // Get full name from cell text (includes both nickname and real name)
+          // Format is typically: "NicknameReal Name" (e.g., "АрдыльянНиколай Ардыльян")
+          const cellText = judgeCell?.textContent?.trim() || '';
+          const name = cellText || judgeLink?.textContent?.trim() || '';
 
-          // Cell 2: Can be GS (number)
-          const canBeGsText = cells[2]?.textContent?.trim() || '';
-          const canBeGs =
-            canBeGsText && canBeGsText !== '–' && canBeGsText !== '—'
-              ? parseInt(canBeGsText)
-              : null;
+          // Extract gomafiaId from href - handle both relative and absolute URLs
+          let gomafiaId = '';
+          if (judgeLink?.href) {
+            const href = judgeLink.href;
+            // Handle both "/stats/12345" and "https://gomafia.pro/stats/12345"
+            const match = href.match(/\/stats\/(\d+)/);
+            gomafiaId = match ? match[1] : href.split('/').pop() || '';
+          }
 
-          // Cell 3: Can judge final (boolean - shown as "5" or "Да")
-          const canJudgeFinalText = cells[3]?.textContent?.trim() || '';
-          const canJudgeFinal = parseBoolean(canJudgeFinalText);
+          // If no gomafiaId found, skip this row (it's invalid)
+          if (!gomafiaId || !name || name.trim() === '') {
+            continue;
+          }
 
-          // Cell 4: Max tables as GS (number)
-          const maxTablesAsGsText = cells[4]?.textContent?.trim() || '';
+          // Cell 2: Category (e.g., "Высшая категория", "1 категория")
+          const category = cells[2]?.textContent?.trim() || null;
+
+          // Cells 3-4: Empty (spacer columns)
+
+          // Cell 5: Max tables as GS (number) - Header says "Максимум столов в роли ГС"
+          const maxTablesAsGsText = cells[5]?.textContent?.trim() || '';
           const maxTablesAsGs =
             maxTablesAsGsText &&
             maxTablesAsGsText !== '–' &&
@@ -176,15 +229,12 @@ export class JudgesScraper {
               ? parseInt(maxTablesAsGsText)
               : null;
 
-          // Cell 5: Rating (number)
-          const ratingText = cells[5]?.textContent?.trim() || '';
-          const rating =
-            ratingText && ratingText !== '–' && ratingText !== '—'
-              ? parseInt(ratingText)
-              : null;
+          // Cell 6: Can judge final (boolean - shown as "5" or "Да") - Header says "Рейтинг" but value "5" indicates can judge final
+          const canJudgeFinalText = cells[6]?.textContent?.trim() || '';
+          const canJudgeFinal = parseBoolean(canJudgeFinalText);
 
-          // Cell 6: Games judged (number)
-          const gamesJudgedText = cells[6]?.textContent?.trim() || '';
+          // Cell 7: Games judged (number) - Header says "Игр отсудил"
+          const gamesJudgedText = cells[7]?.textContent?.trim() || '';
           const gamesJudged =
             gamesJudgedText &&
             gamesJudgedText !== '–' &&
@@ -192,14 +242,20 @@ export class JudgesScraper {
               ? parseInt(gamesJudgedText)
               : null;
 
-          // Cell 7: Accreditation date (Russian date format)
-          const accreditationDateText = cells[7]?.textContent?.trim() || '';
+          // Cell 8: Accreditation date (Russian date format) - Header says "Дата аккредитации"
+          const accreditationDateText = cells[8]?.textContent?.trim() || '';
           const accreditationDate = parseDate(accreditationDateText);
 
-          // Cell 8: Responsible from SC FSM
-          const responsibleFromSc = cells[8]?.textContent?.trim() || null;
+          // Cell 9: Responsible from SC FSM - Header says "Ответственный от СК ФСМ"
+          const responsibleFromSc = cells[9]?.textContent?.trim() || null;
 
-          return {
+          // Can be GS and Rating are not in the visible columns based on the table structure
+          // These might be in cells 3-4 which are empty, or the table structure changed
+          // Setting to null for now - can be updated if these fields are found elsewhere
+          const canBeGs = null; // Not found in visible columns
+          const rating = null; // Not found in visible columns (was in old structure)
+
+          judges.push({
             gomafiaId,
             name,
             category,
@@ -210,8 +266,10 @@ export class JudgesScraper {
             gamesJudged,
             accreditationDate,
             responsibleFromSc,
-          };
-        });
+          });
+        }
+
+        return judges;
       });
     });
   }

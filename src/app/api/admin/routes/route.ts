@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         description: 'Admin API endpoints',
       },
       {
-        path: '/import',
+        path: '/admin/import',
         methods: ['GET', 'POST'],
         requiredRole: 'ADMIN',
         description: 'Data import operations',

@@ -2,7 +2,7 @@ import { Page, expect } from '@playwright/test';
 
 export class ImportTestUtils {
   static async navigateToImportPage(page: Page) {
-    await page.goto('/import');
+    await page.goto('/admin/import');
     await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
   }
 

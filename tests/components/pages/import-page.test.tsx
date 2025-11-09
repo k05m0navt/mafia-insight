@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ImportPage from '@/app/(dashboard)/import/page';
+import ImportPage from '@/app/admin/import/page';
 import '@testing-library/jest-dom';
 import React from 'react';
 
@@ -58,11 +58,11 @@ describe('Import Page', () => {
     render(<ImportPage />, { wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('Import Management')).toBeInTheDocument();
+      expect(screen.getByText('Import Center')).toBeInTheDocument();
     });
 
     // Should have progress card
-    expect(screen.getByText('Import Status')).toBeInTheDocument();
+    expect(screen.getByText('Status Overview')).toBeInTheDocument();
 
     // Should have controls
     expect(screen.getByText('Start Import')).toBeInTheDocument();

@@ -34,8 +34,6 @@ export async function proxy(request: NextRequest) {
     '/clubs',
     '/profile',
     '/settings',
-    '/import-progress',
-    '/sync-status',
     '/admin',
   ];
 

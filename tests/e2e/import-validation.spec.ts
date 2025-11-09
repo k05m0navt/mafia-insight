@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Import Validation Rate Display', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import page
-    await page.goto('/import');
+    await page.goto('/admin/import');
   });
 
   test('should display validation rate after import completion', async ({

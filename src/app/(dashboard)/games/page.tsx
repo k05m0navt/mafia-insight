@@ -735,8 +735,19 @@ function GamesPageContent() {
         updates.forEach((update) => update());
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [
+    searchParams,
+    search,
+    currentPage,
+    status,
+    winnerTeam,
+    tournamentId,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+    startTransition,
+  ]);
 
   const handleSearch = useCallback(
     (value: string) => {

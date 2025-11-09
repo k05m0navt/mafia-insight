@@ -644,8 +644,16 @@ function PlayersPageContent() {
         updates.forEach((update) => update());
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [
+    searchParams,
+    search,
+    currentPage,
+    syncStatus,
+    clubId,
+    sortBy,
+    sortOrder,
+    startTransition,
+  ]);
 
   const handleSearch = useCallback(
     (value: string) => {

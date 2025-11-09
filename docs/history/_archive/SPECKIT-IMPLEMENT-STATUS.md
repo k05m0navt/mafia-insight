@@ -120,7 +120,7 @@ Implementation of User Story 1 (Initial Data Population) and User Story 2 (Progr
 
 #### Page Integration (T080-T082) ✅
 
-- [x] Import management page (`/import`)
+- [x] Import management page (`/admin/import`)
 - [x] Component integration with hooks
 - [x] Real-time updates via polling
 - [x] Test coverage: 6 tests passing
@@ -215,7 +215,7 @@ Implementation of User Story 1 (Initial Data Population) and User Story 2 (Progr
 - `src/hooks/useImportStatus.ts`
 - `src/hooks/useImportTrigger.ts`
 - `src/components/sync/` (3 components)
-- `src/app/(dashboard)/import/page.tsx`
+- `src/app/(dashboard)/admin/import/page.tsx`
 
 #### Tests (29 files)
 

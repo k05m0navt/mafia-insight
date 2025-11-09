@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Import Cancellation with Clean Stop E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to import management page
-    await page.goto('/import');
+    await page.goto('/admin/import');
 
     // Wait for page to load
     await expect(page.locator('h1')).toContainText('Import Management');
@@ -296,7 +296,9 @@ test.describe('Import Cancellation with Clean Stop E2E', () => {
     await retryButton.click();
 
     // Should show success message
-    await expect(page.getByText(/import.*started|resumed/i)).toBeVisible({
+    await expect(
+      page.getByText(/admin\/import.*(started|resumed)/i)
+    ).toBeVisible({
       timeout: 5000,
     });
   });
