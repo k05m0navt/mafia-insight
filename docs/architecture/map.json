@@ -1,0 +1,758 @@
+{
+  "generatedAt": "2025-11-10T16:29:56.369Z",
+  "layers": [
+    {
+      "name": "domain",
+      "modules": [
+        {
+          "name": "index.ts",
+          "path": "src/domain/entities/index.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": ["src/domain/entities/player.ts"]
+        },
+        {
+          "name": "player.ts",
+          "path": "src/domain/entities/player.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": ["src/domain/errors/index.ts"]
+        },
+        {
+          "name": "domain-error.ts",
+          "path": "src/domain/errors/domain-error.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "domain-not-found-error.ts",
+          "path": "src/domain/errors/domain-not-found-error.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": ["src/domain/errors/domain-error.ts"]
+        },
+        {
+          "name": "domain-validation-error.ts",
+          "path": "src/domain/errors/domain-validation-error.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": ["src/domain/errors/domain-error.ts"]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/domain/errors/index.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": [
+            "src/domain/errors/domain-error.ts",
+            "src/domain/errors/domain-not-found-error.ts",
+            "src/domain/errors/domain-validation-error.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/domain/index.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": [
+            "src/domain/entities/index.ts",
+            "src/domain/errors/index.ts",
+            "src/domain/services/index.ts",
+            "src/domain/value-objects/index.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/domain/services/index.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": [
+            "src/domain/services/player-analytics-service.ts",
+            "src/domain/services/player-domain-service.ts"
+          ]
+        },
+        {
+          "name": "player-analytics-service.ts",
+          "path": "src/domain/services/player-analytics-service.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": ["src/domain/entities/player.ts"]
+        },
+        {
+          "name": "player-domain-service.ts",
+          "path": "src/domain/services/player-domain-service.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": [
+            "src/domain/entities/player.ts",
+            "src/domain/errors/index.ts",
+            "src/domain/services/player-analytics-service.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/domain/value-objects/index.ts",
+          "responsibilities": [
+            "business rules",
+            "value objects",
+            "pure services"
+          ],
+          "dependsOn": []
+        }
+      ]
+    },
+    {
+      "name": "application",
+      "modules": [
+        {
+          "name": "admin.ts",
+          "path": "src/application/contracts/admin.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "architecture.ts",
+          "path": "src/application/contracts/architecture.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "clubs.ts",
+          "path": "src/application/contracts/clubs.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/application/contracts/index.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/admin.ts",
+            "src/application/contracts/architecture.ts",
+            "src/application/contracts/clubs.ts",
+            "src/application/contracts/players.ts",
+            "src/application/contracts/tournaments.ts"
+          ]
+        },
+        {
+          "name": "players.ts",
+          "path": "src/application/contracts/players.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "tournaments.ts",
+          "path": "src/application/contracts/tournaments.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "errors.ts",
+          "path": "src/application/errors.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/application/index.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/ports/index.ts",
+            "src/application/use-cases/index.ts"
+          ]
+        },
+        {
+          "name": "admin.ts",
+          "path": "src/application/ports/admin.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": ["src/application/contracts/index.ts"]
+        },
+        {
+          "name": "architecture.ts",
+          "path": "src/application/ports/architecture.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "caching.ts",
+          "path": "src/application/ports/caching.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "clubs.ts",
+          "path": "src/application/ports/clubs.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": ["src/application/contracts/index.ts"]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/application/ports/index.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/ports/admin.ts",
+            "src/application/ports/architecture.ts",
+            "src/application/ports/caching.ts",
+            "src/application/ports/clubs.ts",
+            "src/application/ports/messaging.ts",
+            "src/application/ports/persistence.ts",
+            "src/application/ports/players.ts",
+            "src/application/ports/tournaments.ts"
+          ]
+        },
+        {
+          "name": "messaging.ts",
+          "path": "src/application/ports/messaging.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "persistence.ts",
+          "path": "src/application/ports/persistence.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "players.ts",
+          "path": "src/application/ports/players.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": ["src/application/contracts/index.ts"]
+        },
+        {
+          "name": "tournaments.ts",
+          "path": "src/application/ports/tournaments.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": ["src/application/contracts/index.ts"]
+        },
+        {
+          "name": "create-admin-user.use-case.ts",
+          "path": "src/application/use-cases/create-admin-user.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/errors.ts",
+            "src/application/ports/index.ts"
+          ]
+        },
+        {
+          "name": "get-club-analytics.use-case.ts",
+          "path": "src/application/use-cases/get-club-analytics.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/errors.ts",
+            "src/application/ports/index.ts"
+          ]
+        },
+        {
+          "name": "get-player-analytics.use-case.ts",
+          "path": "src/application/use-cases/get-player-analytics.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/errors.ts",
+            "src/application/ports/index.ts"
+          ]
+        },
+        {
+          "name": "get-player-profile.use-case.ts",
+          "path": "src/application/use-cases/get-player-profile.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/errors.ts",
+            "src/application/ports/index.ts"
+          ]
+        },
+        {
+          "name": "get-tournament-analytics.use-case.ts",
+          "path": "src/application/use-cases/get-tournament-analytics.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/errors.ts",
+            "src/application/ports/index.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/application/use-cases/index.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/use-cases/create-admin-user.use-case.ts",
+            "src/application/use-cases/get-club-analytics.use-case.ts",
+            "src/application/use-cases/get-player-analytics.use-case.ts",
+            "src/application/use-cases/get-player-profile.use-case.ts",
+            "src/application/use-cases/get-tournament-analytics.use-case.ts",
+            "src/application/use-cases/list-players.use-case.ts"
+          ]
+        },
+        {
+          "name": "generate-architecture-map.use-case.ts",
+          "path": "src/application/use-cases/internal-architecture/generate-architecture-map.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "get-architecture-onboarding-guide.use-case.ts",
+          "path": "src/application/use-cases/internal-architecture/get-architecture-onboarding-guide.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/application/use-cases/internal-architecture/index.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/use-cases/internal-architecture/generate-architecture-map.use-case.ts",
+            "src/application/use-cases/internal-architecture/get-architecture-onboarding-guide.use-case.ts",
+            "src/application/use-cases/internal-architecture/validate-architecture.use-case.ts"
+          ]
+        },
+        {
+          "name": "validate-architecture.use-case.ts",
+          "path": "src/application/use-cases/internal-architecture/validate-architecture.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "list-players.use-case.ts",
+          "path": "src/application/use-cases/list-players.use-case.ts",
+          "responsibilities": [
+            "use-case orchestration",
+            "ports",
+            "DTO transformations"
+          ],
+          "dependsOn": [
+            "src/application/contracts/index.ts",
+            "src/application/ports/index.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "adapters",
+      "modules": [
+        {
+          "name": "admin-controller.ts",
+          "path": "src/adapters/controllers/admin-controller.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": ["src/adapters/gateways/admin-service.adapter.ts"]
+        },
+        {
+          "name": "clubs-controller.ts",
+          "path": "src/adapters/controllers/clubs-controller.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": ["src/adapters/gateways/club-service.adapter.ts"]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/adapters/controllers/index.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": [
+            "src/adapters/controllers/admin-controller.ts",
+            "src/adapters/controllers/clubs-controller.ts",
+            "src/adapters/controllers/internal-architecture-controller.ts",
+            "src/adapters/controllers/players-controller.ts",
+            "src/adapters/controllers/tournaments-controller.ts"
+          ]
+        },
+        {
+          "name": "internal-architecture-controller.ts",
+          "path": "src/adapters/controllers/internal-architecture-controller.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "players-controller.ts",
+          "path": "src/adapters/controllers/players-controller.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": ["src/adapters/gateways/player-service.adapter.ts"]
+        },
+        {
+          "name": "tournaments-controller.ts",
+          "path": "src/adapters/controllers/tournaments-controller.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": ["src/adapters/gateways/tournament-service.adapter.ts"]
+        },
+        {
+          "name": "admin-service.adapter.ts",
+          "path": "src/adapters/gateways/admin-service.adapter.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "club-service.adapter.ts",
+          "path": "src/adapters/gateways/club-service.adapter.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/adapters/gateways/index.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "player-service.adapter.ts",
+          "path": "src/adapters/gateways/player-service.adapter.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "tournament-service.adapter.ts",
+          "path": "src/adapters/gateways/tournament-service.adapter.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/adapters/index.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": [
+            "src/adapters/controllers/index.ts",
+            "src/adapters/gateways/index.ts",
+            "src/adapters/presenters/index.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/adapters/presenters/index.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": ["src/adapters/presenters/player.presenter.ts"]
+        },
+        {
+          "name": "player.presenter.ts",
+          "path": "src/adapters/presenters/player.presenter.ts",
+          "responsibilities": [
+            "request translation",
+            "presenters",
+            "transport integration"
+          ],
+          "dependsOn": []
+        }
+      ]
+    },
+    {
+      "name": "infrastructure",
+      "modules": [
+        {
+          "name": "dependency-cruiser.adapter.ts",
+          "path": "src/infrastructure/architecture/dependency-cruiser.adapter.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/architecture/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": [
+            "src/infrastructure/architecture/dependency-cruiser.adapter.ts",
+            "src/infrastructure/architecture/onboarding-filesystem.adapter.ts"
+          ]
+        },
+        {
+          "name": "onboarding-filesystem.adapter.ts",
+          "path": "src/infrastructure/architecture/onboarding-filesystem.adapter.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/caching/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": ["src/infrastructure/caching/redis-cache.adapter.ts"]
+        },
+        {
+          "name": "redis-cache.adapter.ts",
+          "path": "src/infrastructure/caching/redis-cache.adapter.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": [
+            "src/infrastructure/architecture/index.ts",
+            "src/infrastructure/caching/index.ts",
+            "src/infrastructure/messaging/index.ts",
+            "src/infrastructure/observability/index.ts",
+            "src/infrastructure/persistence/index.ts"
+          ]
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/messaging/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": [
+            "src/infrastructure/messaging/supabase-message-bus.adapter.ts"
+          ]
+        },
+        {
+          "name": "supabase-message-bus.adapter.ts",
+          "path": "src/infrastructure/messaging/supabase-message-bus.adapter.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/observability/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        },
+        {
+          "name": "index.ts",
+          "path": "src/infrastructure/persistence/index.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": [
+            "src/infrastructure/persistence/prisma-player.persistence-adapter.ts"
+          ]
+        },
+        {
+          "name": "prisma-player.persistence-adapter.ts",
+          "path": "src/infrastructure/persistence/prisma-player.persistence-adapter.ts",
+          "responsibilities": [
+            "port implementations",
+            "side effects",
+            "external integrations"
+          ],
+          "dependsOn": []
+        }
+      ]
+    }
+  ],
+  "violations": []
+}

@@ -6,7 +6,14 @@
  */
 
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { prisma } from '@/lib/db';
+import type { Club, Player, Tournament, User } from '@prisma/client';
+import { prisma } from '../src/lib/db';
+
+const skipDatabaseSetup = process.env.PRISMA_SKIP_DB === 'true';
+
+function makeId(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 // Load test environment variables
 if (process.env.NODE_ENV !== 'test') {
@@ -18,6 +25,13 @@ if (process.env.NODE_ENV !== 'test') {
  */
 beforeAll(async () => {
   console.log('[Test Setup] Initializing test environment...');
+
+  if (skipDatabaseSetup) {
+    console.warn(
+      '[Test Setup] Skipping Prisma database connection (PRISMA_SKIP_DB=true)'
+    );
+    return;
+  }
 
   try {
     // Verify database connection
@@ -34,6 +48,13 @@ beforeAll(async () => {
  */
 afterAll(async () => {
   console.log('[Test Teardown] Cleaning up test environment...');
+
+  if (skipDatabaseSetup) {
+    console.warn(
+      '[Test Teardown] Skipping Prisma disconnect (PRISMA_SKIP_DB=true)'
+    );
+    return;
+  }
 
   try {
     await prisma.$disconnect();
@@ -67,6 +88,13 @@ export async function clearTestDatabase() {
     throw new Error('clearTestDatabase can only be used in test environment');
   }
 
+  if (skipDatabaseSetup) {
+    console.warn(
+      '[Test Setup] Skipping clearTestDatabase (PRISMA_SKIP_DB=true)'
+    );
+    return;
+  }
+
   console.warn('[Test Setup] Clearing test database...');
 
   // Delete in order to respect foreign key constraints
@@ -76,7 +104,7 @@ export async function clearTestDatabase() {
   await prisma.syncLog.deleteMany({});
   await prisma.syncStatus.deleteMany({});
   await prisma.game.deleteMany({});
-  await prisma.tournamentParticipant.deleteMany({});
+  await prisma.playerTournament.deleteMany({});
   await prisma.tournament.deleteMany({});
   await prisma.player.deleteMany({});
   await prisma.club.deleteMany({});
@@ -95,6 +123,24 @@ export async function createTestUser(
     role: 'user' | 'admin';
   }>
 ) {
+  if (skipDatabaseSetup) {
+    const now = new Date();
+    const user: User = {
+      id: makeId('user'),
+      email: overrides?.email || 'test@example.com',
+      name: overrides?.name || 'Test User',
+      role: overrides?.role || 'user',
+      subscriptionTier: 'FREE',
+      avatar: null,
+      createdAt: now,
+      updatedAt: now,
+      lastLogin: null,
+      themePreference: 'system',
+    };
+
+    return user;
+  }
+
   const user = await prisma.user.create({
     data: {
       email: overrides?.email || 'test@example.com',
@@ -132,21 +178,57 @@ export async function createTestPlayer(
     wins: number;
     losses: number;
     eloRating: number;
+    userId: string;
   }>
 ) {
-  const player = await prisma.player.create({
-    data: {
+  if (skipDatabaseSetup) {
+    const now = new Date();
+    const totalGames = (overrides?.wins ?? 10) + (overrides?.losses ?? 5);
+    const player: Player = {
+      id: makeId('player'),
+      userId: overrides?.userId || makeId('user'),
       gomafiaId: overrides?.gomafiaId || '12345',
       name: overrides?.name || 'Test Player',
-      wins: overrides?.wins || 10,
-      losses: overrides?.losses || 5,
-      draws: 2,
-      points: 100,
-      eloRating: overrides?.eloRating || 1500,
-      rank: 1,
-      bestPlayerCount: 0,
-      bestMoveCount: 0,
-      firstKillCount: 0,
+      eloRating: overrides?.eloRating ?? 1500,
+      totalGames,
+      wins: overrides?.wins ?? 10,
+      losses: overrides?.losses ?? 5,
+      region: null,
+      clubId: null,
+      lastSyncAt: null,
+      syncStatus: null,
+      createdAt: now,
+      updatedAt: now,
+      judgeCategory: null,
+      judgeCanBeGs: null,
+      judgeCanJudgeFinal: false,
+      judgeMaxTablesAsGs: null,
+      judgeRating: null,
+      judgeGamesJudged: null,
+      judgeAccreditationDate: null,
+      judgeResponsibleFromSc: null,
+    };
+
+    return player;
+  }
+
+  const userId = overrides?.userId ?? (await createTestUser()).id;
+
+  const totalGames = (overrides?.wins ?? 10) + (overrides?.losses ?? 5);
+
+  const player = await prisma.player.create({
+    data: {
+      user: {
+        connect: {
+          id: userId,
+        },
+      },
+      gomafiaId: overrides?.gomafiaId || '12345',
+      name: overrides?.name || 'Test Player',
+      wins: overrides?.wins ?? 10,
+      losses: overrides?.losses ?? 5,
+      totalGames,
+      eloRating: overrides?.eloRating ?? 1500,
     },
   });
 
@@ -161,13 +243,41 @@ export async function createTestClub(
     gomafiaId: string;
     name: string;
     region: string;
+    createdById: string;
   }>
 ) {
+  if (skipDatabaseSetup) {
+    const now = new Date();
+    const club: Club = {
+      id: makeId('club'),
+      gomafiaId: overrides?.gomafiaId || 'club-123',
+      name: overrides?.name || 'Test Club',
+      region: overrides?.region || 'Test Region',
+      presidentId: null,
+      description: null,
+      logoUrl: null,
+      createdBy: overrides?.createdById || makeId('user'),
+      lastSyncAt: null,
+      syncStatus: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    return club;
+  }
+
+  const creatorId = overrides?.createdById ?? (await createTestUser()).id;
+
   const club = await prisma.club.create({
     data: {
       gomafiaId: overrides?.gomafiaId || 'club-123',
       name: overrides?.name || 'Test Club',
       region: overrides?.region || 'Test Region',
+      creator: {
+        connect: {
+          id: creatorId,
+        },
+      },
     },
   });
 
@@ -183,16 +293,50 @@ export async function createTestTournament(
     name: string;
     startDate: Date;
     endDate: Date;
+    createdById: string;
   }>
 ) {
+  if (skipDatabaseSetup) {
+    const now = new Date();
+    const tournament: Tournament = {
+      id: makeId('tournament'),
+      gomafiaId: overrides?.gomafiaId || 'tournament-123',
+      name: overrides?.name || 'Test Tournament',
+      description: null,
+      stars: null,
+      averageElo: null,
+      isFsmRated: false,
+      startDate: overrides?.startDate || new Date('2024-01-01'),
+      endDate: overrides?.endDate || new Date('2024-01-31'),
+      status: 'SCHEDULED',
+      maxParticipants: null,
+      entryFee: null,
+      prizePool: null,
+      createdBy: overrides?.createdById || makeId('user'),
+      chiefJudgeId: null,
+      lastSyncAt: null,
+      syncStatus: null,
+      gameCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    return tournament;
+  }
+
+  const creatorId = overrides?.createdById ?? (await createTestUser()).id;
+
   const tournament = await prisma.tournament.create({
     data: {
       gomafiaId: overrides?.gomafiaId || 'tournament-123',
       name: overrides?.name || 'Test Tournament',
       startDate: overrides?.startDate || new Date('2024-01-01'),
       endDate: overrides?.endDate || new Date('2024-01-31'),
-      type: 'RATING',
-      season: '2024',
+      creator: {
+        connect: {
+          id: creatorId,
+        },
+      },
     },
   });
 

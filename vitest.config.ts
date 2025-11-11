@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/setup-env.ts', './tests/setup.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
     teardownTimeout: 30000,
@@ -13,7 +13,9 @@ export default defineConfig({
     restoreMocks: true,
     include: [
       'tests/unit/**/*.test.{ts,tsx}',
+      'tests/unit/**/*.spec.{ts,tsx}',
       'tests/integration/**/*.test.{ts,tsx}',
+      'tests/integration/**/*.spec.{ts,tsx}',
       'tests/components/**/*.test.tsx'
     ],
     exclude: ['tests/e2e/**/*.spec.ts'],

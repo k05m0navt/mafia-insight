@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - PostgreSQL via Supabase (Prisma ORM for schema management) (012-real-scrapers)
 - TypeScript 5.0.0, Node.js 20+ + Next.js 16.0.0, React 19.2.0, Prisma 5.0.0, Supabase 2.38.0, Playwright 1.56.1, Vitest 1.0.0 (013-route-refactor)
 - PostgreSQL via Supabase, Prisma ORM (013-route-refactor)
+- TypeScript on Node.js 18 (Next.js 14) + Next.js App Router, Prisma, Supabase JS client, TanStack Query, Zustand, Zod, Tailwind CSS (015-refactor-architecture)
+- Supabase (PostgreSQL) managed via Prisma schema (015-refactor-architecture)
 
 - TypeScript 5.0+, Node.js 20+ + Next.js 14+, Prisma ORM, Supabase, Zod, ShadCN/UI, Tailwind v4, Redis, Zustand, TanStack Query, Husky (001-mafia-analytics)
 
@@ -46,9 +48,9 @@ npm test && npm run lint
 TypeScript 5.0+, Node.js 20+: Follow standard conventions
 
 ## Recent Changes
+- 015-refactor-architecture: Added TypeScript on Node.js 18 (Next.js 14) + Next.js App Router, Prisma, Supabase JS client, TanStack Query, Zustand, Zod, Tailwind CSS
 - 013-route-refactor: Added TypeScript 5.0.0, Node.js 20+ + Next.js 16.0.0, React 19.2.0, Prisma 5.0.0, Supabase 2.38.0, Playwright 1.56.1, Vitest 1.0.0
 - 012-real-scrapers: Added TypeScript 5.0+ (Next.js 16.0 App Router) + Next.js 16.0, Prisma ORM 5.0, Playwright 1.56 (browser automation), Zod 4.1 (validation), React Query (data fetching), shadcn UI (components)
-- 011-admin-dashboard: Added TypeScript 5.x with Next.js 16 (App Router), Node.js 20+ + Next.js, React 19, Prisma ORM, Tailwind CSS, ShadCN/UI, TanStack Query, Zustand
 
 
 <!-- MANUAL ADDITIONS START -->
