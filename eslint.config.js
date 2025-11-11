@@ -222,6 +222,7 @@ export default [
       // Minified files
       '*.min.js',
       '*.min.css',
+      '*.bundle.js',
 
       // Source maps
       '*.map',
@@ -234,6 +235,7 @@ export default [
       'vitest.config.ts',
       'playwright.config.ts',
       'playwright.quick.config.ts',
+      'scripts/',
       'scripts/**/*.js',
       'public/sw.js',
       'prisma/seed.ts',

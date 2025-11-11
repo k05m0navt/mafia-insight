@@ -28,7 +28,9 @@
     "test:e2e:quick": "playwright test --config=playwright.quick.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:ci": "playwright test --reporter=json --outputFile=test-results-e2e.json",
+    "test:arch": "dependency-cruiser --config config/architecture-rules.json src",
     "test:validate": "npm run test:ci && npm run test:e2e:ci",
+    "arch:map": "tsx scripts/architecture/generate-map.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -107,6 +109,7 @@
     "@vitest/coverage-v8": "^1.6.1",
     "autoprefixer": "^10.4.0",
     "canvas": "^3.2.0",
+    "dependency-cruiser": "^16.6.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -125,7 +128,8 @@
     "tailwindcss": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "tsx": "^4.19.1"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

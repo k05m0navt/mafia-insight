@@ -13,7 +13,9 @@ export default defineConfig({
     restoreMocks: true,
     include: [
       'tests/unit/**/*.test.{ts,tsx}',
+      'tests/unit/**/*.spec.{ts,tsx}',
       'tests/integration/**/*.test.{ts,tsx}',
+      'tests/integration/**/*.spec.{ts,tsx}',
       'tests/components/**/*.test.tsx'
     ],
     exclude: ['tests/e2e/**/*.spec.ts'],
