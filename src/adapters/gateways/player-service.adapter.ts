@@ -1,4 +1,4 @@
-import { Prisma, RoleStat } from '@prisma/client';
+import { Prisma, type PlayerRoleStats } from '@prisma/client';
 import { prisma as db } from '@/lib/db';
 import { PlayerService } from '@/services/playerService';
 import type {
@@ -40,6 +40,64 @@ const playerSelect = {
     },
   },
 } satisfies Prisma.PlayerSelect;
+
+const playerProfileSelect = {
+  id: true,
+  gomafiaId: true,
+  name: true,
+  eloRating: true,
+  totalGames: true,
+  wins: true,
+  losses: true,
+  lastSyncAt: true,
+  syncStatus: true,
+  clubId: true,
+  club: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  judgeCategory: true,
+  judgeCanBeGs: true,
+  judgeCanJudgeFinal: true,
+  judgeMaxTablesAsGs: true,
+  judgeRating: true,
+  judgeGamesJudged: true,
+  judgeAccreditationDate: true,
+  judgeResponsibleFromSc: true,
+  participations: {
+    select: {
+      game: {
+        select: {
+          id: true,
+          gomafiaId: true,
+          date: true,
+          status: true,
+          winnerTeam: true,
+          durationMinutes: true,
+        },
+      },
+    },
+    orderBy: {
+      game: {
+        date: 'desc',
+      },
+    },
+  },
+  roleStats: {
+    select: {
+      role: true,
+      gamesPlayed: true,
+      wins: true,
+      losses: true,
+    },
+  },
+} satisfies Prisma.PlayerSelect;
+
+type PlayerProfileRecord = Prisma.PlayerGetPayload<{
+  select: typeof playerProfileSelect;
+}>;
 
 export class PlayerServiceAdapter
   implements PlayerQueryPort, PlayerAnalyticsPort, PlayerProfilePort
@@ -195,8 +253,14 @@ export class PlayerServiceAdapter
       throw error;
     }
 
+    if (!analytics.player) {
+      throw new ApplicationNotFoundError('Player not found');
+    }
+
+    const playerDetails = analytics.player;
+
     const roleStats = Array.isArray(analytics.roleStats)
-      ? (analytics.roleStats as RoleStat[])
+      ? (analytics.roleStats as PlayerRoleStats[])
       : [];
 
     const recentGames = (analytics.recentGames ?? []).map((game) => ({
@@ -212,22 +276,32 @@ export class PlayerServiceAdapter
 
     const response: PlayerAnalyticsResponse = {
       player: {
-        id: analytics.player.id,
-        name: analytics.player.name,
-        region: analytics.player.region ?? null,
-        eloRating: analytics.player.eloRating,
-        totalGames: analytics.player.totalGames,
-        wins: analytics.player.wins,
-        losses: analytics.player.losses,
+        id: playerDetails.id,
+        name: playerDetails.name,
+        region: playerDetails.region ?? null,
+        eloRating: playerDetails.eloRating,
+        totalGames: playerDetails.totalGames,
+        wins: playerDetails.wins,
+        losses: playerDetails.losses,
       },
       overallStats: analytics.overallStats,
-      roleStats: roleStats.map((roleStat) => ({
-        role: roleStat.role ?? 'UNKNOWN',
-        gamesPlayed: roleStat.gamesPlayed ?? 0,
-        wins: roleStat.wins ?? 0,
-        losses: roleStat.losses ?? 0,
-        winRate: roleStat.winRate ?? 0,
-      })),
+      roleStats: roleStats.map((roleStat) => {
+        const gamesPlayed = roleStat.gamesPlayed ?? 0;
+        const wins = roleStat.wins ?? 0;
+        const computedWinRate =
+          gamesPlayed > 0
+            ? Math.round(((wins / gamesPlayed) * 100 + Number.EPSILON) * 100) /
+              100
+            : 0;
+
+        return {
+          role: roleStat.role ?? 'UNKNOWN',
+          gamesPlayed,
+          wins,
+          losses: roleStat.losses ?? 0,
+          winRate: computedWinRate,
+        };
+      }),
       recentGames,
     };
 
@@ -375,7 +449,7 @@ export class PlayerServiceAdapter
   private async resolveRoleStats(
     playerId: string,
     year: number | undefined,
-    player: PlayerRecord
+    player: PlayerProfileRecord
   ): Promise<
     Record<
       string,
@@ -446,9 +520,10 @@ export class PlayerServiceAdapter
       );
     }
 
-    return player.roleStats.reduce(
+    return (player.roleStats ?? []).reduce(
       (acc, stat) => {
-        acc[stat.role] = {
+        const role = stat.role ?? 'UNKNOWN';
+        acc[role] = {
           gamesPlayed: stat.gamesPlayed,
           wins: stat.wins,
           losses: stat.losses,
@@ -478,57 +553,3 @@ export class PlayerServiceAdapter
     return `${namespace}:${Buffer.from(serialized).toString('base64url')}`;
   }
 }
-
-const playerProfileSelect = {
-  id: true,
-  gomafiaId: true,
-  name: true,
-  eloRating: true,
-  totalGames: true,
-  wins: true,
-  losses: true,
-  lastSyncAt: true,
-  syncStatus: true,
-  clubId: true,
-  club: {
-    select: {
-      id: true,
-      name: true,
-    },
-  },
-  judgeCategory: true,
-  judgeCanBeGs: true,
-  judgeCanJudgeFinal: true,
-  judgeMaxTablesAsGs: true,
-  judgeRating: true,
-  judgeGamesJudged: true,
-  judgeAccreditationDate: true,
-  judgeResponsibleFromSc: true,
-  participations: {
-    select: {
-      game: {
-        select: {
-          id: true,
-          gomafiaId: true,
-          date: true,
-          status: true,
-          winnerTeam: true,
-          durationMinutes: true,
-        },
-      },
-    },
-    orderBy: {
-      game: {
-        date: 'desc',
-      },
-    },
-  },
-  roleStats: {
-    select: {
-      role: true,
-      gamesPlayed: true,
-      wins: true,
-      losses: true,
-    },
-  },
-} satisfies Prisma.PlayerSelect;

@@ -8,7 +8,7 @@ import {
 } from '@/domain/services/player-domain-service';
 import { prisma } from '@/lib/db';
 import { PlayerSchema, PlayerUpdateSchema } from '@/lib/validations';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Player as PrismaPlayer } from '@prisma/client';
 import { z } from 'zod';
 
 class PrismaPlayerRepository implements PlayerReadRepository {
@@ -370,13 +370,13 @@ type ParticipationWithGame =
   PrismaPlayerWithParticipations['participations'][number];
 
 function hasParticipations(
-  player: Prisma.Player | PrismaPlayerWithParticipations
+  player: PrismaPlayer | PrismaPlayerWithParticipations
 ): player is PrismaPlayerWithParticipations {
   return 'participations' in player;
 }
 
 function mapPrismaPlayerToDomain(
-  player: Prisma.Player | PrismaPlayerWithParticipations
+  player: PrismaPlayer | PrismaPlayerWithParticipations
 ): Player {
   const participationsRaw = hasParticipations(player)
     ? player.participations

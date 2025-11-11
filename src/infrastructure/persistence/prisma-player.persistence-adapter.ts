@@ -161,7 +161,7 @@ export class PrismaPlayerPersistenceAdapter implements PlayerPersistencePort {
       region: record.region,
       participations: record.participations.map((participation) => ({
         id: participation.id,
-        date: participation.game?.date ?? participation.createdAt ?? new Date(),
+        date: participation.game?.date ?? new Date(),
         role: participation.role ?? 'UNKNOWN',
         team: participation.team ?? 'UNKNOWN',
         isWinner: participation.isWinner ?? false,

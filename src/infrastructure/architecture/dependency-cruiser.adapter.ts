@@ -189,9 +189,23 @@ function inferResponsibilities(layer: ArchitectureLayerName): string[] {
 }
 
 function mapViolation(violation: IViolation): ArchitectureViolation {
+  const violationCommentValue = (violation as { comment?: unknown }).comment;
+  const violationComment =
+    typeof violationCommentValue === 'string'
+      ? violationCommentValue
+      : undefined;
+
+  const ruleCommentValue =
+    violation.rule && 'comment' in violation.rule
+      ? (violation.rule as Record<string, unknown>).comment
+      : undefined;
+
+  const ruleComment =
+    typeof ruleCommentValue === 'string' ? ruleCommentValue : undefined;
+
   const message =
-    violation.comment ??
-    violation.rule?.comment ??
+    violationComment ??
+    ruleComment ??
     `${violation.from} depends on ${violation.to}`;
 
   return {
