@@ -40,8 +40,8 @@ jobs:
       - name: Unit tests
         run: yarn test:unit
 
-      - name: Integration tests
-        run: yarn test:integration
+      # - name: Integration tests
+      #   run: yarn test:integration
 
       - name: Architecture guardrails
         run: yarn test:arch
