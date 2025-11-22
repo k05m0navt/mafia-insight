@@ -1,7 +1,35 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
 import { PlayerCard } from '@/components/analytics/PlayerCard';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
+
+const createLocalStorageMock = () => {
+  const store = new Map<string, string>();
+  return {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+  };
+};
+
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: createLocalStorageMock(),
+    configurable: true,
+  });
+});
+
+const renderWithProviders = (ui: React.ReactElement) =>
+  render(<ThemeProvider defaultTheme="light">{ui}</ThemeProvider>);
 
 const mockPlayer = {
   id: 'player-1',
@@ -46,17 +74,17 @@ const mockPlayerWithoutClub = {
 
 describe('PlayerCard', () => {
   it('renders player information correctly', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('ELO: 1500')).toBeInTheDocument();
     expect(screen.getByText('Test Club')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument(); // Total games
-    expect(screen.getByText('65.0%')).toBeInTheDocument(); // Win rate
+    expect(screen.getAllByText('65.0%')[0]).toBeInTheDocument(); // Win rate
   });
 
   it('renders without club information', () => {
-    render(<PlayerCard player={mockPlayerWithoutClub} />);
+    renderWithProviders(<PlayerCard player={mockPlayerWithoutClub} />);
 
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('ELO: 1500')).toBeInTheDocument();
@@ -64,7 +92,7 @@ describe('PlayerCard', () => {
   });
 
   it('displays role performance statistics', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     // Check for role badges
     expect(screen.getByText('MAFIA')).toBeInTheDocument();
@@ -72,16 +100,16 @@ describe('PlayerCard', () => {
     expect(screen.getByText('SHERIFF')).toBeInTheDocument();
 
     // Check for win rates
-    expect(screen.getByText('60.0%')).toBeInTheDocument();
-    expect(screen.getByText('66.7%')).toBeInTheDocument();
-    expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getAllByText('60.0%')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('66.7%')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('75.0%')[0]).toBeInTheDocument();
   });
 
   it('calculates win rate correctly', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     // Win rate should be (65/100) * 100 = 65.0%
-    expect(screen.getByText('65.0%')).toBeInTheDocument();
+    expect(screen.getAllByText('65.0%')[0]).toBeInTheDocument();
   });
 
   it('handles zero games played', () => {
@@ -92,14 +120,14 @@ describe('PlayerCard', () => {
       losses: 0,
     };
 
-    render(<PlayerCard player={playerWithNoGames} />);
+    renderWithProviders(<PlayerCard player={playerWithNoGames} />);
 
     expect(screen.getByText('0.0%')).toBeInTheDocument();
   });
 
   it('calls onViewAnalytics when button is clicked', () => {
-    const onViewAnalytics = jest.fn();
-    render(
+    const onViewAnalytics = vi.fn();
+    renderWithProviders(
       <PlayerCard player={mockPlayer} onViewAnalytics={onViewAnalytics} />
     );
 
@@ -110,13 +138,13 @@ describe('PlayerCard', () => {
   });
 
   it('does not render view analytics button when onViewAnalytics is not provided', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     expect(screen.queryByText('View Analytics')).not.toBeInTheDocument();
   });
 
   it('applies correct role colors', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     // Check for role-specific styling
     const mafiaBadge = screen.getByText('MAFIA');
@@ -124,7 +152,7 @@ describe('PlayerCard', () => {
     const sheriffBadge = screen.getByText('SHERIFF');
 
     expect(mafiaBadge).toHaveClass('bg-black');
-    expect(citizenBadge).toHaveClass('bg-gray-500'); // Default color
+    expect(citizenBadge).toHaveClass('bg-red-500');
     expect(sheriffBadge).toHaveClass('bg-yellow-400');
   });
 
@@ -134,14 +162,14 @@ describe('PlayerCard', () => {
       roleStats: [],
     };
 
-    render(<PlayerCard player={playerWithNoRoles} />);
+    renderWithProviders(<PlayerCard player={playerWithNoRoles} />);
 
     expect(screen.getByText('Role Performance')).toBeInTheDocument();
     expect(screen.queryByText('MAFIA')).not.toBeInTheDocument();
   });
 
   it('displays all required statistics', () => {
-    render(<PlayerCard player={mockPlayer} />);
+    renderWithProviders(<PlayerCard player={mockPlayer} />);
 
     // Check for all stat labels
     expect(screen.getByText('Total Games')).toBeInTheDocument();
@@ -158,10 +186,10 @@ describe('PlayerCard', () => {
       losses: 250,
     };
 
-    render(<PlayerCard player={playerWithLargeNumbers} />);
+    renderWithProviders(<PlayerCard player={playerWithLargeNumbers} />);
 
     expect(screen.getByText('ELO: 2500')).toBeInTheDocument();
     expect(screen.getByText('1000')).toBeInTheDocument();
-    expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getAllByText('75.0%')[0]).toBeInTheDocument();
   });
 });

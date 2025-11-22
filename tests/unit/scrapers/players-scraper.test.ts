@@ -27,12 +27,14 @@ describe('PlayersScraper', () => {
           <table>
             <tbody>
               <tr>
-                <td><a href="/player/575">Иван Иванов</a></td>
-                <td class="region">Москва</td>
-                <td class="club">Клуб "Мафия"</td>
-                <td class="tournaments">25</td>
-                <td class="gg-points">1250</td>
-                <td class="elo">1450.5</td>
+                <td>1</td>
+                <td>
+                  <a href="/stats/575">Иван Иванов</a>
+                  <span class="ws-nowrap">Клуб "Мафия"</span>
+                </td>
+                <td>25</td>
+                <td>1250</td>
+                <td>1450.5</td>
               </tr>
             </tbody>
           </table>
@@ -46,7 +48,7 @@ describe('PlayersScraper', () => {
     expect(players[0]).toEqual({
       gomafiaId: '575',
       name: 'Иван Иванов',
-      region: 'Москва',
+      region: null,
       club: 'Клуб "Мафия"',
       tournaments: 25,
       ggPoints: 1250,
@@ -61,12 +63,14 @@ describe('PlayersScraper', () => {
           <table>
             <tbody>
               <tr>
-                <td><a href="/player/100">John Doe</a></td>
-                <td class="region"></td>
-                <td class="club">–</td>
-                <td class="tournaments">0</td>
-                <td class="gg-points">0</td>
-                <td class="elo">1200</td>
+                <td>1</td>
+                <td>
+                  <a href="/stats/100">John Doe</a>
+                  <span class="ws-nowrap"></span>
+                </td>
+                <td>0</td>
+                <td>0</td>
+                <td>1200</td>
               </tr>
             </tbody>
           </table>
@@ -94,28 +98,34 @@ describe('PlayersScraper', () => {
           <table>
             <tbody>
               <tr>
-                <td><a href="/player/1">Player 1</a></td>
-                <td class="region">Москва</td>
-                <td class="club">Club A</td>
-                <td class="tournaments">10</td>
-                <td class="gg-points">500</td>
-                <td class="elo">1300</td>
+                <td>1</td>
+                <td>
+                  <a href="/stats/1">Player 1</a>
+                  <span class="ws-nowrap">Club A</span>
+                </td>
+                <td>10</td>
+                <td>500</td>
+                <td>1300</td>
               </tr>
               <tr>
-                <td><a href="/player/2">Player 2</a></td>
-                <td class="region">СПб</td>
-                <td class="club">Club B</td>
-                <td class="tournaments">20</td>
-                <td class="gg-points">1000</td>
-                <td class="elo">1500</td>
+                <td>2</td>
+                <td>
+                  <a href="/stats/2">Player 2</a>
+                  <span class="ws-nowrap">Club B</span>
+                </td>
+                <td>20</td>
+                <td>1000</td>
+                <td>1500</td>
               </tr>
               <tr>
-                <td><a href="/player/3">Player 3</a></td>
-                <td class="region">Казань</td>
-                <td class="club">Club C</td>
-                <td class="tournaments">15</td>
-                <td class="gg-points">750</td>
-                <td class="elo">1400</td>
+                <td>3</td>
+                <td>
+                  <a href="/stats/3">Player 3</a>
+                  <span class="ws-nowrap">Club C</span>
+                </td>
+                <td>15</td>
+                <td>750</td>
+                <td>1400</td>
               </tr>
             </tbody>
           </table>
@@ -154,12 +164,14 @@ describe('PlayersScraper', () => {
           <table>
             <tbody>
               <tr>
-                <td><a href="/player/999">Pro Player</a></td>
-                <td class="region">Москва</td>
-                <td class="club">Top Club</td>
-                <td class="tournaments">100</td>
-                <td class="gg-points">5000</td>
-                <td class="elo">2345.75</td>
+                <td>1</td>
+                <td>
+                  <a href="/stats/999">Pro Player</a>
+                  <span class="ws-nowrap">Top Club</span>
+                </td>
+                <td>100</td>
+                <td>5000</td>
+                <td>2345.75</td>
               </tr>
             </tbody>
           </table>
@@ -178,12 +190,14 @@ describe('PlayersScraper', () => {
           <table>
             <tbody>
               <tr>
-                <td><a href="/player/200">Bad Performer</a></td>
-                <td class="region">Москва</td>
-                <td class="club">Club</td>
-                <td class="tournaments">5</td>
-                <td class="gg-points">-50</td>
-                <td class="elo">1100</td>
+                <td>1</td>
+                <td>
+                  <a href="/stats/200">Bad Performer</a>
+                  <span class="ws-nowrap">Club</span>
+                </td>
+                <td>5</td>
+                <td>-50</td>
+                <td>1100</td>
               </tr>
             </tbody>
           </table>

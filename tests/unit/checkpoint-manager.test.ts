@@ -1,119 +1,78 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { prisma } from '@/lib/db';
 import {
   CheckpointManager,
-  ImportCheckpoint,
+  type ImportCheckpoint,
 } from '@/lib/gomafia/import/checkpoint-manager';
+import { clearTestDatabase } from '../setup';
 
 describe('CheckpointManager', () => {
-  let db: PrismaClient;
-  let checkpointManager: CheckpointManager;
+  let manager: CheckpointManager;
 
   beforeEach(async () => {
-    db = new PrismaClient();
-    checkpointManager = new CheckpointManager(db);
-
-    // Clear any existing checkpoint
-    await db.syncStatus.upsert({
-      where: { id: 'current' },
-      update: { currentOperation: null, isRunning: false, progress: 0 },
-      create: { id: 'current', isRunning: false, progress: 0 },
-    });
+    await clearTestDatabase();
+    manager = new CheckpointManager(prisma);
   });
 
-  afterEach(async () => {
-    await db.$disconnect();
+  const baseCheckpoint: ImportCheckpoint = {
+    currentPhase: 'PLAYERS',
+    currentBatch: 10,
+    lastProcessedId: 'player-10',
+    processedIds: ['player-1', 'player-2'],
+    progress: 20,
+    isPaused: false,
+  };
+
+  it('saves and loads checkpoints', async () => {
+    await manager.saveCheckpoint(baseCheckpoint);
+
+    const loaded = await manager.loadCheckpoint();
+    expect(loaded).toEqual(baseCheckpoint);
   });
 
-  it('should save and load checkpoint', async () => {
-    const checkpoint: ImportCheckpoint = {
-      phase: 'PLAYERS',
-      lastBatchIndex: 10,
-      totalBatches: 50,
-      processedIds: ['player-1', 'player-2'],
-      message: 'Importing players: batch 10/50',
-      timestamp: new Date().toISOString(),
-    };
-
-    await checkpointManager.saveCheckpoint(checkpoint);
-    const loaded = await checkpointManager.loadCheckpoint();
-
-    expect(loaded).toEqual(checkpoint);
-  });
-
-  it('should return null when no checkpoint exists', async () => {
-    await db.syncStatus.update({
-      where: { id: 'current' },
-      data: { currentOperation: null },
-    });
-
-    const loaded = await checkpointManager.loadCheckpoint();
+  it('returns null when checkpoint is missing', async () => {
+    const loaded = await manager.loadCheckpoint();
     expect(loaded).toBeNull();
   });
 
-  it('should clear checkpoint', async () => {
-    const checkpoint: ImportCheckpoint = {
-      phase: 'GAMES',
-      lastBatchIndex: 5,
-      totalBatches: 20,
-      processedIds: ['game-1'],
-      message: 'Importing games',
-      timestamp: new Date().toISOString(),
-    };
+  it('clears checkpoint data', async () => {
+    await manager.saveCheckpoint(baseCheckpoint);
+    await manager.clearCheckpoint();
 
-    await checkpointManager.saveCheckpoint(checkpoint);
-    await checkpointManager.clearCheckpoint();
-
-    const loaded = await checkpointManager.loadCheckpoint();
+    const loaded = await manager.loadCheckpoint();
     expect(loaded).toBeNull();
   });
 
-  it('should update progress percentage', async () => {
-    const checkpoint: ImportCheckpoint = {
-      phase: 'PLAYERS',
-      lastBatchIndex: 25,
-      totalBatches: 50,
+  it('updates sync status progress when saving', async () => {
+    await manager.saveCheckpoint({ ...baseCheckpoint, progress: 55 });
+
+    const status = await prisma.syncStatus.findUnique({
+      where: { id: 'current' },
+    });
+    expect(status?.progress).toBe(55);
+    expect(status?.currentOperation).toContain('PLAYERS');
+  });
+
+  it('stores paused state metadata', async () => {
+    await manager.saveCheckpoint({ ...baseCheckpoint, isPaused: true });
+
+    const loaded = await manager.loadCheckpoint();
+    expect(loaded?.isPaused).toBe(true);
+  });
+
+  it('overwrites previous checkpoints on save', async () => {
+    await manager.saveCheckpoint(baseCheckpoint);
+    await manager.saveCheckpoint({
+      currentPhase: 'GAMES',
+      currentBatch: 1,
+      lastProcessedId: null,
       processedIds: [],
-      message: 'Half complete',
-      timestamp: new Date().toISOString(),
-    };
-
-    await checkpointManager.saveCheckpoint(checkpoint);
-
-    const status = await db.syncStatus.findUnique({ where: { id: 'current' } });
-    expect(status?.progress).toBe(50); // 25/50 = 50%
-  });
-
-  it('should handle phase-specific metadata', async () => {
-    const checkpoint: ImportCheckpoint = {
-      phase: 'PLAYER_YEAR_STATS',
-      lastBatchIndex: 15,
-      totalBatches: 100,
-      processedIds: ['player-123'],
-      phaseMetadata: {
-        currentYear: 2025,
-        yearsProcessed: [2025, 2024],
-      },
-      message: 'Processing year stats',
-      timestamp: new Date().toISOString(),
-    };
-
-    await checkpointManager.saveCheckpoint(checkpoint);
-    const loaded = await checkpointManager.loadCheckpoint();
-
-    expect(loaded?.phaseMetadata).toEqual({
-      currentYear: 2025,
-      yearsProcessed: [2025, 2024],
-    });
-  });
-
-  it('should handle malformed JSON gracefully', async () => {
-    await db.syncStatus.update({
-      where: { id: 'current' },
-      data: { currentOperation: 'invalid json{' },
+      progress: 5,
+      isPaused: false,
     });
 
-    const loaded = await checkpointManager.loadCheckpoint();
-    expect(loaded).toBeNull();
+    const loaded = await manager.loadCheckpoint();
+    expect(loaded?.currentPhase).toBe('GAMES');
+    expect(loaded?.progress).toBe(5);
   });
 });

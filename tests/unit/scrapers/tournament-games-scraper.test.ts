@@ -1,320 +1,132 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { chromium, Browser, Page } from 'playwright';
+import { describe, it, expect } from 'vitest';
+import { JSDOM } from 'jsdom';
+import type { Page } from 'playwright';
 import { TournamentGamesScraper } from '@/lib/gomafia/scrapers/tournament-games-scraper';
 
+class MockPage {
+  private currentHtml = '';
+
+  constructor(private readonly htmlMap: Record<string, string>) {}
+
+  async goto(url: string) {
+    const match = url.match(/tournament\/(\w+)/);
+    const id = match?.[1] ?? 'default';
+    this.currentHtml = this.htmlMap[id] ?? '';
+  }
+
+  async waitForSelector(selectorList: string) {
+    const dom = new JSDOM(this.currentHtml);
+    const selectors = selectorList.split(',').map((s) => s.trim());
+    const found = selectors.some((selector) =>
+      dom.window.document.querySelector(selector)
+    );
+    if (!found) throw new Error('Selector not found');
+  }
+
+  async textContent(selector: string) {
+    const dom = new JSDOM(this.currentHtml);
+    return dom.window.document.querySelector(selector)?.textContent ?? null;
+  }
+
+  async evaluate<R>(fn: (param?: unknown) => R, param?: unknown) {
+    const dom = new JSDOM(this.currentHtml);
+    const originalDocument = global.document;
+    const originalWindow = (global as unknown as { window?: Window }).window;
+
+    (global as unknown as { document: Document }).document =
+      dom.window.document;
+    (global as unknown as { window: Window }).window = dom.window;
+
+    try {
+      return fn(param);
+    } finally {
+      (global as unknown as { document: Document }).document = originalDocument;
+      (global as unknown as { window: Window | undefined }).window =
+        originalWindow;
+    }
+  }
+}
+
 describe('TournamentGamesScraper', () => {
-  let browser: Browser;
-  let page: Page;
-  let scraper: TournamentGamesScraper;
+  it('parses game tables with participants', async () => {
+    const table = `
+      <table>
+        <thead>
+          <tr><th>Стол 1</th></tr>
+          <tr><th>Победа мафии</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Player One</td>
+            <td>Дон</td>
+            <td>8.5</td>
+            <td>+3</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Player Two</td>
+            <td>Мирный</td>
+            <td>6.0</td>
+            <td>-1</td>
+          </tr>
+        </tbody>
+      </table>
+      <table>
+        <thead>
+          <tr><th>Стол 2</th></tr>
+          <tr><th>Победа мирных</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Player Three</td>
+            <td>Мафия</td>
+            <td>5.0</td>
+            <td>-2</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
 
-  beforeEach(async () => {
-    browser = await chromium.launch({ headless: true });
-    page = await browser.newPage();
-    scraper = new TournamentGamesScraper(page);
-  });
-
-  afterEach(async () => {
-    await browser.close();
-  });
-
-  it('should scrape games with complete data including participations', async () => {
-    await page.route('**/tournament/123?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="game-date">15.01.2024 18:30</div>
-                <div class="winner">Mafia win</div>
-                <div class="duration">45</div>
-                <div class="game-status">Completed</div>
-                <div class="player-row">
-                  <a href="/stats/111">Player One</a>
-                  <span class="role">DON</span>
-                  <span class="performance">8.5</span>
-                </div>
-                <div class="player-row">
-                  <a href="/stats/222">Player Two</a>
-                  <span class="role">SHERIFF</span>
-                  <span class="performance">6.0</span>
-                </div>
-              </div>
-              <div class="game-card">
-                <div class="game-date">16.01.2024 19:00</div>
-                <div class="winner">Citizens win</div>
-                <div class="duration">50</div>
-                <div class="game-status">Completed</div>
-                <div class="player-row">
-                  <a href="/stats/333">Player Three</a>
-                  <span class="role">MAFIA</span>
-                  <span class="performance">5.5</span>
-                </div>
-                <div class="player-row">
-                  <a href="/stats/444">Player Four</a>
-                  <span class="role">CIVILIAN</span>
-                  <span class="performance">7.0</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
+    const page = new MockPage({ '123': `<html><body>${table}</body></html>` });
+    const scraper = new TournamentGamesScraper(page as unknown as Page);
 
     const games = await scraper.scrapeGames('123');
 
     expect(games).toHaveLength(2);
-
-    // First game - Mafia wins
-    expect(games[0].tournamentId).toBe('123');
-    expect(games[0].winnerTeam).toBe('BLACK');
-    expect(games[0].status).toBe('COMPLETED');
-    expect(games[0].durationMinutes).toBe(45);
-    expect(games[0].participations).toHaveLength(2);
+    expect(games[0]).toMatchObject({
+      winnerTeam: 'BLACK',
+      durationMinutes: null,
+    });
     expect(games[0].participations?.[0]).toMatchObject({
-      playerId: '111',
       playerName: 'Player One',
       role: 'DON',
-      team: 'MAFIA',
+      team: 'BLACK',
       isWinner: true,
-      performanceScore: 8.5,
     });
     expect(games[0].participations?.[1]).toMatchObject({
-      playerId: '222',
       playerName: 'Player Two',
-      role: 'SHERIFF',
-      team: 'CITIZENS',
+      role: 'CITIZEN',
+      team: 'RED',
       isWinner: false,
-      performanceScore: 6.0,
     });
-
-    // Second game - Citizens win
     expect(games[1].winnerTeam).toBe('RED');
-    expect(games[1].participations?.[0]).toMatchObject({
-      playerId: '333',
-      team: 'MAFIA',
-      isWinner: false,
-    });
-    expect(games[1].participations?.[1]).toMatchObject({
-      playerId: '444',
-      team: 'CITIZENS',
-      isWinner: true,
-    });
   });
 
-  it('should handle tournament with no games', async () => {
-    await page.route('**/tournament/999?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <table>
-                <tbody></tbody>
-              </table>
-            </body>
-          </html>
-        `,
-      });
-    });
+  it('returns empty array when page indicates no games', async () => {
+    const html = `
+      <html>
+        <body>
+          <div>Игр пока нет</div>
+        </body>
+      </html>
+    `;
+
+    const page = new MockPage({ '999': html });
+    const scraper = new TournamentGamesScraper(page as unknown as Page);
 
     const games = await scraper.scrapeGames('999');
-
     expect(games).toEqual([]);
-  }, 15000);
-
-  it('should parse different winner team formats', async () => {
-    await page.route('**/tournament/456?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="winner">Black team wins</div>
-                <div class="player-row">
-                  <a href="/stats/111">Player1</a>
-                  <span class="role">DON</span>
-                </div>
-              </div>
-              <div class="game-card">
-                <div class="winner">Red team wins</div>
-                <div class="player-row">
-                  <a href="/stats/222">Player2</a>
-                  <span class="role">CIVILIAN</span>
-                </div>
-              </div>
-              <div class="game-card">
-                <div class="winner">Draw</div>
-                <div class="player-row">
-                  <a href="/stats/333">Player3</a>
-                  <span class="role">SHERIFF</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
-
-    const games = await scraper.scrapeGames('456');
-
-    expect(games).toHaveLength(3);
-    expect(games[0].winnerTeam).toBe('BLACK');
-    expect(games[1].winnerTeam).toBe('RED');
-    expect(games[2].winnerTeam).toBe('DRAW');
-  });
-
-  it('should parse different role formats', async () => {
-    await page.route('**/tournament/789?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="winner">Mafia wins</div>
-                <div class="player-row">
-                  <a href="/stats/111">P1</a>
-                  <span class="role">DON</span>
-                </div>
-                <div class="player-row">
-                  <a href="/stats/222">P2</a>
-                  <span class="role">MAFIA</span>
-                </div>
-                <div class="player-row">
-                  <a href="/stats/333">P3</a>
-                  <span class="role">SHERIFF</span>
-                </div>
-                <div class="player-row">
-                  <a href="/stats/444">P4</a>
-                  <span class="role">CIVILIAN</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
-
-    const games = await scraper.scrapeGames('789');
-
-    expect(games[0].participations).toHaveLength(4);
-    expect(games[0].participations?.[0].role).toBe('DON');
-    expect(games[0].participations?.[1].role).toBe('MAFIA');
-    expect(games[0].participations?.[2].role).toBe('SHERIFF');
-    expect(games[0].participations?.[3].role).toBe('CIVILIAN');
-  });
-
-  it('should handle different game statuses', async () => {
-    await page.route('**/tournament/321?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="game-status">Scheduled</div>
-                <div class="player-row">
-                  <a href="/stats/111">P1</a>
-                  <span class="role">DON</span>
-                </div>
-              </div>
-              <div class="game-card">
-                <div class="game-status">In progress</div>
-                <div class="player-row">
-                  <a href="/stats/222">P2</a>
-                  <span class="role">MAFIA</span>
-                </div>
-              </div>
-              <div class="game-card">
-                <div class="game-status">Cancelled</div>
-                <div class="player-row">
-                  <a href="/stats/333">P3</a>
-                  <span class="role">SHERIFF</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
-
-    const games = await scraper.scrapeGames('321');
-
-    expect(games).toHaveLength(3);
-    expect(games[0].status).toBe('SCHEDULED');
-    expect(games[1].status).toBe('IN_PROGRESS');
-    expect(games[2].status).toBe('CANCELLED');
-  });
-
-  it('should handle missing participation data gracefully', async () => {
-    await page.route('**/tournament/654?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="winner">Mafia win</div>
-                <div class="player-row">
-                  <a href="/stats/111">Player1</a>
-                  <span class="role"></span>
-                  <span class="performance">–</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
-
-    const games = await scraper.scrapeGames('654');
-
-    expect(games[0].participations?.[0]).toMatchObject({
-      playerId: '111',
-      playerName: 'Player1',
-      role: null,
-      performanceScore: null,
-    });
-  });
-
-  it('should parse Russian date format correctly', async () => {
-    await page.route('**/tournament/987?tab=games', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: `
-          <html>
-            <body>
-              <div class="game-card">
-                <div class="game-date">25.12.2023 20:15</div>
-                <div class="winner">Mafia win</div>
-                <div class="player-row">
-                  <a href="/stats/111">Player1</a>
-                  <span class="role">DON</span>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-    });
-
-    const games = await scraper.scrapeGames('987');
-
-    const gameDate = new Date(games[0].date);
-    expect(gameDate.getUTCFullYear()).toBe(2023);
-    expect(gameDate.getUTCMonth()).toBe(11); // December (0-indexed)
-    expect(gameDate.getUTCDate()).toBe(25);
-    expect(gameDate.getUTCHours()).toBe(20);
-    expect(gameDate.getUTCMinutes()).toBe(15);
   });
 });

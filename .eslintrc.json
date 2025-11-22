@@ -15,6 +15,25 @@
   },
   "overrides": [
     {
+      "files": ["src/domain/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@/app/*",
+              "@/lib/*",
+              "@/services/*",
+              "@/infrastructure/*",
+              "@/adapters/*",
+              "@/store/*",
+              "@/hooks/*"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["tests/**"],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"

@@ -21,17 +21,32 @@ describe('PlayerStatsScraper', () => {
     await page.setContent(`
       <html>
         <body>
-          <div class="year-selector">
-            <button class="active">2025</button>
-          </div>
           <div class="stats">
-            <div class="total-games">45</div>
-            <div class="don-games">10</div>
-            <div class="mafia-games">12</div>
-            <div class="sheriff-games">8</div>
-            <div class="civilian-games">15</div>
-            <div class="elo-rating">1450.5</div>
-            <div class="extra-points">25.3</div>
+            <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">45</div>
+          </div>
+          <div class="role-stats">
+            <div class="role">
+              <span>Игр за мирного</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">15</div>
+            </div>
+            <div class="role">
+              <span>Игр за дона</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">10</div>
+            </div>
+            <div class="role">
+              <span>Игр за мафию</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">12</div>
+            </div>
+            <div class="role">
+              <span>Игр за шерифа</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">8</div>
+            </div>
+          </div>
+          <div class="elo-wrapper">
+            <div>Общий ELO: 1450.5</div>
+          </div>
+          <div class="extra-points-wrapper">
+            <div>25.3 в среднем за 10 игр</div>
           </div>
         </body>
       </html>
@@ -56,13 +71,31 @@ describe('PlayerStatsScraper', () => {
       <html>
         <body>
           <div class="stats">
-            <div class="total-games">0</div>
-            <div class="don-games">0</div>
-            <div class="mafia-games">0</div>
-            <div class="sheriff-games">0</div>
-            <div class="civilian-games">0</div>
-            <div class="elo-rating">1200</div>
-            <div class="extra-points">0</div>
+            <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">0</div>
+          </div>
+          <div class="role-stats">
+            <div class="role">
+              <span>Игр за мирного</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">0</div>
+            </div>
+            <div class="role">
+              <span>Игр за дона</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">0</div>
+            </div>
+            <div class="role">
+              <span>Игр за мафию</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">0</div>
+            </div>
+            <div class="role">
+              <span>Игр за шерифа</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">0</div>
+            </div>
+          </div>
+          <div class="elo-wrapper">
+            <div>Общий ELO: 1200.0</div>
+          </div>
+          <div class="extra-points-wrapper">
+            <div>0 в среднем за 10 игр</div>
           </div>
         </body>
       </html>
@@ -78,13 +111,31 @@ describe('PlayerStatsScraper', () => {
       <html>
         <body>
           <div class="stats">
-            <div class="total-games">10</div>
-            <div class="don-games">2</div>
-            <div class="mafia-games">3</div>
-            <div class="sheriff-games">2</div>
-            <div class="civilian-games">3</div>
-            <div class="elo-rating">–</div>
-            <div class="extra-points">5</div>
+            <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">10</div>
+          </div>
+          <div class="role-stats">
+            <div class="role">
+              <span>Игр за мирного</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">3</div>
+            </div>
+            <div class="role">
+              <span>Игр за дона</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">2</div>
+            </div>
+            <div class="role">
+              <span>Игр за мафию</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">3</div>
+            </div>
+            <div class="role">
+              <span>Игр за шерифа</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">2</div>
+            </div>
+          </div>
+          <div class="elo-wrapper">
+            <div>Общий ELO: –</div>
+          </div>
+          <div class="extra-points-wrapper">
+            <div>5 в среднем за 10 игр</div>
           </div>
         </body>
       </html>
@@ -99,13 +150,31 @@ describe('PlayerStatsScraper', () => {
       <html>
         <body>
           <div class="stats">
-            <div class="total-games">100</div>
-            <div class="don-games">25</div>
-            <div class="mafia-games">25</div>
-            <div class="sheriff-games">25</div>
-            <div class="civilian-games">25</div>
-            <div class="elo-rating">2345.75</div>
-            <div class="extra-points">123.456</div>
+            <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">100</div>
+          </div>
+          <div class="role-stats">
+            <div class="role">
+              <span>Игр за мирного</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">25</div>
+            </div>
+            <div class="role">
+              <span>Игр за дона</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">25</div>
+            </div>
+            <div class="role">
+              <span>Игр за мафию</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">25</div>
+            </div>
+            <div class="role">
+              <span>Игр за шерифа</span>
+              <div class="ProfileUserCircle_profile-user-circle__num__iog1A">25</div>
+            </div>
+          </div>
+          <div class="elo-wrapper">
+            <div>Общий ELO: 2345.75</div>
+          </div>
+          <div class="extra-points-wrapper">
+            <div>123.456 в среднем за 10 игр</div>
           </div>
         </body>
       </html>

@@ -69,7 +69,16 @@ describe('useImportStatus', () => {
 
     expect(result.current.data).toEqual(mockStatus);
     expect(result.current.error).toBeNull();
-    expect(fetch).toHaveBeenCalledWith('/api/gomafia-sync/import');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/gomafia-sync/import',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        }),
+      })
+    );
   });
 
   it('should handle fetch error', async () => {

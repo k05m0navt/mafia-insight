@@ -9,10 +9,13 @@ describe('Game Schema Validation', () => {
     const validGame: GameRawData = {
       gomafiaId: 'game-12345',
       tournamentId: 'tournament-123',
+      tableNumber: 1,
+      judgeId: 'judge-1',
       date: '2025-10-25T14:30:00Z',
       durationMinutes: 45,
       winnerTeam: 'BLACK',
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(validGame);
@@ -23,10 +26,13 @@ describe('Game Schema Validation', () => {
     const standaloneGame: GameRawData = {
       gomafiaId: 'game-67890',
       tournamentId: null,
+      tableNumber: null,
+      judgeId: null,
       date: '2025-10-26T10:00:00Z',
       durationMinutes: 50,
       winnerTeam: 'RED',
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(standaloneGame);
@@ -37,10 +43,13 @@ describe('Game Schema Validation', () => {
     const invalidStatus = {
       gomafiaId: 'game-999',
       tournamentId: null,
+      tableNumber: null,
+      judgeId: null,
       date: '2025-10-26T10:00:00Z',
       durationMinutes: 30,
       winnerTeam: 'BLACK',
       status: 'UNKNOWN_STATUS',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(invalidStatus);
@@ -51,10 +60,13 @@ describe('Game Schema Validation', () => {
     const invalidWinner: GameRawData = {
       gomafiaId: 'game-111',
       tournamentId: null,
+      tableNumber: null,
+      judgeId: null,
       date: '2025-10-26T10:00:00Z',
       durationMinutes: 40,
       winnerTeam: 'BLUE' as any, // Invalid team
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(invalidWinner);
@@ -65,10 +77,13 @@ describe('Game Schema Validation', () => {
     const drawGame: GameRawData = {
       gomafiaId: 'game-222',
       tournamentId: 'tournament-456',
+      tableNumber: 3,
+      judgeId: 'judge-2',
       date: '2025-10-26T15:00:00Z',
       durationMinutes: 60,
       winnerTeam: 'DRAW',
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(drawGame);
@@ -79,10 +94,13 @@ describe('Game Schema Validation', () => {
     const negativeDuration: GameRawData = {
       gomafiaId: 'game-333',
       tournamentId: null,
+      tableNumber: null,
+      judgeId: null,
       date: '2025-10-26T16:00:00Z',
       durationMinutes: -10,
       winnerTeam: 'BLACK',
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(negativeDuration);
@@ -93,10 +111,13 @@ describe('Game Schema Validation', () => {
     const noDuration: GameRawData = {
       gomafiaId: 'game-444',
       tournamentId: null,
+      tableNumber: null,
+      judgeId: null,
       date: '2025-10-26T17:00:00Z',
       durationMinutes: null,
       winnerTeam: 'RED',
       status: 'COMPLETED',
+      participations: [],
     };
 
     const result = gameSchema.safeParse(noDuration);

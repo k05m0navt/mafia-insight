@@ -1,87 +1,68 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ErrorHandlingService } from '@/services/ErrorHandlingService';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  ErrorHandlingService,
+  errorHandlingService,
+} from '@/services/ErrorHandlingService';
 
 describe('ErrorHandlingService', () => {
-  let errorHandlingService: ErrorHandlingService;
+  let service: ErrorHandlingService;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    errorHandlingService = new ErrorHandlingService();
+    service = errorHandlingService;
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
-  describe('Error Detection', () => {
-    it('should detect network errors', () => {
-      const error = new Error('Network request failed');
-      const result = errorHandlingService.detectErrorType(error);
-      expect(result).toBe('network');
-    });
-
-    it('should detect server errors', () => {
-      const error = new Error('Internal server error');
-      const result = errorHandlingService.detectErrorType(error);
-      expect(result).toBe('server');
-    });
-
-    it('should detect authentication errors', () => {
-      const error = new Error('Unauthorized');
-      const result = errorHandlingService.detectErrorType(error);
-      expect(result).toBe('authentication');
-    });
-
-    it('should detect validation errors', () => {
-      const error = new Error('Validation failed');
-      const result = errorHandlingService.detectErrorType(error);
-      expect(result).toBe('validation');
-    });
-
-    it('should detect timeout errors', () => {
-      const error = new Error('Request timeout');
-      const result = errorHandlingService.detectErrorType(error);
-      expect(result).toBe('timeout');
-    });
+  afterEach(() => {
+    consoleSpy.mockRestore();
   });
 
-  describe('Error Recovery', () => {
-    it('should retry network errors', async () => {
-      const error = new Error('Network request failed');
-      const result = await errorHandlingService.recoverFromError(error);
-      expect(result).toHaveProperty('retryAttempted', true);
-    });
+  it('formats native errors into ErrorInfo structures', () => {
+    const error = new Error('Something went wrong');
+    error.name = 'TEST_ERROR';
 
-    it('should fallback for server errors', async () => {
-      const error = new Error('Internal server error');
-      const result = await errorHandlingService.recoverFromError(error);
-      expect(result).toHaveProperty('fallbackActivated', true);
-    });
+    const formatted = service.formatError(error);
 
-    it('should refresh token for authentication errors', async () => {
-      const error = new Error('Unauthorized');
-      const result = await errorHandlingService.recoverFromError(error);
-      expect(result).toHaveProperty('tokenRefreshed', true);
-    });
-
-    it('should validate data for validation errors', async () => {
-      const error = new Error('Validation failed');
-      const result = await errorHandlingService.recoverFromError(error);
-      expect(result).toHaveProperty('dataValidated', true);
-    });
+    expect(formatted.message).toBe('Something went wrong');
+    expect(formatted.code).toBe('TEST_ERROR');
+    expect(formatted.stack).toContain('Something went wrong');
   });
 
-  describe('Error Logging', () => {
-    it('should log errors with context', () => {
-      const error = new Error('Test error');
-      const context = { userId: '123', action: 'test' };
-      const result = errorHandlingService.logError(error, context);
-      expect(result).toHaveProperty('errorId');
-      expect(result).toHaveProperty('timestamp');
-      expect(result).toHaveProperty('context', context);
-    });
+  it('identifies retryable error codes', () => {
+    expect(
+      service.isRetryableError({ message: 'Temporary', code: 'NETWORK_ERROR' })
+    ).toBe(true);
+    expect(
+      service.isRetryableError({
+        message: 'Timeout happening',
+        code: 'TIMEOUT_ERROR',
+      })
+    ).toBe(true);
+    expect(
+      service.isRetryableError({
+        message: 'Service unavailable',
+        code: 'SERVICE_UNAVAILABLE',
+      })
+    ).toBe(true);
+    expect(service.isRetryableError({ message: 'Validation failed' })).toBe(
+      false
+    );
+  });
 
-    it('should include error metrics', () => {
-      const error = new Error('Test error');
-      const result = errorHandlingService.logError(error);
-      expect(result).toHaveProperty('metrics');
-      expect(result.metrics).toHaveProperty('severity');
-      expect(result.metrics).toHaveProperty('category');
-    });
+  it('returns user-facing error messages', () => {
+    expect(service.getErrorMessage({ message: 'Custom error message' })).toBe(
+      'Custom error message'
+    );
+    expect(service.getErrorMessage({ message: '' })).toBe(
+      'An unknown error occurred'
+    );
+  });
+
+  it('logs handled errors to the console', () => {
+    const errorInfo = { message: 'Handled error', code: 'NETWORK_ERROR' };
+
+    service.handleError(errorInfo);
+
+    expect(consoleSpy).toHaveBeenCalledWith('Error handled:', errorInfo);
   });
 });

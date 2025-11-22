@@ -65,18 +65,18 @@ describe('Player Schema Validation', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should validate name length', () => {
-    const playerShortName: PlayerRawData = {
+  it('should reject empty player name', () => {
+    const playerNoName = {
       gomafiaId: '200',
-      name: 'A', // Too short
+      name: '',
       region: null,
       club: null,
       tournaments: 0,
       ggPoints: 0,
       elo: 1200,
-    };
+    } as PlayerRawData;
 
-    const result = playerSchema.safeParse(playerShortName);
+    const result = playerSchema.safeParse(playerNoName);
     expect(result.success).toBe(false);
   });
 

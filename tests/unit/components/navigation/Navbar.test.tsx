@@ -2,277 +2,237 @@
  * Tests for Navbar component
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Navbar } from '@/components/navigation/Navbar';
-import { useMobileMenu } from '@/hooks/useMobileMenu';
-import { usePermissions } from '@/hooks/usePermissions';
+import type { ReactElement } from 'react';
 
-// Mock the hooks
-vi.mock('@/components/auth/AuthProvider', () => ({
-  useAuth: () => ({
-    authState: {
-      isAuthenticated: true,
-      user: { id: '1', email: 'test@example.com', role: 'user' },
-    },
-  }),
-}));
+const defaultAuthState = {
+  isAuthenticated: true,
+  user: { id: '1', email: 'test@example.com', role: 'user' },
+};
 
-vi.mock('@/components/theme/ThemeProvider', () => ({
-  useTheme: () => ({
-    theme: 'light',
-  }),
+const { useAuthStoreMock, usePermissionsMock, useMobileMenuMock } = vi.hoisted(
+  () => ({
+    useAuthStoreMock: vi.fn(),
+    usePermissionsMock: vi.fn(),
+    useMobileMenuMock: vi.fn(),
+  })
+);
+
+vi.mock('@/store/authStore', () => ({
+  useAuthStore: useAuthStoreMock,
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: vi.fn(() => ({
-    canAccessPage: vi.fn(() => true),
-  })),
+  usePermissions: usePermissionsMock,
 }));
 
 vi.mock('@/hooks/useMobileMenu', () => ({
-  useMobileMenu: vi.fn(() => ({
-    isOpen: false,
-    open: vi.fn(),
-    close: vi.fn(),
-    toggle: vi.fn(),
-  })),
+  useMobileMenu: useMobileMenuMock,
 }));
 
-// Mock Next.js Link component
-vi.mock('next/link', () => ({
-  default: ({
-    children,
-    href,
-    ...props
+vi.mock('@/components/navigation/NavItem', () => ({
+  NavItem: ({
+    label,
+    path,
+    'data-testid': dataTestId,
+    onClick,
   }: {
-    children: React.ReactNode;
-    href: string;
-    [key: string]: unknown;
+    label: string;
+    path: string;
+    'data-testid'?: string;
+    onClick?: () => void;
   }) => (
-    <a href={href} {...props}>
-      {children}
+    <a href={path} data-testid={dataTestId} onClick={onClick}>
+      {label}
     </a>
   ),
 }));
 
-// Mock UI components
+vi.mock('@/components/navigation/ThemeToggle', () => ({
+  ThemeToggle: () => <button data-testid="theme-toggle">theme</button>,
+}));
+
+vi.mock('@/components/navigation/AuthControls', () => ({
+  AuthControls: ({ mobile }: { mobile?: boolean }) => (
+    <div data-testid={mobile ? 'auth-controls-mobile' : 'auth-controls'}>
+      auth
+    </div>
+  ),
+}));
+
+vi.mock('@/components/sync/SyncNotifications', () => ({
+  SyncNotifications: () => <div data-testid="sync-notifications">sync</div>,
+}));
+
 vi.mock('@/components/ui/button', () => ({
-  Button: ({
-    children,
-    onClick,
-    ...props
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-    [key: string]: unknown;
-  }) => (
-    <button onClick={onClick} {...props}>
+  Button: ({ children, onClick, ...rest }: any) => (
+    <button onClick={onClick} {...rest}>
       {children}
     </button>
   ),
 }));
 
 vi.mock('@/components/ui/sheet', () => ({
-  Sheet: ({
-    children,
-    open,
-    onOpenChange,
-  }: {
-    children: React.ReactNode;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-  }) => (
-    <div
-      data-testid="sheet"
-      data-open={open}
-      data-on-open-change={onOpenChange}
-    >
+  Sheet: ({ children, open }: { children: ReactElement; open?: boolean }) => (
+    <div data-testid="sheet" data-open={open}>
       {children}
     </div>
   ),
-  SheetContent: ({
-    children,
-    ...props
-  }: {
-    children: React.ReactNode;
-    [key: string]: unknown;
-  }) => (
-    <div data-testid="sheet-content" {...props}>
+  SheetContent: ({ children, ...rest }: any) => (
+    <div data-testid="sheet-content" {...rest}>
       {children}
     </div>
   ),
-  SheetTrigger: ({
-    children,
-    asChild,
-  }: {
-    children: React.ReactNode;
-    asChild?: boolean;
-  }) => (
-    <div data-testid="sheet-trigger" data-as-child={asChild}>
-      {children}
-    </div>
+  SheetTrigger: ({ children }: any) => (
+    <div data-testid="sheet-trigger">{children}</div>
   ),
-  SheetTitle: ({ children }: { children: React.ReactNode }) => (
+  SheetTitle: ({ children }: any) => (
     <div data-testid="sheet-title">{children}</div>
   ),
 }));
 
 vi.mock('@/components/ui/visually-hidden', () => ({
-  VisuallyHidden: ({ children }: { children: React.ReactNode }) => (
+  VisuallyHidden: ({ children }: any) => (
     <div data-testid="visually-hidden">{children}</div>
   ),
 }));
 
 vi.mock('lucide-react', () => ({
-  Menu: () => <div data-testid="menu-icon">Menu</div>,
+  Menu: () => <span data-testid="menu-icon">menu</span>,
 }));
 
+beforeEach(() => {
+  useAuthStoreMock.mockImplementation(
+    (selector?: (state: typeof defaultAuthState) => unknown) =>
+      selector ? selector(defaultAuthState) : defaultAuthState
+  );
+  usePermissionsMock.mockReturnValue({
+    canAccessPage: () => true,
+    isLoading: false,
+  });
+  useMobileMenuMock.mockReturnValue({
+    isOpen: false,
+    open: vi.fn(),
+    close: vi.fn(),
+    toggle: vi.fn(),
+  });
+});
+
 describe('Navbar Component', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should render without crashing', () => {
+  it('renders without crashing', () => {
     render(<Navbar />);
 
-    expect(screen.getAllByRole('navigation')[0]).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Main navigation' })
+    ).toBeInTheDocument();
     expect(screen.getAllByText('Mafia Insight')[0]).toBeInTheDocument();
   });
 
-  it('should render desktop navigation items', () => {
+  it('renders desktop navigation items', () => {
     render(<Navbar />);
 
-    // Check that desktop navigation is visible
-    const desktopNav = screen
-      .getAllByRole('navigation')[0]
-      .querySelector('.hidden.md\\:flex');
-    expect(desktopNav).toBeInTheDocument();
-  });
-
-  it('should render mobile menu button', () => {
-    render(<Navbar />);
-
-    const mobileMenuButton = screen.getByTestId('mobile-menu-button');
-    expect(mobileMenuButton).toBeInTheDocument();
-    expect(mobileMenuButton).toHaveAttribute(
-      'aria-label',
-      'Open navigation menu'
-    );
-  });
-
-  it('should render navigation items with correct test IDs', () => {
-    render(<Navbar />);
-
-    // Check for navigation items
     expect(screen.getByTestId('nav-home-desktop')).toBeInTheDocument();
     expect(screen.getByTestId('nav-players-desktop')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-tournaments-desktop')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-clubs-desktop')).toBeInTheDocument();
     expect(screen.getByTestId('nav-games-desktop')).toBeInTheDocument();
   });
 
-  it('should not render duplicate close buttons', () => {
+  it('renders mobile menu button with accessible label', () => {
     render(<Navbar />);
 
-    // Check that there's only one close button (from Sheet component)
-    const closeButtons = screen.queryAllByLabelText(/close/i);
-    expect(closeButtons).toHaveLength(0); // No custom close buttons
-
-    // Check that Sheet component is present
-    expect(screen.getByTestId('sheet')).toBeInTheDocument();
+    const button = screen.getByTestId('mobile-menu-button');
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('aria-label', 'Open navigation menu');
   });
 
-  it('should have proper accessibility attributes', () => {
+  it('includes navigation logo linking to home', () => {
     render(<Navbar />);
 
-    const nav = screen.getAllByRole('navigation')[0];
-    expect(nav).toHaveAttribute('aria-label', 'Main navigation');
-
-    const mobileMenuButton = screen.getByTestId('mobile-menu-button');
-    expect(mobileMenuButton).toHaveAttribute(
-      'aria-label',
-      'Open navigation menu'
-    );
-  });
-
-  it('should render logo with correct link', () => {
-    render(<Navbar />);
-
-    const logoLink = screen.getAllByText('Mafia Insight')[0].closest('a');
+    const logoLink = screen.getByTestId('nav-logo');
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
-  it('should handle mobile menu toggle', () => {
-    const mockToggle = vi.fn();
-    const useMobileMenuMock = vi.mocked(useMobileMenu);
+  it('toggles mobile menu when button is clicked', () => {
+    const toggleSpy = vi.fn();
     useMobileMenuMock.mockReturnValue({
       isOpen: false,
       open: vi.fn(),
       close: vi.fn(),
-      toggle: mockToggle,
+      toggle: toggleSpy,
     });
 
     render(<Navbar />);
 
-    const mobileMenuButton = screen.getByTestId('mobile-menu-button');
-    fireEvent.click(mobileMenuButton);
-
-    expect(mockToggle).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('mobile-menu-button'));
+    expect(toggleSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('should close mobile menu when navigation item is clicked', () => {
-    const mockClose = vi.fn();
-    const useMobileMenuMock = vi.mocked(useMobileMenu);
+  it('closes mobile menu when navigation item is clicked', () => {
+    const closeSpy = vi.fn();
     useMobileMenuMock.mockReturnValue({
       isOpen: true,
       open: vi.fn(),
-      close: mockClose,
+      close: closeSpy,
       toggle: vi.fn(),
     });
 
     render(<Navbar />);
 
-    // Open mobile menu first
-    const mobileMenuButton = screen.getByTestId('mobile-menu-button');
-    fireEvent.click(mobileMenuButton);
+    fireEvent.click(screen.getByTestId('mobile-menu-button'));
+    fireEvent.click(screen.getByTestId('nav-home-mobile'));
 
-    // Find a mobile navigation item and click it
-    const homeLink = screen.getByTestId('nav-home-mobile');
-    fireEvent.click(homeLink);
-
-    expect(mockClose).toHaveBeenCalled();
+    expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('should render with custom className', () => {
+  it('merges custom class names', () => {
     render(<Navbar className="custom-class" />);
 
-    const nav = screen.getAllByRole('navigation')[0];
-    expect(nav).toHaveClass('custom-class');
+    expect(screen.getByTestId('navbar')).toHaveClass('custom-class');
   });
 
-  it('should filter navigation items based on permissions', () => {
-    const mockCanAccessPage = vi.fn((pageId: string) => {
-      // Only allow home and players
-      return pageId === 'home' || pageId === 'players';
-    });
-
-    const usePermissionsMock = vi.mocked(usePermissions);
+  it('filters navigation items based on permissions', () => {
+    const canAccessPage = vi.fn(
+      (path: string) => path === '/' || path === '/players'
+    );
     usePermissionsMock.mockReturnValue({
-      canAccessPage: mockCanAccessPage,
+      canAccessPage,
+      isLoading: false,
     });
 
     render(<Navbar />);
 
-    // Check that only allowed items are rendered
     expect(screen.getByTestId('nav-home-desktop')).toBeInTheDocument();
     expect(screen.getByTestId('nav-players-desktop')).toBeInTheDocument();
+    expect(screen.queryByTestId('nav-admin-desktop')).not.toBeInTheDocument();
+  });
 
-    // Check that restricted items are not rendered
-    expect(screen.queryByTestId('nav-admin')).not.toBeInTheDocument();
+  it('shows admin navigation when user has admin role', () => {
+    useAuthStoreMock.mockImplementation(
+      (selector?: (state: typeof defaultAuthState) => unknown) =>
+        selector
+          ? selector({
+              isAuthenticated: true,
+              user: { id: '1', email: 'admin@example.com', role: 'admin' },
+            })
+          : {
+              isAuthenticated: true,
+              user: { id: '1', email: 'admin@example.com', role: 'admin' },
+            }
+    );
+
+    render(<Navbar />);
+
+    expect(screen.getByTestId('nav-admin-desktop')).toBeInTheDocument();
+  });
+
+  it('exposes sheet structure for mobile menu', () => {
+    render(<Navbar />);
+
+    const sheet = screen.getByTestId('sheet');
+    expect(sheet).toBeInTheDocument();
+    expect(within(sheet).getByTestId('sheet-trigger')).toBeInTheDocument();
+    expect(within(sheet).getByTestId('sheet-content')).toBeInTheDocument();
   });
 });

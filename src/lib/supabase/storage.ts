@@ -15,6 +15,17 @@ const ALLOWED_MIME_TYPES = [
   'image/gif',
 ];
 
+let supabaseClient = supabase;
+
+/**
+ * @internal Testing helper to override the supabase client.
+ */
+export function __setSupabaseClientForTests(
+  client: typeof supabase | undefined
+) {
+  supabaseClient = client ?? supabase;
+}
+
 /**
  * Validate avatar file before upload
  */
@@ -64,7 +75,7 @@ export async function uploadAvatar(
     const filePath = `${fileName}`;
 
     // Upload file to Supabase Storage
-    const { error } = await supabase.storage
+    const { error } = await supabaseClient.storage
       .from(BUCKET_NAME)
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -79,7 +90,7 @@ export async function uploadAvatar(
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+    } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(filePath);
 
     return { url: publicUrl };
   } catch (error) {
@@ -106,7 +117,7 @@ export async function deleteAvatar(
     const filePath = urlParts[1];
 
     // Delete file from Supabase Storage
-    const { error } = await supabase.storage
+    const { error } = await supabaseClient.storage
       .from(BUCKET_NAME)
       .remove([filePath]);
 

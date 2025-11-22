@@ -1,0 +1,64 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sverweij/dependency-cruiser/develop/schema/dependency-cruiser.json",
+  "forbidden": [
+    {
+      "name": "domain-must-be-isolated",
+      "comment": "Domain layer should not depend on outer layers.",
+      "from": {
+        "path": "^src/domain"
+      },
+      "to": {
+        "path": "^src/(application|adapters|infrastructure)"
+      },
+      "severity": "error"
+    },
+    {
+      "name": "application-blocks-infrastructure",
+      "comment": "Application layer depends only on domain or itself.",
+      "from": {
+        "path": "^src/application"
+      },
+      "to": {
+        "path": "^src/(adapters|infrastructure)"
+      },
+      "severity": "error"
+    },
+    {
+      "name": "adapters-only-inward",
+      "comment": "Adapters interact inward via application layer.",
+      "from": {
+        "path": "^src/adapters"
+      },
+      "to": {
+        "path": "^src/infrastructure"
+      },
+      "severity": "warn"
+    },
+    {
+      "name": "no-direct-lib-access-from-core",
+      "comment": "Core layers must access infrastructure through ports rather than direct library imports.",
+      "from": {
+        "path": "^src/(domain|application)"
+      },
+      "to": {
+        "path": "^src/lib"
+      },
+      "severity": "error"
+    }
+  ],
+  "options": {
+    "doNotFollow": {
+      "path": "node_modules"
+    },
+    "tsPreCompilationDeps": "specify",
+    "combinedDependencies": true,
+    "exclude": {
+      "path": ["tests?/.*", "\\.test\\.(ts|tsx)$", "\\.spec\\.(ts|tsx)$"]
+    },
+    "reporterOptions": {
+      "dot": {
+        "collapsePattern": "node_modules"
+      }
+    }
+  }
+}

@@ -1,0 +1,180 @@
+openapi: 3.1.0
+info:
+  title: Mafia Insight Internal Architecture API
+  version: '1.0.0'
+  description: >
+    Internal endpoints that expose architecture artifacts and guardrail checks
+    introduced by the SOLID/Clean Architecture refactor. These endpoints are
+    restricted to authenticated engineering staff.
+servers:
+  - url: https://mafiainsight.internal/api
+paths:
+  /internal/architecture/map:
+    get:
+      summary: Retrieve the current architecture map grouped by layer
+      operationId: getArchitectureMap
+      tags: [Architecture]
+      security:
+        - internalAuth: []
+      responses:
+        '200':
+          description: Architecture map generated from dependency analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchitectureMap'
+        '401':
+          description: Missing or invalid internal credentials
+        '500':
+          description: Failed to generate architecture map
+  /internal/architecture/validate:
+    post:
+      summary: Execute dependency guardrail validation for a commit or branch
+      operationId: postArchitectureValidate
+      tags: [Architecture]
+      security:
+        - internalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+      responses:
+        '200':
+          description: Validation result with pass/fail status and violations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+        '401':
+          description: Missing or invalid internal credentials
+        '422':
+          description: Invalid validation target or unsupported mode
+  /internal/onboarding/guide:
+    get:
+      summary: Fetch architecture onboarding guidance for new contributors
+      operationId: getOnboardingGuide
+      tags: [Onboarding]
+      security:
+        - internalAuth: []
+      responses:
+        '200':
+          description: Markdown summary plus links to detailed documentation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingGuide'
+        '401':
+          description: Missing or invalid internal credentials
+components:
+  securitySchemes:
+    internalAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ArchitectureMap:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        layers:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerGroup'
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+      required: [generatedAt, layers, violations]
+    LayerGroup:
+      type: object
+      properties:
+        name:
+          type: string
+          enum: [domain, application, adapters, infrastructure]
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Module'
+      required: [name, modules]
+    Module:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        responsibilities:
+          type: array
+          items:
+            type: string
+        dependsOn:
+          type: array
+          items:
+            type: string
+      required: [name, path, responsibilities, dependsOn]
+    Violation:
+      type: object
+      properties:
+        ruleId:
+          type: string
+        severity:
+          type: string
+          enum: [error, warning]
+        message:
+          type: string
+        offender:
+          type: string
+      required: [ruleId, severity, message, offender]
+    ValidationRequest:
+      type: object
+      properties:
+        targetRef:
+          type: string
+          description: Git branch, tag, or commit SHA to validate
+        mode:
+          type: string
+          enum: [full, incremental]
+          default: full
+        includeReports:
+          type: boolean
+          default: true
+      required: [targetRef]
+    ValidationResult:
+      type: object
+      properties:
+        passed:
+          type: boolean
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+        summary:
+          type: string
+        reportUrl:
+          type: string
+          format: uri
+      required: [passed, violations, summary]
+    OnboardingGuide:
+      type: object
+      properties:
+        version:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        overview:
+          type: string
+        checklist:
+          type: array
+          items:
+            type: string
+        references:
+          type: array
+          items:
+            type: string
+            format: uri
+      required: [version, lastUpdated, overview, checklist, references]

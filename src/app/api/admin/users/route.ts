@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase/server';
-import {
-  getAllUsers,
-  createAdmin,
-  getUserStats,
-} from '@/services/auth/adminService';
+import { getAllUsers, getUserStats } from '@/services/auth/adminService';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireAuthCookie } from '@/lib/utils/apiAuth';
+import { AdminController } from '@/adapters/controllers/admin-controller';
+import { ApplicationValidationError } from '@/application/errors';
+
+const adminController = new AdminController();
 
 // Create admin schema
 const CreateAdminSchema = z
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = CreateAdminSchema.parse(body);
 
-    const newAdmin = await createAdmin({
+    const result = await adminController.createAdminUser({
       email: data.email,
       name: data.name,
       password: data.password,
@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: newAdmin,
-      message: 'Admin user created successfully',
+      user: result.user,
+      message: result.message,
     });
   } catch (error) {
     console.error('Create admin error:', error);
@@ -134,6 +134,15 @@ export async function POST(request: NextRequest) {
         {
           error: 'Validation failed',
           details: error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof ApplicationValidationError) {
+      return NextResponse.json(
+        {
+          error: error.message,
         },
         { status: 400 }
       );

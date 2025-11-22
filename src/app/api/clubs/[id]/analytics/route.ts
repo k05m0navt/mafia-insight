@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ClubService } from '@/services/clubService';
+import { ClubsController } from '@/adapters/controllers/clubs-controller';
+import {
+  ApplicationNotFoundError,
+  ApplicationValidationError,
+} from '@/application/errors';
 
-const clubService = new ClubService();
+const controller = new ClubsController();
 
 export async function GET(
   request: NextRequest,
@@ -9,14 +13,22 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const _period = searchParams.get('period') || 'all_time';
+    const _period = searchParams.get('period');
     const { id } = await params;
 
-    const analytics = await clubService.getClubAnalytics(id);
-
+    const analytics = await controller.getAnalytics({ clubId: id });
     return NextResponse.json(analytics);
   } catch (error) {
     console.error('Error fetching club analytics:', error);
+
+    if (error instanceof ApplicationValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (error instanceof ApplicationNotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
     return NextResponse.json(
       {
         error: 'Failed to fetch club analytics',

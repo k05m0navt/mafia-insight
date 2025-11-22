@@ -1,7 +1,35 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
 import { ClubCard } from '@/components/analytics/ClubCard';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
+
+const createLocalStorageMock = () => {
+  const store = new Map<string, string>();
+  return {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+  };
+};
+
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: createLocalStorageMock(),
+    configurable: true,
+  });
+});
+
+const renderWithProviders = (ui: React.ReactElement) =>
+  render(<ThemeProvider defaultTheme="light">{ui}</ThemeProvider>);
 
 const mockClub = {
   id: 'club-1',
@@ -59,7 +87,7 @@ const mockClubWithNoPlayers = {
 
 describe('ClubCard', () => {
   it('renders club information correctly', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     expect(screen.getByText('Test Club')).toBeInTheDocument();
     expect(screen.getByText('A test club for mafia games')).toBeInTheDocument();
@@ -69,7 +97,7 @@ describe('ClubCard', () => {
   });
 
   it('renders without description', () => {
-    render(<ClubCard club={mockClubWithoutDescription} />);
+    renderWithProviders(<ClubCard club={mockClubWithoutDescription} />);
 
     expect(screen.getByText('Test Club')).toBeInTheDocument();
     expect(
@@ -78,14 +106,14 @@ describe('ClubCard', () => {
   });
 
   it('calculates total games correctly', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     // Total games: 50 + 30 + 40 = 120
     expect(screen.getByText('120')).toBeInTheDocument();
   });
 
   it('calculates win rate correctly', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     // Total wins: 35 + 20 + 25 = 80
     // Total games: 120
@@ -94,14 +122,14 @@ describe('ClubCard', () => {
   });
 
   it('calculates average ELO correctly', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     // Average ELO: (1600 + 1400 + 1500) / 3 = 1500
     expect(screen.getByText('Avg ELO: 1500')).toBeInTheDocument();
   });
 
   it('displays top performers sorted by ELO', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     // Should be sorted by ELO (highest first)
     const performerNames = screen.getAllByText(/Alice|Bob|Charlie/);
@@ -135,7 +163,7 @@ describe('ClubCard', () => {
       _count: { players: 5 },
     };
 
-    render(<ClubCard club={clubWithManyPlayers} />);
+    renderWithProviders(<ClubCard club={clubWithManyPlayers} />);
 
     // Should only show top 3 performers
     expect(screen.getByText('Alice')).toBeInTheDocument();
@@ -146,7 +174,7 @@ describe('ClubCard', () => {
   });
 
   it('handles empty players list', () => {
-    render(<ClubCard club={mockClubWithNoPlayers} />);
+    renderWithProviders(<ClubCard club={mockClubWithNoPlayers} />);
 
     expect(screen.getByText('0 members')).toBeInTheDocument();
     expect(screen.getByText('Avg ELO: 0')).toBeInTheDocument();
@@ -156,8 +184,10 @@ describe('ClubCard', () => {
   });
 
   it('calls onViewAnalytics when button is clicked', () => {
-    const onViewAnalytics = jest.fn();
-    render(<ClubCard club={mockClub} onViewAnalytics={onViewAnalytics} />);
+    const onViewAnalytics = vi.fn();
+    renderWithProviders(
+      <ClubCard club={mockClub} onViewAnalytics={onViewAnalytics} />
+    );
 
     const viewButton = screen.getByText('View Analytics');
     fireEvent.click(viewButton);
@@ -166,13 +196,13 @@ describe('ClubCard', () => {
   });
 
   it('does not render view analytics button when onViewAnalytics is not provided', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     expect(screen.queryByText('View Analytics')).not.toBeInTheDocument();
   });
 
   it('displays player statistics for each performer', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     // Check for ELO and games for each performer
     expect(screen.getByText('ELO: 1600')).toBeInTheDocument();
@@ -198,14 +228,14 @@ describe('ClubCard', () => {
       ],
     };
 
-    render(<ClubCard club={clubWithNoGames} />);
+    renderWithProviders(<ClubCard club={clubWithNoGames} />);
 
     expect(screen.getByText('0')).toBeInTheDocument(); // Total games
     expect(screen.getByText('0.0%')).toBeInTheDocument(); // Win rate
   });
 
   it('displays all required sections', () => {
-    render(<ClubCard club={mockClub} />);
+    renderWithProviders(<ClubCard club={mockClub} />);
 
     expect(screen.getByText('Total Games')).toBeInTheDocument();
     expect(screen.getByText('Win Rate')).toBeInTheDocument();
@@ -229,7 +259,7 @@ describe('ClubCard', () => {
       _count: { players: 1 },
     };
 
-    render(<ClubCard club={clubWithLargeNumbers} />);
+    renderWithProviders(<ClubCard club={clubWithLargeNumbers} />);
 
     expect(screen.getByText('1 members')).toBeInTheDocument();
     expect(screen.getByText('Avg ELO: 2500')).toBeInTheDocument();

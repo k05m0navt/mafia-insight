@@ -1,468 +1,769 @@
 import { vi } from 'vitest';
-import type { Prisma } from '@prisma/client';
 
-// Mock implementation of database operations for testing
-export const database = {
-  // Mock Prisma client
-  prisma: {
-    // Mock user operations
-    user: {
-      create: vi
-        .fn()
-        .mockImplementation(async (data: Prisma.UserCreateArgs) => {
-          return {
-            id: 'mock-user-id',
-            email: data.data.email,
-            name: data.data.name,
-            role: data.data.role || 'user',
-            isActive: data.data.isActive !== false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
+type Role = 'user' | 'admin' | 'moderator' | 'guest';
 
-      findUnique: vi
-        .fn()
-        .mockImplementation(async (query: Prisma.UserFindUniqueArgs) => {
-          if (query.where?.email === 'test@example.com') {
-            return {
-              id: 'mock-user-id',
-              email: 'test@example.com',
-              name: 'Test User',
-              role: 'user',
-              isActive: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
+type GenericRecord = Record<string, any>;
+
+const trackedFns: Array<ReturnType<typeof vi.fn>> = [];
+
+function createMockFn<T extends (...args: any[]) => any>(implementation: T) {
+  const spy = vi.fn(implementation);
+  trackedFns.push(spy);
+  return spy;
+}
+
+function createId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function cloneRecord<T>(value: T): T {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as unknown as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneRecord(item)) as unknown as T;
+  }
+
+  const result: GenericRecord = {};
+  for (const [key, entry] of Object.entries(value)) {
+    result[key] = cloneRecord(entry);
+  }
+  return result as T;
+}
+
+function project<RecordType extends Record<string, any>>(
+  record: RecordType,
+  select?: Record<string, boolean>
+) {
+  if (!select) {
+    return cloneRecord(record);
+  }
+
+  const projected: Record<string, unknown> = {};
+  for (const [key, enabled] of Object.entries(select)) {
+    if (enabled) {
+      projected[key] = cloneRecord(record[key]);
+    }
+  }
+
+  return projected;
+}
+
+function normalizeInputData(data: GenericRecord): GenericRecord {
+  const normalized: GenericRecord = {};
+
+  Object.entries(data ?? {}).forEach(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if ('connect' in value && value.connect) {
+        const connectValue = value.connect as GenericRecord;
+        const connectId = connectValue.id ?? Object.values(connectValue)[0];
+        normalized[`${key}Id`] = connectId;
+        return;
+      }
+
+      if ('create' in value && value.create) {
+        normalized[key] = normalizeInputData(value.create);
+        return;
+      }
+
+      if ('set' in value) {
+        const setValue = value.set;
+        if (setValue && typeof setValue === 'object' && 'connect' in setValue) {
+          const connectValue = setValue.connect as GenericRecord;
+          const connectId = connectValue.id ?? Object.values(connectValue)[0];
+          normalized[`${key}Id`] = connectId;
+          return;
+        }
+
+        normalized[key] = setValue;
+        return;
+      }
+
+      if ('disconnect' in value) {
+        normalized[`${key}Id`] = null;
+        return;
+      }
+    }
+
+    normalized[key] = value;
+  });
+
+  return normalized;
+}
+
+function valueToComparable(value: unknown): number | string {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === 'string') {
+    const timestamp = Date.parse(value);
+    if (!Number.isNaN(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  const numeric = Number(value);
+  if (!Number.isNaN(numeric)) {
+    return numeric;
+  }
+
+  return value as string;
+}
+
+function matchesWhere(record: GenericRecord, where?: GenericRecord): boolean {
+  if (!where || Object.keys(where).length === 0) {
+    return true;
+  }
+
+  if (Array.isArray(where)) {
+    return where.every((clause) => matchesWhere(record, clause));
+  }
+
+  if ('OR' in where) {
+    const conditions = Array.isArray(where.OR) ? where.OR : [where.OR];
+    if (!conditions.some((condition) => matchesWhere(record, condition))) {
+      return false;
+    }
+  }
+
+  if ('AND' in where) {
+    const conditions = Array.isArray(where.AND) ? where.AND : [where.AND];
+    if (!conditions.every((condition) => matchesWhere(record, condition))) {
+      return false;
+    }
+  }
+
+  if ('NOT' in where) {
+    const conditions = Array.isArray(where.NOT) ? where.NOT : [where.NOT];
+    if (conditions.some((condition) => matchesWhere(record, condition))) {
+      return false;
+    }
+  }
+
+  for (const [key, value] of Object.entries(where)) {
+    if (key === 'OR' || key === 'AND' || key === 'NOT') {
+      continue;
+    }
+
+    const recordValue = record?.[key];
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if ('equals' in value) {
+        if (recordValue !== value.equals) {
+          return false;
+        }
+        continue;
+      }
+
+      if ('contains' in value) {
+        const search = String(value.contains);
+        const source = String(recordValue ?? '');
+        if (value.mode === 'insensitive') {
+          if (!source.toLowerCase().includes(search.toLowerCase())) {
+            return false;
           }
-          return null;
-        }),
+        } else if (!source.includes(search)) {
+          return false;
+        }
+        continue;
+      }
 
-      findMany: vi.fn().mockImplementation(async () => {
-        return [
-          {
-            id: 'mock-user-1',
-            email: 'user1@example.com',
-            name: 'User 1',
-            role: 'user',
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'mock-user-2',
-            email: 'user2@example.com',
-            name: 'User 2',
-            role: 'admin',
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }),
+      if ('in' in value && Array.isArray(value.in)) {
+        if (!value.in.includes(recordValue)) {
+          return false;
+        }
+        continue;
+      }
 
-      update: vi
-        .fn()
-        .mockImplementation(async (query: Prisma.UserUpdateArgs) => {
-          return {
-            id: query.where?.id as string,
-            email: (query.data?.email as string) || 'test@example.com',
-            name: (query.data?.name as string) || 'Test User',
-            role: (query.data?.role as string) || 'user',
-            isActive:
-              query.data?.isActive !== undefined
-                ? (query.data.isActive as boolean)
-                : true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
+      if ('not' in value) {
+        if (matchesWhere({ [key]: recordValue }, { [key]: value.not })) {
+          return false;
+        }
+        continue;
+      }
 
-      delete: vi.fn().mockImplementation(async (_query: unknown) => {
-        return {
-          id: 'deleted-id',
-          email: 'deleted@example.com',
-          name: 'Deleted User',
-          role: 'user',
-          isActive: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+      const comparisonKeys: Array<'gte' | 'lte' | 'gt' | 'lt'> = [
+        'gte',
+        'lte',
+        'gt',
+        'lt',
+      ];
+      if (comparisonKeys.some((comparison) => comparison in value)) {
+        const comparableValue = valueToComparable(recordValue);
+
+        if (
+          'gte' in value &&
+          !(comparableValue >= valueToComparable(value.gte))
+        ) {
+          return false;
+        }
+        if (
+          'lte' in value &&
+          !(comparableValue <= valueToComparable(value.lte))
+        ) {
+          return false;
+        }
+        if ('gt' in value && !(comparableValue > valueToComparable(value.gt))) {
+          return false;
+        }
+        if ('lt' in value && !(comparableValue < valueToComparable(value.lt))) {
+          return false;
+        }
+        continue;
+      }
+
+      if ('some' in value && Array.isArray(recordValue)) {
+        if (!recordValue.some((item) => matchesWhere(item, value.some))) {
+          return false;
+        }
+        continue;
+      }
+
+      if ('none' in value && Array.isArray(recordValue)) {
+        if (recordValue.some((item) => matchesWhere(item, value.none))) {
+          return false;
+        }
+        continue;
+      }
+
+      if ('is' in value) {
+        if (!matchesWhere(recordValue ?? {}, value.is)) {
+          return false;
+        }
+        continue;
+      }
+
+      if (!matchesWhere(recordValue ?? {}, value)) {
+        return false;
+      }
+      continue;
+    }
+
+    if (recordValue !== value) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function applyOrder<RecordType extends Record<string, any>>(
+  records: RecordType[],
+  orderBy?:
+    | Record<string, 'asc' | 'desc'>
+    | Array<Record<string, 'asc' | 'desc'>>
+) {
+  if (!orderBy) {
+    return [...records];
+  }
+
+  const orderEntries = Array.isArray(orderBy) ? orderBy : [orderBy];
+
+  return [...records].sort((a, b) => {
+    for (const entry of orderEntries) {
+      const [field, direction] = Object.entries(entry)[0];
+      const dir = direction === 'desc' ? -1 : 1;
+
+      const aValue = a[field];
+      const bValue = b[field];
+
+      if (aValue < bValue) {
+        return -1 * dir;
+      }
+      if (aValue > bValue) {
+        return 1 * dir;
+      }
+    }
+
+    return 0;
+  });
+}
+
+function applyUpdate(record: GenericRecord, data: GenericRecord) {
+  Object.entries(data).forEach(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if ('set' in value) {
+        record[key] = value.set;
+        return;
+      }
+
+      if ('increment' in value) {
+        record[key] = (record[key] ?? 0) + value.increment;
+        return;
+      }
+
+      if ('decrement' in value) {
+        record[key] = (record[key] ?? 0) - value.decrement;
+        return;
+      }
+
+      if ('connect' in value && value.connect) {
+        const connectValue = value.connect as GenericRecord;
+        const connectId = connectValue.id ?? Object.values(connectValue)[0];
+        record[`${key}Id`] = connectId;
+        return;
+      }
+
+      if ('disconnect' in value) {
+        record[`${key}Id`] = null;
+        return;
+      }
+    }
+
+    record[key] = value;
+  });
+}
+
+type CollectionKey =
+  | 'users'
+  | 'notifications'
+  | 'emailLogs'
+  | 'dataIntegrityReports'
+  | 'players'
+  | 'clubs'
+  | 'tournaments'
+  | 'games'
+  | 'playerTournaments'
+  | 'gameParticipations'
+  | 'playerRoleStats'
+  | 'playerYearStats'
+  | 'syncStatuses'
+  | 'syncLogs'
+  | 'importProgress'
+  | 'importCheckpoints';
+
+const state: Record<CollectionKey, GenericRecord[]> = {
+  users: [],
+  notifications: [],
+  emailLogs: [],
+  dataIntegrityReports: [],
+  players: [],
+  clubs: [],
+  tournaments: [],
+  games: [],
+  playerTournaments: [],
+  gameParticipations: [],
+  playerRoleStats: [],
+  playerYearStats: [],
+  syncStatuses: [],
+  syncLogs: [],
+  importProgress: [],
+  importCheckpoints: [],
+};
+
+const advisoryLocks = new Set<number>();
+
+type CollectionOptions = {
+  idPrefix: string;
+  onCreate?: (record: GenericRecord) => void;
+  onUpdate?: (record: GenericRecord, data: GenericRecord) => void;
+};
+
+function createCollection(key: CollectionKey, options: CollectionOptions) {
+  const collection = () => state[key];
+
+  const ensureDefaults = (record: GenericRecord) => {
+    if (!record.id) {
+      record.id = createId(options.idPrefix);
+    }
+
+    if (options.onCreate) {
+      options.onCreate(record);
+    }
+  };
+
+  const handleUpdate = (record: GenericRecord, data: GenericRecord) => {
+    if (options.onUpdate) {
+      options.onUpdate(record, data);
+    } else if ('updatedAt' in record) {
+      record.updatedAt = new Date();
+    }
+  };
+
+  const create = createMockFn(async ({ data, include }: any) => {
+    const normalized = normalizeInputData(data ?? {});
+    ensureDefaults(normalized);
+    const stored = cloneRecord(normalized);
+    collection().push(stored);
+    return include ? cloneRecord(stored) : cloneRecord(stored);
+  });
+
+  const createMany = createMockFn(async ({ data }: any) => {
+    const payload = Array.isArray(data) ? data : [];
+    for (const entry of payload) {
+      await create({ data: entry });
+    }
+    return { count: payload.length };
+  });
+
+  const findMany = createMockFn(
+    async ({ where, orderBy, skip, take, select }: any = {}) => {
+      let results = collection().filter((record) =>
+        matchesWhere(record, where)
+      );
+      results = applyOrder(results, orderBy);
+
+      if (typeof skip === 'number') {
+        results = results.slice(skip);
+      }
+      if (typeof take === 'number') {
+        results = results.slice(0, take);
+      }
+
+      return results.map((record) => project(record, select));
+    }
+  );
+
+  const findUnique = createMockFn(async ({ where, select }: any) => {
+    const match = collection().find((record) => matchesWhere(record, where));
+    return match ? project(match, select) : null;
+  });
+
+  const findFirst = createMockFn(
+    async ({ where, orderBy, select }: any = {}) => {
+      const matches = await findMany({ where, orderBy, select });
+      return matches.length > 0 ? matches[0] : null;
+    }
+  );
+
+  const update = createMockFn(async ({ where, data, select }: any) => {
+    const record = collection().find((item) => matchesWhere(item, where));
+    if (!record) {
+      throw new Error('Record not found for update');
+    }
+
+    const normalized = normalizeInputData(data ?? {});
+    applyUpdate(record, normalized);
+    handleUpdate(record, normalized);
+    return project(record, select);
+  });
+
+  const updateMany = createMockFn(async ({ where, data }: any) => {
+    let count = 0;
+    const normalized = normalizeInputData(data ?? {});
+
+    collection().forEach((record) => {
+      if (matchesWhere(record, where)) {
+        applyUpdate(record, normalized);
+        handleUpdate(record, normalized);
+        count += 1;
+      }
+    });
+
+    return { count };
+  });
+
+  const upsert = createMockFn(
+    async ({ where, create: createData, update: updateData, select }: any) => {
+      const existing = collection().find((record) =>
+        matchesWhere(record, where)
+      );
+
+      if (!existing) {
+        const normalizedCreate = normalizeInputData(createData ?? {});
+        ensureDefaults(normalizedCreate);
+        const stored = cloneRecord(normalizedCreate);
+        collection().push(stored);
+        return project(stored, select);
+      }
+
+      const normalizedUpdate = normalizeInputData(updateData ?? {});
+      applyUpdate(existing, normalizedUpdate);
+      handleUpdate(existing, normalizedUpdate);
+      return project(existing, select);
+    }
+  );
+
+  const remove = createMockFn(async ({ where, select }: any) => {
+    const index = collection().findIndex((record) =>
+      matchesWhere(record, where)
+    );
+    if (index === -1) {
+      throw new Error('Record not found for delete');
+    }
+
+    const [removed] = collection().splice(index, 1);
+    return project(removed, select);
+  });
+
+  const deleteMany = createMockFn(async ({ where }: any = {}) => {
+    const before = collection().length;
+    state[key] = collection().filter((record) => !matchesWhere(record, where));
+    return { count: before - collection().length };
+  });
+
+  const count = createMockFn(async ({ where }: any = {}) => {
+    return collection().filter((record) => matchesWhere(record, where)).length;
+  });
+
+  return {
+    create,
+    createMany,
+    findMany,
+    findUnique,
+    findFirst,
+    update,
+    updateMany,
+    upsert,
+    delete: remove,
+    deleteMany,
+    count,
+  };
+}
+
+const prisma = {
+  user: createCollection('users', {
+    idPrefix: 'user',
+    onCreate: (record) => {
+      record.role = record.role ?? ('user' satisfies Role);
+      record.subscriptionTier = record.subscriptionTier ?? 'FREE';
+      record.isActive = record.isActive ?? true;
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
     },
-
-    // Mock game operations
-    game: {
-      create: vi
-        .fn()
-        .mockImplementation(async (data: Prisma.GameCreateArgs) => {
-          return {
-            id: 'mock-game-id',
-            name: data.data.name as string,
-            status: (data.data.status as string) || 'active',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
-
-      findUnique: vi
-        .fn()
-        .mockImplementation(async (query: Prisma.GameFindUniqueArgs) => {
-          return {
-            id: query.where?.id as string,
-            name: 'Mock Game',
-            status: 'active',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
-
-      findMany: vi.fn().mockImplementation(async () => {
-        return [
-          {
-            id: 'mock-game-1',
-            name: 'Game 1',
-            status: 'active',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'mock-game-2',
-            name: 'Game 2',
-            status: 'completed',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }),
-
-      update: vi
-        .fn()
-        .mockImplementation(async (query: Prisma.GameUpdateArgs) => {
-          return {
-            id: query.where?.id as string,
-            name: (query.data?.name as string) || 'Updated Game',
-            status: (query.data?.status as string) || 'active',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
-
-      delete: vi
-        .fn()
-        .mockImplementation(async (query: Prisma.GameDeleteArgs) => {
-          return {
-            id: query.where?.id as string,
-            name: 'Deleted Game',
-            status: 'cancelled',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        }),
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
     },
-
-    // Mock player operations
-    player: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-player-id',
-          name: data.data.name,
-          gameId: data.data.gameId,
-          userId: data.data.userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findUnique: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: 'Mock Player',
-          gameId: 'mock-game-id',
-          userId: 'mock-user-id',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findMany: vi.fn().mockImplementation(async () => {
-        return [
-          {
-            id: 'mock-player-1',
-            name: 'Player 1',
-            gameId: 'mock-game-1',
-            userId: 'mock-user-1',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'mock-player-2',
-            name: 'Player 2',
-            gameId: 'mock-game-1',
-            userId: 'mock-user-2',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }),
-
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: query.data.name || 'Updated Player',
-          gameId: query.data.gameId || 'mock-game-id',
-          userId: query.data.userId || 'mock-user-id',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      delete: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          name: 'Deleted Player',
-          gameId: 'mock-game-id',
-          userId: 'mock-user-id',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+  }),
+  notification: createCollection('notifications', {
+    idPrefix: 'notification',
+    onCreate: (record) => {
+      record.read = record.read ?? false;
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
     },
-
-    // Mock sync log operations
-    syncLog: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-sync-log-id',
-          operation: data.data.operation || 'sync',
-          status: data.data.status || 'pending',
-          recordsProcessed: data.data.recordsProcessed || 0,
-          errors: data.data.errors || [],
-          startedAt: data.data.startedAt || new Date(),
-          completedAt: data.data.completedAt || null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findUnique: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          operation: 'sync',
-          status: 'completed',
-          recordsProcessed: 100,
-          errors: [],
-          startedAt: new Date(),
-          completedAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findMany: vi.fn().mockImplementation(async () => {
-        return [
-          {
-            id: 'mock-sync-log-1',
-            operation: 'sync',
-            status: 'completed',
-            recordsProcessed: 50,
-            errors: [],
-            startedAt: new Date(),
-            completedAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'mock-sync-log-2',
-            operation: 'sync',
-            status: 'failed',
-            recordsProcessed: 25,
-            errors: ['Error 1', 'Error 2'],
-            startedAt: new Date(),
-            completedAt: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }),
-
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          operation: query.data.operation || 'sync',
-          status: query.data.status || 'completed',
-          recordsProcessed: query.data.recordsProcessed || 0,
-          errors: query.data.errors || [],
-          startedAt: query.data.startedAt || new Date(),
-          completedAt: query.data.completedAt || new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      delete: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          operation: 'sync',
-          status: 'deleted',
-          recordsProcessed: 0,
-          errors: [],
-          startedAt: new Date(),
-          completedAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
     },
-
-    // Mock sync status operations
-    syncStatus: {
-      create: vi.fn().mockImplementation(async (data: any) => {
-        return {
-          id: 'mock-sync-id',
-          lastSyncAt: data.data.lastSyncAt || new Date(),
-          status: data.data.status || 'completed',
-          recordsProcessed: data.data.recordsProcessed || 0,
-          errors: data.data.errors || [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findUnique: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          lastSyncAt: new Date(),
-          status: 'completed',
-          recordsProcessed: 100,
-          errors: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-
-      findMany: vi.fn().mockImplementation(async () => {
-        return [
-          {
-            id: 'mock-sync-1',
-            lastSyncAt: new Date(),
-            status: 'completed',
-            recordsProcessed: 50,
-            errors: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'mock-sync-2',
-            lastSyncAt: new Date(),
-            status: 'failed',
-            recordsProcessed: 25,
-            errors: ['Error 1', 'Error 2'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }),
-
-      update: vi.fn().mockImplementation(async (query: any) => {
-        return {
-          id: query.where.id,
-          lastSyncAt: query.data.lastSyncAt || new Date(),
-          status: query.data.status || 'completed',
-          recordsProcessed: query.data.recordsProcessed || 0,
-          errors: query.data.errors || [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
+  }),
+  emailLog: createCollection('emailLogs', { idPrefix: 'email-log' }),
+  dataIntegrityReport: createCollection('dataIntegrityReports', {
+    idPrefix: 'integrity-report',
+  }),
+  player: createCollection('players', {
+    idPrefix: 'player',
+    onCreate: (record) => {
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
     },
-
-    // Mock transaction operations
-    $transaction: vi.fn().mockImplementation(async (operations: any[]) => {
-      const results = [];
-      for (const operation of operations) {
-        if (typeof operation === 'function') {
-          results.push(await operation(database.prisma));
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  club: createCollection('clubs', {
+    idPrefix: 'club',
+    onCreate: (record) => {
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  tournament: createCollection('tournaments', {
+    idPrefix: 'tournament',
+    onCreate: (record) => {
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  game: createCollection('games', {
+    idPrefix: 'game',
+    onCreate: (record) => {
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  playerTournament: createCollection('playerTournaments', {
+    idPrefix: 'player-tournament',
+  }),
+  gameParticipation: createCollection('gameParticipations', {
+    idPrefix: 'game-participation',
+  }),
+  playerRoleStats: createCollection('playerRoleStats', {
+    idPrefix: 'player-role-stats',
+  }),
+  playerYearStats: createCollection('playerYearStats', {
+    idPrefix: 'player-year-stats',
+  }),
+  syncStatus: {
+    ...createCollection('syncStatuses', {
+      idPrefix: 'sync-status',
+      onCreate: (record) => {
+        record.isRunning = record.isRunning ?? false;
+        record.lastSyncTime = record.lastSyncTime
+          ? new Date(record.lastSyncTime)
+          : null;
+        record.createdAt = record.createdAt
+          ? new Date(record.createdAt)
+          : new Date();
+        record.updatedAt = record.updatedAt
+          ? new Date(record.updatedAt)
+          : new Date();
+      },
+      onUpdate: (record) => {
+        record.updatedAt = new Date();
+      },
+    }),
+    findUnique: createMockFn(async ({ where, select }: any) => {
+      const match = state.syncStatuses.find((record) =>
+        matchesWhere(record, where)
+      );
+      return match ? project(match, select) : null;
+    }),
+  },
+  syncLog: createCollection('syncLogs', {
+    idPrefix: 'sync-log',
+    onCreate: (record) => {
+      record.startTime = record.startTime
+        ? new Date(record.startTime)
+        : new Date();
+      record.endTime = record.endTime ? new Date(record.endTime) : null;
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  importProgress: createCollection('importProgress', {
+    idPrefix: 'import-progress',
+    onCreate: (record) => {
+      record.startTime = record.startTime
+        ? new Date(record.startTime)
+        : new Date();
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  importCheckpoint: createCollection('importCheckpoints', {
+    idPrefix: 'import-checkpoint',
+    onCreate: (record) => {
+      record.createdAt = record.createdAt
+        ? new Date(record.createdAt)
+        : new Date();
+      record.updatedAt = record.updatedAt
+        ? new Date(record.updatedAt)
+        : new Date();
+    },
+    onUpdate: (record) => {
+      record.updatedAt = new Date();
+    },
+  }),
+  $transaction: createMockFn(async (operations: any) => {
+    if (Array.isArray(operations)) {
+      const results: unknown[] = [];
+      for (const op of operations) {
+        if (typeof op === 'function') {
+          results.push(await op(prisma));
         } else {
-          results.push(operation);
+          results.push(op);
         }
       }
       return results;
-    }),
+    }
 
-    // Mock raw query operations
-    $executeRaw: vi.fn().mockImplementation(async (_query: unknown) => {
-      return { count: 1 };
-    }),
+    if (typeof operations === 'function') {
+      return operations(prisma);
+    }
 
-    $queryRaw: vi.fn().mockImplementation(async (_query: unknown) => {
-      return [];
-    }),
+    return operations;
+  }),
+  $executeRaw: createMockFn(async () => 0),
+  $queryRaw: createMockFn(async (...args: any[]) => {
+    const [first] = args;
+    let queryText = '';
 
-    // Mock connection operations
-    $connect: vi.fn().mockImplementation(async () => {
-      return Promise.resolve();
-    }),
+    if (typeof first === 'string') {
+      queryText = first;
+    } else if (Array.isArray(first?.raw)) {
+      queryText = first.raw.join('');
+    } else if (Array.isArray(first) && typeof first[0] === 'string') {
+      queryText = (first as string[]).join('');
+    } else if (first && typeof first.text === 'string') {
+      queryText = first.text;
+    }
 
-    $disconnect: vi.fn().mockImplementation(async () => {
-      return Promise.resolve();
-    }),
-  },
+    if (queryText.includes('pg_try_advisory_lock')) {
+      const match = queryText.match(/pg_try_advisory_lock\((\d+)\)/);
+      const lockId = match ? Number(match[1]) : 0;
+      const acquired = !advisoryLocks.has(lockId);
+      if (acquired) {
+        advisoryLocks.add(lockId);
+      }
+      return [{ pg_try_advisory_lock: acquired }];
+    }
 
-  // Mock database utilities
-  utils: {
-    // Mock database health check
-    checkHealth: vi.fn().mockImplementation(async () => {
-      return {
-        connected: true,
-        latency: 10,
-        timestamp: new Date(),
-      };
-    }),
+    if (queryText.includes('pg_advisory_unlock')) {
+      const match = queryText.match(/pg_advisory_unlock\((\d+)\)/);
+      const lockId = match ? Number(match[1]) : 0;
+      advisoryLocks.delete(lockId);
+      return [{ pg_advisory_unlock: true }];
+    }
 
-    // Mock database cleanup
-    cleanup: vi.fn().mockImplementation(async () => {
-      return {
-        success: true,
-        message: 'Database cleaned up successfully',
-      };
-    }),
+    return [];
+  }),
+  $connect: createMockFn(async () => undefined),
+  $disconnect: createMockFn(async () => undefined),
+};
 
-    // Mock database seeding
-    seed: vi.fn().mockImplementation(async (data: any) => {
-      return {
-        success: true,
-        recordsCreated: data.length || 0,
-        message: 'Database seeded successfully',
-      };
-    }),
-
-    // Mock database migration
-    migrate: vi.fn().mockImplementation(async () => {
-      return {
-        success: true,
-        message: 'Database migrated successfully',
-      };
-    }),
-  },
-
-  // Reset all mocks
+export const database = {
+  prisma,
+  state,
   resetMocks: () => {
-    Object.values(database.prisma).forEach((model) => {
-      if (typeof model === 'object' && model !== null) {
-        Object.values(model).forEach((fn) => {
-          if (typeof fn === 'function' && 'mockReset' in fn) {
-            fn.mockReset();
-          }
-        });
-      }
+    (Object.keys(state) as CollectionKey[]).forEach((key) => {
+      state[key].length = 0;
     });
 
-    Object.values(database.utils).forEach((fn) => {
-      if (typeof fn === 'function' && 'mockReset' in fn) {
-        fn.mockReset();
-      }
-    });
+    advisoryLocks.clear();
+    trackedFns.forEach((fn) => fn.mockClear());
   },
 };
 

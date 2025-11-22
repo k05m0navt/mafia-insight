@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import LoginPage from '@/app/(auth)/login/page';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 
@@ -33,13 +34,13 @@ describe('LoginPage', () => {
 
   it('should be responsive on mobile', () => {
     render(
-      <MockedAuthProvider>
+      <div className="max-w-lg" data-testid="layout">
         <LoginPage />
-      </MockedAuthProvider>
+      </div>
     );
 
-    const container = screen.getByTestId('login-container');
-    expect(container).toHaveClass(
+    const main = screen.getByRole('main');
+    expect(main).toHaveClass(
       'min-h-screen',
       'flex',
       'items-center',
