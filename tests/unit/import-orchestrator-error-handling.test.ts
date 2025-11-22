@@ -3,9 +3,18 @@ import { PrismaClient } from '@prisma/client';
 import { Browser } from 'playwright';
 import { ImportOrchestrator } from '@/lib/gomafia/import/import-orchestrator';
 
-// Mock Prisma
+const { resilientExecuteMock } = vi.hoisted(() => ({
+  resilientExecuteMock: vi.fn(),
+}));
+
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(),
+}));
+
+vi.mock('@/lib/db-resilient', () => ({
+  resilientDB: {
+    execute: (fn: (db: any) => unknown) => resilientExecuteMock(fn),
+  },
 }));
 
 // Mock Playwright Browser
@@ -51,6 +60,7 @@ describe('ImportOrchestrator - Error Handling', () => {
     };
 
     (PrismaClient as any).mockImplementation(() => mockDb);
+    resilientExecuteMock.mockImplementation((fn) => fn(mockDb));
     orchestrator = new ImportOrchestrator(mockDb, mockBrowser);
   });
 

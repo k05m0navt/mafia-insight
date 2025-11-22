@@ -1,37 +1,43 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { PrismaClient } from '@prisma/client';
 import { IntegrityChecker } from '@/lib/gomafia/import/integrity-checker';
+import { resilientDB } from '@/lib/db-resilient';
 
-// Mock Prisma
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn(() => ({
-    gameParticipation: {
-      findMany: vi.fn(),
-      count: vi.fn(),
+vi.mock('@/lib/db-resilient', () => {
+  const execute = vi.fn();
+  return {
+    resilientDB: {
+      execute,
     },
-    player: {
-      findMany: vi.fn(),
-      count: vi.fn(),
-    },
-    tournament: {
-      findMany: vi.fn(),
-    },
-    game: {
-      findMany: vi.fn(),
-    },
-    playerTournament: {
-      findMany: vi.fn(),
-    },
-  })),
-}));
+  };
+});
 
 describe('IntegrityChecker', () => {
   let checker: IntegrityChecker;
-  let mockDb: any;
+  let dbMock: any;
+  const executeMock = vi.mocked(resilientDB.execute);
 
   beforeEach(() => {
-    mockDb = new PrismaClient();
-    checker = new IntegrityChecker(mockDb);
+    dbMock = {
+      gameParticipation: {
+        findMany: vi.fn(),
+      },
+      player: {
+        findMany: vi.fn(),
+      },
+      tournament: {
+        findMany: vi.fn(),
+      },
+      game: {
+        findMany: vi.fn(),
+      },
+      playerTournament: {
+        findMany: vi.fn(),
+      },
+    };
+
+    executeMock.mockImplementation(async (operation) => operation(dbMock));
+
+    checker = new IntegrityChecker(dbMock);
   });
 
   afterEach(() => {
@@ -40,11 +46,11 @@ describe('IntegrityChecker', () => {
 
   describe('checkGameParticipationLinks', () => {
     it('should pass when all participations link to valid players', async () => {
-      mockDb.gameParticipation.findMany.mockResolvedValue([
+      dbMock.gameParticipation.findMany.mockResolvedValue([
         { id: '1', playerId: 'player-1', gameId: 'game-1' },
         { id: '2', playerId: 'player-2', gameId: 'game-1' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([
+      dbMock.player.findMany.mockResolvedValue([
         { id: 'player-1' },
         { id: 'player-2' },
       ]);
@@ -57,11 +63,11 @@ describe('IntegrityChecker', () => {
     });
 
     it('should fail when participations link to non-existent players', async () => {
-      mockDb.gameParticipation.findMany.mockResolvedValue([
+      dbMock.gameParticipation.findMany.mockResolvedValue([
         { id: '1', playerId: 'player-1', gameId: 'game-1' },
         { id: '2', playerId: 'player-999', gameId: 'game-1' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
+      dbMock.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
 
       const result = await checker.checkGameParticipationLinks();
 
@@ -73,11 +79,11 @@ describe('IntegrityChecker', () => {
 
   describe('checkPlayerTournamentLinks', () => {
     it('should pass when all player tournaments link correctly', async () => {
-      mockDb.playerTournament.findMany.mockResolvedValue([
+      dbMock.playerTournament.findMany.mockResolvedValue([
         { id: '1', playerId: 'player-1', tournamentId: 'tournament-1' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
-      mockDb.tournament.findMany.mockResolvedValue([{ id: 'tournament-1' }]);
+      dbMock.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
+      dbMock.tournament.findMany.mockResolvedValue([{ id: 'tournament-1' }]);
 
       const result = await checker.checkPlayerTournamentLinks();
 
@@ -86,11 +92,11 @@ describe('IntegrityChecker', () => {
     });
 
     it('should fail when player tournament links to non-existent tournament', async () => {
-      mockDb.playerTournament.findMany.mockResolvedValue([
+      dbMock.playerTournament.findMany.mockResolvedValue([
         { id: '1', playerId: 'player-1', tournamentId: 'tournament-999' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
-      mockDb.tournament.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
 
       const result = await checker.checkPlayerTournamentLinks();
 
@@ -102,13 +108,13 @@ describe('IntegrityChecker', () => {
 
   describe('checkOrphanedRecords', () => {
     it('should detect games without tournaments', async () => {
-      mockDb.tournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([
+      dbMock.tournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([
         { id: 'game-1', tournamentId: 'tournament-999' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.gameParticipation.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.gameParticipation.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
 
       const result = await checker.checkOrphanedRecords();
 
@@ -117,11 +123,11 @@ describe('IntegrityChecker', () => {
     });
 
     it('should pass when no orphaned records exist', async () => {
-      mockDb.tournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.gameParticipation.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.gameParticipation.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
 
       const result = await checker.checkOrphanedRecords();
 
@@ -133,11 +139,11 @@ describe('IntegrityChecker', () => {
   describe('checkAllIntegrity', () => {
     it('should run all integrity checks and aggregate results', async () => {
       // Mock all checks to pass
-      mockDb.gameParticipation.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.tournament.findMany.mockResolvedValue([]);
+      dbMock.gameParticipation.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
 
       const result = await checker.checkAllIntegrity();
 
@@ -147,13 +153,13 @@ describe('IntegrityChecker', () => {
     });
 
     it('should indicate failure if any check fails', async () => {
-      mockDb.gameParticipation.findMany.mockResolvedValue([
+      dbMock.gameParticipation.findMany.mockResolvedValue([
         { id: '1', playerId: 'invalid', gameId: 'game-1' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([]);
-      mockDb.tournament.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
 
       const result = await checker.checkAllIntegrity();
 
@@ -164,11 +170,11 @@ describe('IntegrityChecker', () => {
 
   describe('getIntegritySummary', () => {
     it('should provide readable summary of integrity status', async () => {
-      mockDb.gameParticipation.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.tournament.findMany.mockResolvedValue([]);
+      dbMock.gameParticipation.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
 
       const summary = await checker.getIntegritySummary();
 
@@ -179,13 +185,13 @@ describe('IntegrityChecker', () => {
     });
 
     it('should indicate warnings when integrity issues found', async () => {
-      mockDb.gameParticipation.findMany.mockResolvedValue([
+      dbMock.gameParticipation.findMany.mockResolvedValue([
         { id: '1', playerId: 'invalid', gameId: 'game-1' },
       ]);
-      mockDb.player.findMany.mockResolvedValue([]);
-      mockDb.playerTournament.findMany.mockResolvedValue([]);
-      mockDb.game.findMany.mockResolvedValue([]);
-      mockDb.tournament.findMany.mockResolvedValue([]);
+      dbMock.player.findMany.mockResolvedValue([]);
+      dbMock.playerTournament.findMany.mockResolvedValue([]);
+      dbMock.game.findMany.mockResolvedValue([]);
+      dbMock.tournament.findMany.mockResolvedValue([]);
 
       const summary = await checker.getIntegritySummary();
 

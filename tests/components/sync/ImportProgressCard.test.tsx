@@ -1,123 +1,153 @@
-import { describe, it, expect } from 'vitest';
+/**
+ * Tests for ImportProgressCard component
+ */
+
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { ImportProgressCard } from '@/components/sync/ImportProgressCard';
-import '@testing-library/jest-dom';
+
+const baseProgress = {
+  id: 'sync-123',
+  operation: 'Syncing data',
+  progress: 0,
+  totalRecords: 0,
+  processedRecords: 0,
+  errors: 0,
+  startTime: new Date('2024-01-01T00:00:00Z'),
+  estimatedCompletion: undefined,
+  status: 'PENDING' as const,
+};
 
 describe('ImportProgressCard', () => {
-  it('should display import progress when running', () => {
+  it('renders empty state when no progress is provided', () => {
     render(
       <ImportProgressCard
-        isRunning={true}
-        progress={45}
-        currentOperation="Importing players: batch 15/50"
-      />
-    );
-
-    expect(screen.getByText('Current Import Progress')).toBeInTheDocument();
-    expect(
-      screen.getByText('Importing players: batch 15/50')
-    ).toBeInTheDocument();
-    expect(screen.getByText('45%')).toBeInTheDocument();
-  });
-
-  it('should display idle state when not running', () => {
-    render(
-      <ImportProgressCard
+        status="PENDING"
         isRunning={false}
-        progress={100}
-        currentOperation={null}
+        isPending={false}
+        isCancelling={false}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.getByText('No import in progress')).toBeInTheDocument();
+    expect(screen.getByText('Import Progress')).toBeInTheDocument();
+    expect(
+      screen.getByText('No import operation in progress')
+    ).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  it('should display 0% progress at start', () => {
+  it('displays 0 progress when provided', () => {
     render(
       <ImportProgressCard
-        isRunning={true}
-        progress={0}
-        currentOperation="Initializing import..."
+        status="RUNNING"
+        isRunning
+        isPending={false}
+        isCancelling={false}
+        progress={{ ...baseProgress, progress: 0, status: 'RUNNING' }}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.getByText('0%')).toBeInTheDocument();
-    expect(screen.getByText('Initializing import...')).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText(/0\s*%/)).toBeInTheDocument();
   });
 
-  it('should display 100% progress when complete', () => {
+  it('shows 100% when import completes', () => {
     render(
       <ImportProgressCard
-        isRunning={true}
-        progress={100}
-        currentOperation="Finalizing import..."
-      />
-    );
-
-    expect(screen.getByText('100%')).toBeInTheDocument();
-    expect(screen.getByText('Finalizing import...')).toBeInTheDocument();
-  });
-
-  it('should render progress bar with correct value', () => {
-    render(
-      <ImportProgressCard
-        isRunning={true}
-        progress={67}
-        currentOperation="Processing data..."
-      />
-    );
-
-    const progressBar = screen.getByRole('progressbar');
-    expect(progressBar).toHaveAttribute('aria-valuenow', '67');
-  });
-
-  it('should show last sync time when provided', () => {
-    const lastSyncTime = '2024-01-01T12:00:00.000Z';
-    render(
-      <ImportProgressCard
+        status="COMPLETED"
         isRunning={false}
-        progress={100}
-        currentOperation={null}
-        lastSyncTime={lastSyncTime}
+        isPending={false}
+        isCancelling={false}
+        progress={{ ...baseProgress, progress: 100, status: 'COMPLETED' }}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.getByText(/Last import:/)).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.getByText(/100\s*%/)).toBeInTheDocument();
   });
 
-  it('should handle null current operation gracefully', () => {
+  it('renders progress bar with correct value', () => {
     render(
       <ImportProgressCard
-        isRunning={false}
-        progress={0}
-        currentOperation={null}
+        status="RUNNING"
+        isRunning
+        isPending={false}
+        isCancelling={false}
+        progress={{
+          ...baseProgress,
+          progress: 67,
+          processedRecords: 670,
+          totalRecords: 1000,
+          status: 'RUNNING',
+        }}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.queryByText('Initializing')).not.toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByText(/67\s*%/)).toBeInTheDocument();
+    expect(screen.getByText(/670\s*\/\s*1,000/)).toBeInTheDocument();
   });
 
-  it('should update progress bar value when progress changes', () => {
+  it('updates when progress changes', () => {
     const { rerender } = render(
       <ImportProgressCard
-        isRunning={true}
-        progress={25}
-        currentOperation="Step 1"
+        status="RUNNING"
+        isRunning
+        isPending={false}
+        isCancelling={false}
+        progress={{ ...baseProgress, progress: 25, status: 'RUNNING' }}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.getByText('25%')).toBeInTheDocument();
+    expect(screen.getByText(/25\s*%/)).toBeInTheDocument();
 
     rerender(
       <ImportProgressCard
-        isRunning={true}
-        progress={75}
-        currentOperation="Step 3"
+        status="RUNNING"
+        isRunning
+        isPending={false}
+        isCancelling={false}
+        progress={{
+          ...baseProgress,
+          progress: 80,
+          processedRecords: 800,
+          totalRecords: 1000,
+          status: 'RUNNING',
+        }}
+        onRefresh={() => undefined}
+        onStart={() => undefined}
+        onStop={() => undefined}
+        onManualSync={() => undefined}
+        onSelectiveDelete={() => undefined}
       />
     );
 
-    expect(screen.getByText('75%')).toBeInTheDocument();
-    expect(screen.getByText('Step 3')).toBeInTheDocument();
+    expect(screen.getByText(/80\s*%/)).toBeInTheDocument();
   });
 });

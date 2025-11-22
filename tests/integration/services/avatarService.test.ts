@@ -1,45 +1,75 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  uploadAvatar,
-  deleteAvatar,
-  updateAvatar,
-} from '@/lib/supabase/storage';
+const mocks = vi.hoisted(() => {
+  const uploadMock = vi.fn(async () => ({
+    data: { path: 'test-user-123456.jpg' },
+    error: null,
+  }));
 
-// Mock Supabase client
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    storage: {
-      from: vi.fn(() => ({
-        upload: vi.fn().mockResolvedValue({
-          data: { path: 'test-user-123456.jpg' },
-          error: null,
-        }),
-        remove: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-        getPublicUrl: vi.fn((path: string) => ({
-          data: {
-            publicUrl: `https://mock-storage.supabase.co/avatars/${path}`,
-          },
-        })),
-      })),
+  const removeMock = vi.fn(async () => ({
+    data: null,
+    error: null,
+  }));
+
+  const getPublicUrlMock = vi.fn((path: string) => ({
+    data: {
+      publicUrl: `https://mock-storage.supabase.co/avatars/${path}`,
     },
-  })),
-}));
+  }));
+
+  const storageFromMock = vi.fn(() => ({
+    upload: uploadMock,
+    remove: removeMock,
+    getPublicUrl: getPublicUrlMock,
+  }));
+
+  return {
+    uploadMock,
+    removeMock,
+    getPublicUrlMock,
+    storageFromMock,
+    buildSupabaseMock: () => ({
+      storage: {
+        from: storageFromMock,
+      },
+    }),
+  };
+});
+
+let uploadAvatar: typeof import('@/lib/supabase/storage').uploadAvatar;
+let deleteAvatar: typeof import('@/lib/supabase/storage').deleteAvatar;
+let updateAvatar: typeof import('@/lib/supabase/storage').updateAvatar;
 
 describe('Avatar Service', () => {
+  beforeAll(async () => {
+    vi.resetModules();
+    const storageModule = await import('@/lib/supabase/storage');
+
+    storageModule.__setSupabaseClientForTests(mocks.buildSupabaseMock() as any);
+
+    uploadAvatar = storageModule.uploadAvatar;
+    deleteAvatar = storageModule.deleteAvatar;
+    updateAvatar = storageModule.updateAvatar;
+  });
+
+  beforeEach(() => {
+    mocks.uploadMock.mockClear();
+    mocks.removeMock.mockClear();
+    mocks.getPublicUrlMock.mockClear();
+    mocks.storageFromMock.mockClear();
+  });
+
   describe('uploadAvatar', () => {
     it('should upload a valid image file', async () => {
       const file = new File(['test image content'], 'avatar.jpg', {
         type: 'image/jpeg',
       });
 
-      const avatarUrl = await uploadAvatar('test-user-id', file);
+      const result = await uploadAvatar('test-user-id', file);
 
-      expect(avatarUrl).toContain('https://');
-      expect(avatarUrl).toContain('avatars');
-      expect(avatarUrl).toContain('.jpg');
+      expect(result.error).toBeUndefined();
+      expect(result.url).toContain('https://');
+      expect(result.url).toContain('avatars');
+      expect(result.url).toContain('.jpg');
     });
 
     it('should reject files larger than 2MB', async () => {
@@ -48,9 +78,10 @@ describe('Avatar Service', () => {
         type: 'image/jpeg',
       });
 
-      await expect(uploadAvatar('test-user-id', largeFile)).rejects.toThrow(
-        '2MB'
-      );
+      const result = await uploadAvatar('test-user-id', largeFile);
+
+      expect(result.url).toBeUndefined();
+      expect(result.error).toContain('2MB');
     });
 
     it('should reject non-image files', async () => {
@@ -58,45 +89,47 @@ describe('Avatar Service', () => {
         type: 'text/plain',
       });
 
-      await expect(uploadAvatar('test-user-id', textFile)).rejects.toThrow(
-        'Invalid file type'
-      );
+      const result = await uploadAvatar('test-user-id', textFile);
+
+      expect(result.url).toBeUndefined();
+      expect(result.error).toContain('File type must be one of');
     });
 
     it('should reject files without extension', async () => {
       const file = new File(['content'], 'noextension', { type: 'image/jpeg' });
 
       // Should still work with proper mime type
-      const avatarUrl = await uploadAvatar('test-user-id', file);
-      expect(avatarUrl).toBeTruthy();
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.error).toBeUndefined();
+      expect(result.url).toBeTruthy();
     });
 
     it('should accept JPEG files', async () => {
       const file = new File(['jpeg'], 'avatar.jpg', { type: 'image/jpeg' });
 
-      const avatarUrl = await uploadAvatar('test-user-id', file);
-      expect(avatarUrl).toContain('.jpg');
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.url).toContain('.jpg');
     });
 
     it('should accept PNG files', async () => {
       const file = new File(['png'], 'avatar.png', { type: 'image/png' });
 
-      const avatarUrl = await uploadAvatar('test-user-id', file);
-      expect(avatarUrl).toContain('.png');
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.url).toContain('.png');
     });
 
     it('should accept WebP files', async () => {
       const file = new File(['webp'], 'avatar.webp', { type: 'image/webp' });
 
-      const avatarUrl = await uploadAvatar('test-user-id', file);
-      expect(avatarUrl).toContain('.webp');
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.url).toContain('.webp');
     });
 
     it('should accept GIF files', async () => {
       const file = new File(['gif'], 'avatar.gif', { type: 'image/gif' });
 
-      const avatarUrl = await uploadAvatar('test-user-id', file);
-      expect(avatarUrl).toContain('.gif');
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.url).toContain('.gif');
     });
 
     it('should generate unique filenames with timestamp', async () => {
@@ -107,9 +140,9 @@ describe('Avatar Service', () => {
         type: 'image/jpeg',
       });
 
-      const url1 = await uploadAvatar('test-user-id', file1);
+      const { url: url1 } = await uploadAvatar('test-user-id', file1);
       await new Promise((resolve) => setTimeout(resolve, 10));
-      const url2 = await uploadAvatar('test-user-id', file2);
+      const { url: url2 } = await uploadAvatar('test-user-id', file2);
 
       expect(url1).not.toBe(url2);
     });
@@ -117,16 +150,17 @@ describe('Avatar Service', () => {
     it('should include user ID in filename', async () => {
       const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
 
-      const avatarUrl = await uploadAvatar('test-user-123', file);
+      const result = await uploadAvatar('test-user-123', file);
 
-      expect(avatarUrl).toContain('test-user-123');
+      expect(result.url).toContain('test-user-123');
     });
 
     it('should throw error when no file provided', async () => {
       // @ts-expect-error Testing invalid input
-      await expect(uploadAvatar('test-user-id', null)).rejects.toThrow(
-        'No file provided'
-      );
+      const result = await uploadAvatar('test-user-id', null);
+
+      expect(result.url).toBeUndefined();
+      expect(result.error).toBe('Failed to upload avatar');
     });
   });
 
@@ -135,20 +169,25 @@ describe('Avatar Service', () => {
       const filePath =
         'https://mock-storage.supabase.co/avatars/test-user-123456.jpg';
 
-      await expect(deleteAvatar(filePath)).resolves.not.toThrow();
+      const result = await deleteAvatar(filePath);
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
     });
 
     it('should handle invalid file paths gracefully', async () => {
       const invalidPath = 'invalid-path';
 
       // Should not throw, just log warning
-      await expect(deleteAvatar(invalidPath)).resolves.not.toThrow();
+      const result = await deleteAvatar(invalidPath);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid avatar URL');
     });
 
     it('should extract path from full URL', async () => {
       const fullUrl = 'https://storage.supabase.co/avatars/test-user-123.jpg';
 
-      await expect(deleteAvatar(fullUrl)).resolves.not.toThrow();
+      const result = await deleteAvatar(fullUrl);
+      expect(result.success).toBe(true);
     });
   });
 
@@ -162,13 +201,14 @@ describe('Avatar Service', () => {
 
       const newAvatarUrl = await updateAvatar(
         'test-user-id',
-        oldFilePath,
-        newFile
+        newFile,
+        oldFilePath
       );
 
-      expect(newAvatarUrl).toBeTruthy();
-      expect(newAvatarUrl).toContain('avatars');
-      expect(newAvatarUrl).not.toBe(oldFilePath);
+      expect(mocks.removeMock).toHaveBeenCalled();
+      expect(newAvatarUrl.error).toBeUndefined();
+      expect(newAvatarUrl.url).toContain('avatars');
+      expect(newAvatarUrl.url).not.toBe(oldFilePath);
     });
 
     it('should upload new avatar when no old avatar exists', async () => {
@@ -176,10 +216,10 @@ describe('Avatar Service', () => {
         type: 'image/jpeg',
       });
 
-      const avatarUrl = await updateAvatar('test-user-id', null, newFile);
+      const avatarUrl = await updateAvatar('test-user-id', newFile);
 
-      expect(avatarUrl).toBeTruthy();
-      expect(avatarUrl).toContain('avatars');
+      expect(avatarUrl.error).toBeUndefined();
+      expect(avatarUrl.url).toContain('avatars');
     });
 
     it('should validate new file size and type', async () => {
@@ -189,9 +229,14 @@ describe('Avatar Service', () => {
         type: 'application/pdf',
       });
 
-      await expect(
-        updateAvatar('test-user-id', oldFilePath, invalidFile)
-      ).rejects.toThrow('Invalid file type');
+      const result = await updateAvatar(
+        'test-user-id',
+        invalidFile,
+        oldFilePath
+      );
+
+      expect(result.url).toBeUndefined();
+      expect(result.error).toContain('File type must be one of');
     });
   });
 
@@ -208,7 +253,9 @@ describe('Avatar Service', () => {
       it(`should accept ${mime} files`, async () => {
         const file = new File(['content'], `avatar.${ext}`, { type: mime });
 
-        await expect(uploadAvatar('test-user-id', file)).resolves.toBeTruthy();
+        const result = await uploadAvatar('test-user-id', file);
+        expect(result.error).toBeUndefined();
+        expect(result.url).toBeTruthy();
       });
     });
 
@@ -224,7 +271,9 @@ describe('Avatar Service', () => {
       it(`should reject ${mime} files`, async () => {
         const file = new File(['content'], `file.${ext}`, { type: mime });
 
-        await expect(uploadAvatar('test-user-id', file)).rejects.toThrow();
+        const result = await uploadAvatar('test-user-id', file);
+        expect(result.url).toBeUndefined();
+        expect(result.error).toContain('File type must be one of');
       });
     });
   });
@@ -234,21 +283,27 @@ describe('Avatar Service', () => {
       const content = new Array(1.5 * 1024 * 1024).fill('a').join('');
       const file = new File([content], 'avatar.jpg', { type: 'image/jpeg' });
 
-      await expect(uploadAvatar('test-user-id', file)).resolves.toBeTruthy();
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.error).toBeUndefined();
+      expect(result.url).toBeTruthy();
     });
 
     it('should reject files over 2MB', async () => {
       const content = new Array(2.5 * 1024 * 1024).fill('a').join('');
       const file = new File([content], 'large.jpg', { type: 'image/jpeg' });
 
-      await expect(uploadAvatar('test-user-id', file)).rejects.toThrow('2MB');
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.url).toBeUndefined();
+      expect(result.error).toContain('2MB');
     });
 
     it('should accept files exactly at 2MB limit', async () => {
       const content = new Array(2 * 1024 * 1024).fill('a').join('');
       const file = new File([content], 'max-size.jpg', { type: 'image/jpeg' });
 
-      await expect(uploadAvatar('test-user-id', file)).resolves.toBeTruthy();
+      const result = await uploadAvatar('test-user-id', file);
+      expect(result.error).toBeUndefined();
+      expect(result.url).toBeTruthy();
     });
   });
 });

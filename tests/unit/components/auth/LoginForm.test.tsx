@@ -1,24 +1,68 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { LoginForm } from '@/components/auth/LoginForm';
-import { AuthProvider } from '@/components/auth/AuthProvider';
 
-const MockedAuthProvider = ({ children }: { children: React.ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+vi.mock('@/services/AuthService', () => ({
+  authService: {
+    login: vi.fn(),
+  },
+}));
+
+import { LoginForm } from '@/components/auth/LoginForm';
+import { authService } from '@/services/AuthService';
+
+const routerPush = vi.fn();
+const routerReplace = vi.fn();
+const routerPrefetch = vi.fn();
+const routerBack = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: routerPush,
+    replace: routerReplace,
+    prefetch: routerPrefetch,
+    back: routerBack,
+  }),
+}));
+
+const toastMock = vi.fn();
+const dismissMock = vi.fn();
+
+vi.mock('@/components/hooks/use-toast', () => ({
+  useToast: () => ({
+    toast: toastMock,
+    dismiss: dismissMock,
+    toasts: [],
+  }),
+}));
+
+const renderComponent = () => render(<LoginForm />);
 
 describe('LoginForm', () => {
+  const loginMock = vi.mocked(authService.login);
+
   beforeEach(() => {
     vi.clearAllMocks();
+    loginMock.mockReset();
+    loginMock.mockResolvedValue({ success: true });
+    routerPush.mockReset();
+    routerReplace.mockReset();
+    routerPrefetch.mockReset();
+    routerBack.mockReset();
+    toastMock.mockReset();
+    dismissMock.mockReset();
   });
 
   it('should render login form with email and password fields', () => {
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     expect(screen.getByTestId('email')).toBeInTheDocument();
     expect(screen.getByTestId('password')).toBeInTheDocument();
@@ -26,58 +70,52 @@ describe('LoginForm', () => {
   });
 
   it('should show validation errors for empty fields', async () => {
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const loginButton = screen.getByTestId('login-button');
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('validation-error')).toHaveTextContent(
-        'Email is required'
-      );
-      expect(screen.getByTestId('validation-error')).toHaveTextContent(
-        'Password is required'
-      );
+      const validationContainer = screen.getByTestId('validation-error');
+      expect(
+        within(validationContainer).getByText('Email is required')
+      ).toBeInTheDocument();
+      expect(
+        within(validationContainer).getByText('Password is required')
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Email is required')).toHaveLength(2);
     });
+
+    expect(loginMock).not.toHaveBeenCalled();
   });
 
   it('should show validation error for invalid email format', async () => {
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
     const loginButton = screen.getByTestId('login-button');
 
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+    fireEvent.change(emailInput, { target: { value: 'invalid-email@domain' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('validation-error')).toHaveTextContent(
-        'Invalid email format'
-      );
+      const validationContainer = screen.getByTestId('validation-error');
+      expect(
+        within(validationContainer).getByText(/Invalid email/i)
+      ).toBeInTheDocument();
     });
+
+    expect(loginMock).not.toHaveBeenCalled();
   });
 
   it('should show loading state during login', async () => {
-    const { authService } = await import('@/lib/auth');
-    vi.mocked(authService.login).mockImplementation(
+    loginMock.mockImplementation(
       () => new Promise((resolve) => setTimeout(resolve, 100))
     );
 
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -87,21 +125,18 @@ describe('LoginForm', () => {
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.click(loginButton);
 
-    expect(screen.getByTestId('loading')).toBeInTheDocument();
-    expect(loginButton).toBeDisabled();
+    expect(await screen.findByTestId('loading')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(loginButton).toBeDisabled();
+    });
   });
 
   it('should disable form fields during login', async () => {
-    const { authService } = await import('@/lib/auth');
-    vi.mocked(authService.login).mockImplementation(
+    loginMock.mockImplementation(
       () => new Promise((resolve) => setTimeout(resolve, 100))
     );
 
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -111,21 +146,19 @@ describe('LoginForm', () => {
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.click(loginButton);
 
-    expect(emailInput).toBeDisabled();
-    expect(passwordInput).toBeDisabled();
+    await waitFor(() => {
+      expect(emailInput).toBeDisabled();
+      expect(passwordInput).toBeDisabled();
+    });
   });
 
   it('should show error message on login failure', async () => {
-    const { authService } = await import('@/lib/auth');
-    vi.mocked(authService.login).mockRejectedValue(
-      new Error('Invalid credentials')
-    );
+    loginMock.mockResolvedValue({
+      success: false,
+      error: 'Invalid credentials',
+    });
 
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -143,16 +176,12 @@ describe('LoginForm', () => {
   });
 
   it('should clear error when user starts typing', async () => {
-    const { authService } = await import('@/lib/auth');
-    vi.mocked(authService.login).mockRejectedValue(
-      new Error('Invalid credentials')
-    );
+    loginMock.mockResolvedValue({
+      success: false,
+      error: 'Invalid credentials',
+    });
 
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -166,7 +195,7 @@ describe('LoginForm', () => {
       expect(screen.getByTestId('error-message')).toBeInTheDocument();
     });
 
-    fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
+    fireEvent.change(emailInput, { target: { value: 'updated@example.com' } });
 
     await waitFor(() => {
       expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
@@ -174,8 +203,7 @@ describe('LoginForm', () => {
   });
 
   it('should call login service with correct credentials', async () => {
-    const { authService } = await import('@/lib/auth');
-    vi.mocked(authService.login).mockResolvedValue({
+    loginMock.mockResolvedValue({
       user: {
         id: '1',
         email: 'user@example.com',
@@ -185,13 +213,10 @@ describe('LoginForm', () => {
         updatedAt: new Date(),
       },
       token: 'token123',
+      success: true,
     });
 
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -202,7 +227,7 @@ describe('LoginForm', () => {
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(authService.login).toHaveBeenCalledWith({
+      expect(loginMock).toHaveBeenCalledWith({
         email: 'user@example.com',
         password: 'password123',
       });
@@ -210,23 +235,15 @@ describe('LoginForm', () => {
   });
 
   it('should be accessible with proper ARIA labels', () => {
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+    renderComponent();
 
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
 
-  it('should support keyboard navigation', () => {
-    render(
-      <MockedAuthProvider>
-        <LoginForm />
-      </MockedAuthProvider>
-    );
+  it('should support keyboard navigation', async () => {
+    renderComponent();
 
     const emailInput = screen.getByTestId('email');
     const passwordInput = screen.getByTestId('password');
@@ -235,10 +252,11 @@ describe('LoginForm', () => {
     emailInput.focus();
     expect(document.activeElement).toBe(emailInput);
 
-    fireEvent.keyDown(emailInput, { key: 'Tab' });
+    const user = userEvent.setup();
+    await user.tab();
     expect(document.activeElement).toBe(passwordInput);
 
-    fireEvent.keyDown(passwordInput, { key: 'Tab' });
+    await user.tab();
     expect(document.activeElement).toBe(loginButton);
   });
 });

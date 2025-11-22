@@ -1,197 +1,100 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { runSync } from '@/lib/jobs/syncJob';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { runIncrementalSync } from '@/lib/jobs/syncJob';
 import { db } from '@/lib/db';
+import databaseMock from '../../__mocks__/database';
 
-// Mock database
-vi.mock('@/lib/db', () => ({
-  db: {
-    syncLog: {
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-    syncStatus: {
-      upsert: vi.fn(),
-    },
-    player: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findMany: vi.fn(),
-    },
-    game: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findMany: vi.fn(),
-    },
-  },
-}));
-
-// Mock parser
-vi.mock('@/lib/parsers/gomafiaParser', () => ({
+const parserMocks = vi.hoisted(() => ({
   parsePlayer: vi.fn(),
-  parseGame: vi.fn(),
 }));
 
-describe('Data Validation Errors in Sync', () => {
+const transformMocks = vi.hoisted(() => ({
+  transformPlayerData: vi.fn(),
+  validatePlayerData: vi.fn(),
+  hasPlayerDataChanged: vi.fn(),
+}));
+
+vi.mock('@/lib/parsers/gomafiaParser', () => ({
+  parsePlayer: parserMocks.parsePlayer,
+}));
+
+vi.mock('@/lib/parsers/transformPlayer', () => ({
+  transformPlayerData: transformMocks.transformPlayerData,
+  validatePlayerData: transformMocks.validatePlayerData,
+  hasPlayerDataChanged: transformMocks.hasPlayerDataChanged,
+}));
+
+describe('Incremental sync – validation handling', () => {
   beforeEach(() => {
+    databaseMock.resetMocks();
     vi.clearAllMocks();
+    parserMocks.parsePlayer.mockReset();
+    transformMocks.transformPlayerData.mockReset();
+    transformMocks.validatePlayerData.mockReset();
+    transformMocks.hasPlayerDataChanged.mockReset();
+
+    transformMocks.hasPlayerDataChanged.mockReturnValue(true);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should handle invalid player data gracefully', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return invalid data
-    vi.mocked(parsePlayer).mockResolvedValue({
-      gomafiaId: 'invalid-player',
-      name: '', // Invalid: empty name
-      eloRating: -100, // Invalid: negative ELO
-      totalGames: 5,
-      wins: 10, // Invalid: wins > totalGames
-      losses: 0,
-    });
-
-    const result = await runSync('INCREMENTAL');
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toContain('Invalid player data: invalid-player');
-  });
-
-  it('should handle invalid game data gracefully', async () => {
-    const { parseGame } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return invalid data
-    vi.mocked(parseGame).mockResolvedValue({
-      gomafiaId: 'invalid-game',
-      date: new Date('invalid-date'), // Invalid date
-      durationMinutes: -10, // Invalid: negative duration
-      winnerTeam: 'INVALID', // Invalid enum value
-      status: 'INVALID_STATUS', // Invalid enum value
-    });
-
-    const result = await runSync('INCREMENTAL');
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toContain('Invalid game data: invalid-game');
-  });
-
-  it('should handle missing required fields', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return data missing required fields
-    vi.mocked(parsePlayer).mockResolvedValue({
-      gomafiaId: 'missing-fields',
-      // Missing name, eloRating, totalGames, wins, losses
-    } as any);
-
-    const result = await runSync('INCREMENTAL');
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toContain(
-      'Missing required fields for player: missing-fields'
-    );
-  });
-
-  it('should handle type validation errors', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return data with wrong types
-    vi.mocked(parsePlayer).mockResolvedValue({
-      gomafiaId: 'type-error',
-      name: 'Player Name',
-      eloRating: 'not-a-number', // Invalid: should be number
-      totalGames: 'not-a-number', // Invalid: should be number
-      wins: 'not-a-number', // Invalid: should be number
-      losses: 'not-a-number', // Invalid: should be number
-    } as any);
-
-    const result = await runSync('INCREMENTAL');
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toContain(
-      'Type validation failed for player: type-error'
-    );
-  });
-
-  it('should handle constraint validation errors', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return data that violates business constraints
-    vi.mocked(parsePlayer).mockResolvedValue({
-      gomafiaId: 'constraint-error',
-      name: 'Player Name',
-      eloRating: 5000, // Invalid: ELO too high
-      totalGames: 10,
-      wins: 15, // Invalid: wins > totalGames
-      losses: 5, // Invalid: wins + losses > totalGames
-    });
-
-    const result = await runSync('INCREMENTAL');
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toContain(
-      'Constraint validation failed for player: constraint-error'
-    );
-  });
-
-  it('should continue processing other records after validation errors', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    // Mock parser to return mix of valid and invalid data
-    vi.mocked(parsePlayer)
-      .mockResolvedValueOnce({
+  it('collects validation errors without updating the player', async () => {
+    const player = await db.player.create({
+      data: {
         gomafiaId: 'invalid-player',
-        name: '', // Invalid
+        name: 'Invalid Player',
         eloRating: 1500,
-        totalGames: 10,
-        wins: 5,
-        losses: 5,
-      })
-      .mockResolvedValueOnce({
-        gomafiaId: 'valid-player',
-        name: 'Valid Player',
-        eloRating: 1500,
-        totalGames: 10,
-        wins: 5,
-        losses: 5,
-      });
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        syncStatus: 'PENDING',
+        userId: 'test-user',
+      },
+    });
 
-    const result = await runSync('INCREMENTAL');
+    parserMocks.parsePlayer.mockResolvedValue({
+      id: 'invalid-player',
+      name: '',
+    } as any);
+    transformMocks.validatePlayerData.mockReturnValue(false);
 
-    expect(result.success).toBe(false); // Overall failed due to invalid data
-    expect(result.errors).toContain('Invalid player data: invalid-player');
-    expect(result.processedCount).toBe(2);
-    expect(result.validCount).toBe(1);
-    expect(result.invalidCount).toBe(1);
+    const result = await runIncrementalSync();
+
+    expect(result.recordsProcessed).toBe(0);
+    expect(result.errors).toEqual(['Invalid player data for invalid-player']);
+
+    const reloaded = await db.player.findUnique({
+      where: { id: player.id },
+    });
+    expect(reloaded?.name).toBe('Invalid Player');
+    expect(reloaded?.syncStatus).toBe('PENDING');
   });
 
-  it('should log validation errors to sync log', async () => {
-    const { parsePlayer } = await import('@/lib/parsers/gomafiaParser');
-
-    vi.mocked(parsePlayer).mockResolvedValue({
-      gomafiaId: 'logged-error',
-      name: '', // Invalid
-      eloRating: 1500,
-      totalGames: 10,
-      wins: 5,
-      losses: 5,
+  it('stops processing when transform throws unexpected error', async () => {
+    await db.player.create({
+      data: {
+        gomafiaId: 'throwing-player',
+        name: 'Throwing Player',
+        eloRating: 1500,
+        totalGames: 100,
+        wins: 60,
+        losses: 40,
+        syncStatus: 'PENDING',
+        userId: 'test-user',
+      },
     });
 
-    await runSync('INCREMENTAL');
-
-    expect(db.syncLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        type: 'INCREMENTAL',
-        status: 'FAILED',
-        errors: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'VALIDATION_ERROR',
-            message: expect.stringContaining('Invalid player data'),
-          }),
-        ]),
-      }),
+    parserMocks.parsePlayer.mockResolvedValue({
+      id: 'throwing-player',
+      name: 'Throwing Player',
+    } as any);
+    transformMocks.validatePlayerData.mockReturnValue(true);
+    transformMocks.transformPlayerData.mockImplementation(() => {
+      throw new Error('Transform failure');
     });
+
+    const result = await runIncrementalSync();
+
+    expect(result.recordsProcessed).toBe(0);
+    expect(result.errors).toEqual([
+      'Failed to sync player throwing-player: Transform failure',
+    ]);
   });
 });

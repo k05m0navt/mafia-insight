@@ -1,15 +1,26 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 
-// Mock useAuth hook
-jest.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({
-    logout: jest.fn().mockResolvedValue(undefined),
-    authState: { isLoading: false },
-  }),
+const mockUseAuth = vi.fn();
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
 }));
+
+beforeEach(() => {
+  const defaultLogout = vi.fn().mockResolvedValue(undefined);
+  mockUseAuth.mockReturnValue({
+    logout: defaultLogout,
+    isLoading: false,
+  });
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('SignOutButton', () => {
   it('renders a sign out button', () => {
@@ -20,41 +31,31 @@ describe('SignOutButton', () => {
   });
 
   it('calls logout and onSignOut when clicked', async () => {
-    const onSignOut = jest.fn();
-    const logoutMock = jest.fn().mockResolvedValue(undefined);
+    const onSignOut = vi.fn();
+    const logoutMock = vi.fn().mockResolvedValue(undefined);
 
-    (
-      jest.requireMock('@/hooks/useAuth') as jest.MockedFunction<
-        () => { logout: jest.Mock; authState: { isLoading: boolean } }
-      >
-    ).useAuth = () => ({
+    mockUseAuth.mockReturnValue({
       logout: logoutMock,
-      authState: { isLoading: false },
+      isLoading: false,
     });
 
     render(<SignOutButton onSignOut={onSignOut} />);
 
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }));
 
-    // Wait a tick for async handler
-    await Promise.resolve();
-
-    expect(logoutMock).toHaveBeenCalledTimes(1);
-    expect(onSignOut).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(logoutMock).toHaveBeenCalledTimes(1);
+      expect(onSignOut).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('shows loading state when auth is loading', () => {
-    (
-      jest.requireMock('@/hooks/useAuth') as jest.MockedFunction<
-        () => { logout: jest.Mock; authState: { isLoading: boolean } }
-      >
-    ).useAuth = () => ({
-      logout: jest.fn(),
-      authState: { isLoading: true },
+    mockUseAuth.mockReturnValue({
+      logout: vi.fn(),
+      isLoading: true,
     });
 
     render(<SignOutButton />);
-    expect(screen.getByRole('button')).toBeDisabled();
-    expect(screen.getByText(/signing out/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /signing out/i })).toBeDisabled();
   });
 });

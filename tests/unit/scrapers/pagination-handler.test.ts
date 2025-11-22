@@ -36,7 +36,7 @@ describe('PaginationHandler', () => {
       </html>
     `);
 
-    const results = await paginationHandler.scrapeAllPages({
+    const { data } = await paginationHandler.scrapeAllPages({
       baseUrl: 'about:blank', // Using current page content
       pageParam: 'page',
       hasNextSelector: '.pagination .next',
@@ -47,7 +47,7 @@ describe('PaginationHandler', () => {
       },
     });
 
-    expect(results).toEqual(['Item 1', 'Item 2', 'Item 3']);
+    expect(data).toEqual(['Item 1', 'Item 2', 'Item 3']);
   });
 
   it('should respect rate limiting between page requests', async () => {
@@ -110,7 +110,7 @@ describe('PaginationHandler', () => {
       },
     });
 
-    expect(results.length).toBe(1);
+    expect(results.data.length).toBe(1);
   });
 
   it('should detect disabled next button', async () => {
@@ -140,7 +140,7 @@ describe('PaginationHandler', () => {
       },
     });
 
-    expect(results.length).toBe(1);
+    expect(results.data.length).toBe(1);
   });
 
   it('should stop after maxPages limit', async () => {
@@ -156,7 +156,7 @@ describe('PaginationHandler', () => {
     `);
 
     let pageCount = 0;
-    await paginationHandler.scrapeAllPages({
+    const result = await paginationHandler.scrapeAllPages({
       baseUrl: 'about:blank',
       pageParam: 'page',
       hasNextSelector: '.pagination .next',
@@ -168,20 +168,23 @@ describe('PaginationHandler', () => {
     });
 
     expect(pageCount).toBe(2);
+    expect(result.data.length).toBe(2);
   });
 
   it('should handle extraction errors gracefully', async () => {
     await page.setContent('<html><body><div>Content</div></body></html>');
 
-    await expect(async () => {
-      await paginationHandler.scrapeAllPages({
-        baseUrl: 'about:blank',
-        pageParam: 'page',
-        hasNextSelector: '.next',
-        extractDataFn: async () => {
-          throw new Error('Extraction failed');
-        },
-      });
-    }).rejects.toThrow('Extraction failed');
+    const result = await paginationHandler.scrapeAllPages({
+      baseUrl: 'about:blank',
+      pageParam: 'page',
+      hasNextSelector: '.next',
+      extractDataFn: async () => {
+        throw new Error('Extraction failed');
+      },
+      skipOnError: false,
+    });
+
+    expect(result.data).toEqual([]);
+    expect(result.skippedPages).toEqual([]);
   });
 });

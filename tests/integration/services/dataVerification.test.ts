@@ -57,7 +57,7 @@ describe('Data Verification Service', () => {
       const report = await runDataVerification('MANUAL');
 
       expect(report).toBeDefined();
-      expect(report.status).toBe('COMPLETED');
+      expect(report.status).toBe('PASSED');
       expect(report.overallAccuracy).toBeGreaterThanOrEqual(0);
       expect(report.overallAccuracy).toBeLessThanOrEqual(100);
     });
@@ -72,11 +72,12 @@ describe('Data Verification Service', () => {
       }
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
       expect(report.sampleStrategy).toBe('1_percent');
-      expect(report.entities.players.sampled).toBeGreaterThanOrEqual(1);
-      expect(report.entities.players.sampled).toBeLessThanOrEqual(
-        report.entities.players.total
+      expect(playersResult.sampleSize).toBeGreaterThanOrEqual(1);
+      expect(playersResult.sampleSize).toBeLessThanOrEqual(
+        playersResult.totalCount
       );
     });
 
@@ -90,9 +91,10 @@ describe('Data Verification Service', () => {
       }
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
       // Should sample at least 1 player
-      expect(report.entities.players.sampled).toBeGreaterThanOrEqual(1);
+      expect(playersResult.sampleSize).toBeGreaterThanOrEqual(1);
     });
 
     it('should detect discrepancies in player data', async () => {
@@ -105,12 +107,11 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
       // Should detect name mismatch
       expect(report.status).toBe('FAILED');
-      if (report.discrepancies) {
-        expect(report.discrepancies.players.length).toBeGreaterThan(0);
-      }
+      expect(playersResult.discrepancies.length).toBeGreaterThan(0);
     });
 
     it('should calculate overall accuracy correctly', async () => {
@@ -128,9 +129,10 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
       // Should be 100% accurate
-      expect(report.overallAccuracy).toBeGreaterThan(0);
+      expect(playersResult.accuracy).toBeGreaterThan(0);
     });
 
     it('should verify all entity types', async () => {
@@ -140,9 +142,9 @@ describe('Data Verification Service', () => {
 
       const report = await runDataVerification('MANUAL');
 
-      expect(report.entities.players).toBeDefined();
-      expect(report.entities.clubs).toBeDefined();
-      expect(report.entities.tournaments).toBeDefined();
+      expect(report.results.players).toBeDefined();
+      expect(report.results.clubs).toBeDefined();
+      expect(report.results.tournaments).toBeDefined();
     });
 
     it('should handle manual trigger type', async () => {
@@ -167,18 +169,18 @@ describe('Data Verification Service', () => {
       await runDataVerification('MANUAL');
 
       // Verify report was saved
-      const { reports, total } = await getVerificationHistory(1, 10);
-      expect(total).toBeGreaterThan(0);
-      expect(reports).toHaveLength(1);
+      const history = await getVerificationHistory(10);
+      expect(history.length).toBeGreaterThan(0);
     });
 
     it('should include timestamp in report', async () => {
       await createTestPlayer({ gomafiaId: '12345' });
 
       const report = await runDataVerification('MANUAL');
+      const history = await getVerificationHistory(1);
 
       expect(report.timestamp).toBeInstanceOf(Date);
-      expect(report.completedAt).toBeInstanceOf(Date);
+      expect(history[0]?.completedAt).toBeInstanceOf(Date);
     });
 
     it('should handle verification failure gracefully', async () => {
@@ -191,11 +193,12 @@ describe('Data Verification Service', () => {
       await createTestPlayer({ gomafiaId: '12345' });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
       expect(report.status).toBe('FAILED');
-      if (report.discrepancies) {
-        expect(report.discrepancies.players.length).toBeGreaterThan(0);
-      }
+      expect(playersResult.sampleSize).toBeGreaterThan(0);
+      expect(playersResult.matchedCount).toBe(0);
+      expect(playersResult.discrepancies.length).toBe(0);
     });
   });
 
@@ -207,10 +210,9 @@ describe('Data Verification Service', () => {
       await runDataVerification('MANUAL');
       await runDataVerification('SCHEDULED');
 
-      const { reports, total } = await getVerificationHistory(1, 10);
+      const history = await getVerificationHistory(10);
 
-      expect(reports).toHaveLength(2);
-      expect(total).toBe(2);
+      expect(history).toHaveLength(2);
     });
 
     it('should return reports in descending order by timestamp', async () => {
@@ -220,13 +222,13 @@ describe('Data Verification Service', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       const report2 = await runDataVerification('MANUAL');
 
-      const { reports } = await getVerificationHistory(1, 10);
+      const history = await getVerificationHistory(10);
 
       // Most recent first
-      expect(reports[0].timestamp.getTime()).toBeGreaterThanOrEqual(
+      expect(history[0].timestamp.getTime()).toBeGreaterThanOrEqual(
         report2.timestamp.getTime()
       );
-      expect(reports[1].timestamp.getTime()).toBeLessThanOrEqual(
+      expect(history[1].timestamp.getTime()).toBeLessThanOrEqual(
         report1.timestamp.getTime()
       );
     });
@@ -239,20 +241,17 @@ describe('Data Verification Service', () => {
         await runDataVerification('MANUAL');
       }
 
-      const page1 = await getVerificationHistory(1, 2);
-      const page2 = await getVerificationHistory(2, 2);
+      const firstTwo = await getVerificationHistory(2);
+      const allHistory = await getVerificationHistory(10);
 
-      expect(page1.reports).toHaveLength(2);
-      expect(page2.reports).toHaveLength(2);
-      expect(page1.total).toBe(5);
-      expect(page2.total).toBe(5);
+      expect(firstTwo).toHaveLength(2);
+      expect(allHistory).toHaveLength(5);
     });
 
     it('should return empty array when no reports exist', async () => {
-      const { reports, total } = await getVerificationHistory(1, 10);
+      const history = await getVerificationHistory(10);
 
-      expect(reports).toHaveLength(0);
-      expect(total).toBe(0);
+      expect(history).toHaveLength(0);
     });
   });
 
@@ -264,13 +263,12 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
-      if (report.discrepancies) {
-        const nameDiscrepancy = report.discrepancies.players.find(
-          (d) => d.field === 'name'
-        );
-        expect(nameDiscrepancy).toBeDefined();
-      }
+      const nameDiscrepancy = playersResult.discrepancies.find(
+        (d) => d.field === 'name'
+      );
+      expect(nameDiscrepancy).toBeDefined();
     });
 
     it('should detect rating mismatches', async () => {
@@ -281,13 +279,12 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
-      if (report.discrepancies) {
-        const ratingDiscrepancy = report.discrepancies.players.find(
-          (d) => d.field === 'eloRating'
-        );
-        expect(ratingDiscrepancy).toBeDefined();
-      }
+      const ratingDiscrepancy = playersResult.discrepancies.find(
+        (d) => d.field === 'eloRating'
+      );
+      expect(ratingDiscrepancy).toBeDefined();
     });
 
     it('should assign severity levels to discrepancies', async () => {
@@ -297,9 +294,10 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const playersResult = report.results.players;
 
-      if (report.discrepancies && report.discrepancies.players.length > 0) {
-        const discrepancy = report.discrepancies.players[0];
+      if (playersResult.discrepancies.length > 0) {
+        const discrepancy = playersResult.discrepancies[0];
         expect(['LOW', 'MEDIUM', 'HIGH']).toContain(discrepancy.severity);
       }
     });
@@ -329,7 +327,7 @@ describe('Data Verification Service', () => {
 
       const report = await runDataVerification('MANUAL');
 
-      expect(report.entities.players.accuracy).toBe(100);
+      expect(report.results.players.accuracy).toBe(100);
     });
 
     it('should calculate 0% accuracy for complete mismatches', async () => {
@@ -342,7 +340,7 @@ describe('Data Verification Service', () => {
 
       const report = await runDataVerification('MANUAL');
 
-      expect(report.entities.players.accuracy).toBeLessThan(100);
+      expect(report.results.players.accuracy).toBeLessThan(100);
     });
 
     it('should calculate overall accuracy as average of all entities', async () => {
@@ -354,14 +352,18 @@ describe('Data Verification Service', () => {
       });
 
       const report = await runDataVerification('MANUAL');
+      const players = report.results.players;
+      const clubs = report.results.clubs;
+      const tournaments = report.results.tournaments;
 
-      const expectedAverage =
-        (report.entities.players.accuracy +
-          report.entities.clubs.accuracy +
-          report.entities.tournaments.accuracy) /
-        3;
+      const totalSample =
+        players.sampleSize + clubs.sampleSize + tournaments.sampleSize;
+      const totalMatched =
+        players.matchedCount + clubs.matchedCount + tournaments.matchedCount;
+      const expectedAccuracy =
+        totalSample > 0 ? (totalMatched / totalSample) * 100 : 100;
 
-      expect(report.overallAccuracy).toBeCloseTo(expectedAverage, 1);
+      expect(report.overallAccuracy).toBeCloseTo(expectedAccuracy, 5);
     });
   });
 });

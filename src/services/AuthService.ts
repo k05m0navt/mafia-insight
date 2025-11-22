@@ -426,8 +426,9 @@ export class AuthService {
       // If it's an object with token and newPassword, handle password reset with token
       if (
         typeof emailOrData === 'object' &&
-        emailOrData.token &&
-        emailOrData.newPassword
+        emailOrData !== null &&
+        'token' in emailOrData &&
+        'newPassword' in emailOrData
       ) {
         const { token, newPassword } = emailOrData;
 

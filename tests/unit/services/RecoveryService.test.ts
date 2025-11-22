@@ -1,67 +1,68 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RecoveryService } from '@/services/RecoveryService';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { recoveryService } from '@/services/RecoveryService';
 
 describe('RecoveryService', () => {
-  let recoveryService: RecoveryService;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    recoveryService = new RecoveryService();
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
-  describe('Network Recovery', () => {
-    it('should recover from network disconnection', async () => {
-      const result = await recoveryService.recoverFromNetworkDisconnection();
-      expect(result).toHaveProperty('recovered', true);
-      expect(result).toHaveProperty('method', 'network-reconnection');
-    });
-
-    it('should retry failed network requests', async () => {
-      const result = await recoveryService.retryFailedRequest('/api/test');
-      expect(result).toHaveProperty('retryAttempted', true);
-      expect(result).toHaveProperty('maxRetries', 3);
-    });
+  afterEach(() => {
+    consoleSpy.mockRestore();
   });
 
-  describe('Service Recovery', () => {
-    it('should recover from service restart', async () => {
-      const result = await recoveryService.recoverFromServiceRestart();
-      expect(result).toHaveProperty('recovered', true);
-      expect(result).toHaveProperty('method', 'service-restart');
+  describe('retryWithBackoff', () => {
+    afterEach(() => {
+      vi.useRealTimers();
     });
 
-    it('should activate fallback services', async () => {
-      const result =
-        await recoveryService.activateFallbackService('primary-service');
-      expect(result).toHaveProperty('fallbackActivated', true);
-      expect(result).toHaveProperty('service', 'primary-service');
-    });
-  });
+    it('retries an asynchronous operation until it succeeds', async () => {
+      vi.useFakeTimers();
 
-  describe('Data Recovery', () => {
-    it('should recover from data corruption', async () => {
-      const result = await recoveryService.recoverFromDataCorruption();
-      expect(result).toHaveProperty('recovered', true);
-      expect(result).toHaveProperty('method', 'data-recovery');
+      const task = vi
+        .fn<[], Promise<string>>()
+        .mockRejectedValueOnce(new Error('temporary failure'))
+        .mockResolvedValue('success');
+
+      const promise = recoveryService.retryWithBackoff(task, 3);
+      await vi.runAllTimersAsync();
+
+      await expect(promise).resolves.toBe('success');
+      expect(task).toHaveBeenCalledTimes(2);
     });
 
-    it('should restore from backup', async () => {
-      const result = await recoveryService.restoreFromBackup('backup-123');
-      expect(result).toHaveProperty('restored', true);
-      expect(result).toHaveProperty('backupId', 'backup-123');
+    it('throws after exceeding the retry limit', async () => {
+      vi.useFakeTimers();
+
+      const task = vi
+        .fn<[], Promise<void>>()
+        .mockRejectedValue(new Error('fatal'));
+
+      const promise = recoveryService.retryWithBackoff(task, 2);
+      promise.catch(() => undefined);
+      await vi.runAllTimersAsync();
+
+      await expect(promise).rejects.toThrow('fatal');
+      expect(task).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('Authentication Recovery', () => {
-    it('should refresh expired tokens', async () => {
-      const result = await recoveryService.refreshExpiredToken('expired-token');
-      expect(result).toHaveProperty('refreshed', true);
-      expect(result).toHaveProperty('newToken');
-    });
+  it('reports successful error recovery', async () => {
+    await expect(
+      recoveryService.recoverFromError(new Error('boom'))
+    ).resolves.toBe(true);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Attempting recovery from error:',
+      'boom'
+    );
+  });
 
-    it('should reauthenticate user', async () => {
-      const result = await recoveryService.reauthenticateUser('user-123');
-      expect(result).toHaveProperty('reauthenticated', true);
-      expect(result).toHaveProperty('userId', 'user-123');
-    });
+  it('clears caches and resets state', () => {
+    recoveryService.clearCache();
+    recoveryService.resetState();
+
+    expect(consoleSpy).toHaveBeenCalledWith('Clearing cache');
+    expect(consoleSpy).toHaveBeenCalledWith('Resetting state');
   });
 });
