@@ -44,7 +44,7 @@ development_status:
   1-5-password-reset-flow: done
   1-6-user-profile-management: done
   1-7-guest-access-capability: done
-  1-8-admin-role-management: backlog
+  1-8-admin-role-management: drafted
   epic-1-retrospective: optional
 
   epic-2: backlog
