@@ -1,0 +1,205 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>8</storyId>
+    <title>Admin Role Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-8-admin-role-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>administrator</asA>
+    <iWant>to manage user roles and permissions</iWant>
+    <soThat>I can control access levels and platform administration</soThat>
+    <tasks>
+      <task id="1" ac="3">Implement admin route protection middleware</task>
+      <task id="2" ac="1">Create admin users API endpoint</task>
+      <task id="3" ac="2">Create admin user role update API endpoint</task>
+      <task id="4" ac="2,3">Create audit log service</task>
+      <task id="5" ac="1">Create admin users management page</task>
+      <task id="6" ac="2">Create user role management component</task>
+      <task id="7" ac="3">Create admin audit log page</task>
+      <task id="8" ac="4">Update User model schema for audit log</task>
+      <task id="9" ac="1">Update navigation to include admin section</task>
+      <task id="10" ac="2">Add last admin validation logic</task>
+      <task id="11" ac="1,2,3">Integration and E2E testing</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am logged in as an administrator</given>
+      <when>I access the admin user management page</when>
+      <then>
+        - List of all users with pagination (50 users per page)
+        - User information: email, display name, role, account status, last login
+        - Search functionality to find users by email or name
+        - Filter by role (User, Admin, etc.)
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I am logged in as an administrator</given>
+      <when>I modify a user's role</when>
+      <then>
+        - Dropdown selector shows available roles (User, Admin)
+        - Changes save immediately with confirmation feedback
+        - Role changes are logged for audit trail
+        - System prevents removing the last admin (validation error)
+        - Users with changed roles see updated permissions on next request
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>I am logged in as an administrator</given>
+      <when>I perform admin actions</when>
+      <then>
+        - Only administrators can access admin pages (route protection)
+        - Role changes require admin confirmation (are you sure dialog)
+        - All admin actions logged to audit log
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document">
+        <section>User Account & Access</section>
+        <snippet>FR5: Administrators can manage user roles and permissions. Role-based access control (RBAC) implementation with User and Admin roles.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document">
+        <section>Authentication & Authorization</section>
+        <snippet>NextAuth.js 4.24.12 for session management. Role-based access control (RBAC) with User roles: guest, user, moderator, admin. Route guards: ProtectedRoute component, RoleGuard, PermissionGate.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document">
+        <section>API Security</section>
+        <snippet>Rate Limiting: Redis-based, configurable per endpoint. Input Validation: Zod schemas for all inputs. SQL Injection Protection: Prisma ORM parameterized queries.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document">
+        <section>Project Structure</section>
+        <snippet>Admin components in src/components/admin/ directory. Admin endpoints in src/app/api/admin/ directory. Admin pages in src/app/admin/ directory.</snippet>
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown">
+        <section>Story 1.8: Admin Role Management</section>
+        <snippet>Role-based access control (RBAC) implementation. Admin routes: /admin/users, /admin/settings. Middleware to check admin role on protected routes. Store admin actions in audit_log table.</snippet>
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification">
+        <section>Component Library</section>
+        <snippet>ShadCN/UI components (copy-paste model) with Table, Select, Dialog, Button, Input, Toast components. WCAG 2.1 Level AA accessible. Responsive design with mobile-first approach.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-7-guest-access-capability.md" title="Previous Story Learnings">
+        <section>Dev Notes</section>
+        <snippet>Auth Infrastructure Available: NextAuth.js configured. Route protection middleware patterns established via src/proxy.ts. Component patterns: ShadCN/UI components established. API endpoint pattern: API endpoints follow pattern in src/app/api/ directory.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file path="src/lib/apiAuth.ts" kind="middleware" symbol="authenticateRequest, requireRole, withAdminAuth" lines="11-134" reason="Core authentication and authorization middleware. authenticateRequest validates user session and returns user with role. requireRole checks role hierarchy. withAdminAuth provides admin-only route protection." />
+      <file path="src/proxy.ts" kind="middleware" symbol="proxy" lines="2-98" reason="Route protection proxy that defines admin routes and protected routes. Contains adminRoutes array and route protection logic. Can be extended for admin-specific checks." />
+      <file path="src/components/admin/AdminOnly.tsx" kind="component" symbol="AdminOnly" lines="21-91" reason="React component that conditionally renders admin-only content. Uses useRole hook to check admin status. Shows access denied message for non-admin users." />
+      <file path="src/app/api/admin/routes/route.ts" kind="api" symbol="GET" lines="2-54" reason="Example admin API endpoint using withAdminAuth middleware. Shows pattern for protecting admin routes and returning admin-specific data." />
+      <file path="src/lib/auth.ts" kind="service" symbol="AuthService" lines="49-217" reason="Authentication service with NextAuth.js integration. Handles login, signup, and session management. Extends NextAuth types to include role." />
+      <file path="src/components/ui/table.tsx" kind="component" symbol="Table, TableBody, TableCell, TableHead, TableHeader, TableRow" lines="1-80" reason="ShadCN/UI Table component for displaying user lists. Used for admin users management page." />
+      <file path="src/components/ui/select.tsx" kind="component" symbol="Select" lines="1-68" reason="ShadCN/UI Select component for role dropdown selector. Used in UserRoleManager component." />
+      <file path="src/components/ui/dialog.tsx" kind="component" symbol="Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter" lines="82-122" reason="ShadCN/UI Dialog component for confirmation dialogs. Used for "are you sure" confirmation before role changes." />
+      <file path="src/components/ui/button.tsx" kind="component" symbol="Button" lines="1-54" reason="ShadCN/UI Button component with variants. Used throughout admin pages for actions." />
+      <file path="src/components/data-display/DataTable.tsx" kind="component" symbol="DataTable" lines="1-55" reason="Reusable data table component with pagination, search, and filtering. Can be adapted for admin users list." />
+      <file path="prisma/schema.prisma" kind="schema" symbol="model User" lines="14-34" reason="User model with role field (UserRole enum). Contains id, email, name, role, and other user fields. Role field can be checked for admin access." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0" />
+        <package name="next-auth" version="^4.24.12" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="@supabase/supabase-js" version="^2.38.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="zustand" version="^4.4.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="react-dom" version="^19.2.0" />
+        <package name="lucide-react" version="^0.548.0" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>Use Clean Architecture + Hexagonal Architecture patterns. Domain layer cannot import outer layers. Application layer can import domain only. Adapters can import application and domain.</rule>
+    </constraint>
+    <constraint type="authentication">
+      <rule>Use NextAuth.js for session management. Use authenticateRequest middleware from src/lib/apiAuth.ts for API routes. Use withAdminAuth() wrapper for admin-only endpoints.</rule>
+    </constraint>
+    <constraint type="authorization">
+      <rule>Role-based access control (RBAC) with roles: guest, user, moderator, admin. Use requireRole function to check role hierarchy. Admin routes must be protected with withAdminAuth middleware.</rule>
+    </constraint>
+    <constraint type="api">
+      <rule>API endpoints follow pattern in src/app/api/admin/ directory. Use Zod schemas for request/response validation. Return error responses in format: { error: string, code: string, message?: string }.</rule>
+    </constraint>
+    <constraint type="components">
+      <rule>Use ShadCN/UI components from src/components/ui/. Follow existing component patterns. Ensure WCAG 2.1 Level AA accessibility compliance. Use Table, Select, Dialog, Button, Input, Toast components.</rule>
+    </constraint>
+    <constraint type="state">
+      <rule>Use TanStack Query for server state (user list, audit log). Use Zustand for client state if needed. Follow existing state management patterns.</rule>
+    </constraint>
+    <constraint type="responsive">
+      <rule>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px. Ensure all interactive elements have minimum 44x44px touch targets on mobile.</rule>
+    </constraint>
+    <constraint type="testing">
+      <rule>Maintain minimum 80% test coverage. TDD approach: write tests before implementation. Unit tests for components and utilities. Integration tests for admin flows. E2E tests for complete admin journey. Accessibility tests using @axe-core/playwright.</rule>
+    </constraint>
+    <constraint type="validation">
+      <rule>Prevent removing last admin: validate admin count before role change. Use Prisma to query User model where role = 'ADMIN'. Throw validation error if trying to change last admin to non-admin.</rule>
+    </constraint>
+    <constraint type="audit">
+      <rule>All admin actions must be logged to audit log. Store: action type, admin user ID, target user ID, old role, new role, timestamp. Use Prisma to store in audit_log table (create migration if needed).</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="authenticateRequest" kind="function" signature="authenticateRequest(request: NextRequest): Promise&lt;{ user: User; role: string }&gt;" path="src/lib/apiAuth.ts" />
+    <interface name="requireRole" kind="function" signature="requireRole(userRole: string, requiredRole: string): void" path="src/lib/apiAuth.ts" />
+    <interface name="withAdminAuth" kind="function" signature="withAdminAuth(): (request: NextRequest) =&gt; Promise&lt;{ user: User | null; role: string }&gt;" path="src/lib/apiAuth.ts" />
+    <interface name="GET /api/admin/users" kind="REST endpoint" signature="GET /api/admin/users?page=1&amp;limit=50&amp;search=email&amp;role=admin" path="src/app/api/admin/users/route.ts" />
+    <interface name="PATCH /api/admin/users/[id]/role" kind="REST endpoint" signature="PATCH /api/admin/users/[id]/role { role: 'user' | 'admin' }" path="src/app/api/admin/users/[id]/role/route.ts" />
+    <interface name="User Model" kind="Prisma Model" signature="model User { id: String, email: String, name: String, role: UserRole, ... }" path="prisma/schema.prisma" />
+    <interface name="AuditLog Model" kind="Prisma Model" signature="model AuditLog { id: String, actionType: String, adminUserId: String, targetUserId: String?, oldValue: String?, newValue: String?, createdAt: DateTime }" path="prisma/schema.prisma" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing standards require 80% coverage minimum with TDD approach. Unit tests for components and utilities using Vitest. Integration tests for admin flows. E2E tests for complete admin journey using Playwright. Accessibility tests using @axe-core/playwright to verify WCAG 2.1 Level AA compliance. Test location: tests/unit/ for unit tests, tests/integration/ for integration tests, tests/e2e/ for E2E tests.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterion="1">
+        <test>Unit test: Admin users API endpoint returns paginated user list with correct fields (email, name, role, account status, last login)</test>
+        <test>Unit test: Admin users API endpoint search functionality filters by email or name</test>
+        <test>Unit test: Admin users API endpoint role filter works correctly</test>
+        <test>Integration test: Admin logs in → Accesses admin/users → Views user list with pagination</test>
+        <test>E2E test: Admin users management page displays correctly with search and filter</test>
+        <test>Accessibility test: Admin users page meets WCAG 2.1 AA compliance</test>
+      </idea>
+      <idea criterion="2">
+        <test>Unit test: Role update API endpoint validates available roles (User, Admin)</test>
+        <test>Unit test: Role update API endpoint prevents removing last admin</test>
+        <test>Unit test: Role update API endpoint logs role changes to audit log</test>
+        <test>Unit test: Last admin validation function correctly identifies and prevents last admin removal</test>
+        <test>Integration test: Admin updates user role → Verifies audit log entry created</test>
+        <test>E2E test: Admin updates user role → Confirmation dialog appears → Role updates successfully</test>
+        <test>E2E test: Admin tries to remove last admin → Validation error shown</test>
+      </idea>
+      <idea criterion="3">
+        <test>Unit test: Admin route protection middleware correctly identifies admin routes</test>
+        <test>Unit test: Admin route protection middleware redirects non-admin users</test>
+        <test>Unit test: Admin API endpoints return 403 Forbidden for non-admin users</test>
+        <test>Integration test: Non-admin user tries to access admin routes → Redirected with access denied</test>
+        <test>E2E test: Complete admin user management flow (login → access admin/users → view list → update role → verify audit log)</test>
+        <test>Accessibility test: Admin pages work on mobile devices with proper touch targets</test>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

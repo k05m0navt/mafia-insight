@@ -1,6 +1,6 @@
 # Story 1.8: Admin Role Management
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -237,7 +237,7 @@ So that **I can control access levels and platform administration**.
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- `bmad/docs/sprint-artifacts/1-8-admin-role-management.context.xml`
 
 ### Agent Model Used
 
