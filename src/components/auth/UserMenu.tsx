@@ -47,6 +47,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ className = '' }) => {
         <Button asChild variant="outline" size="sm">
           <Link href="/login">Sign In</Link>
         </Button>
+        <Button asChild size="sm">
+          <Link href="/signup">Sign Up</Link>
+        </Button>
       </div>
     );
   }

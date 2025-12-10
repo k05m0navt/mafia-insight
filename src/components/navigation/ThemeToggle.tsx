@@ -8,14 +8,18 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark, mounted } = useTheme();
+
+  // Prevent hydration mismatch by using default theme until mounted
+  // This ensures server and client render the same initial state
+  const displayIsDark = mounted ? isDark : false;
 
   const getIcon = () => {
-    return isDark ? '☀️' : '🌙';
+    return displayIsDark ? '☀️' : '🌙';
   };
 
   const getLabel = () => {
-    return isDark ? 'Switch to light theme' : 'Switch to dark theme';
+    return displayIsDark ? 'Switch to light theme' : 'Switch to dark theme';
   };
 
   return (
@@ -24,10 +28,11 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       className={`p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors ${className}`}
       data-testid="theme-toggle"
       aria-label={getLabel()}
-      aria-pressed={isDark}
+      aria-pressed={displayIsDark}
       title={getLabel()}
+      suppressHydrationWarning
     >
-      <span className="text-lg" aria-hidden="true">
+      <span className="text-lg" aria-hidden="true" suppressHydrationWarning>
         {getIcon()}
       </span>
     </button>

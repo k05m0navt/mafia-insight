@@ -1,0 +1,275 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>6</storyId>
+    <title>User Profile Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27T00:00:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-6-user-profile-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>logged-in user</asA>
+    <iWant>to view and update my profile information and preferences</iWant>
+    <soThat>my account reflects my current information and I can customize my experience</soThat>
+    <tasks>
+      <task id="1" title="Create profile page route and layout" ac="1">
+        <subtasks>
+          <subtask>Create page: src/app/(dashboard)/profile/page.tsx</subtask>
+          <subtask>Create profile layout component: src/components/profile/ProfileLayout.tsx</subtask>
+          <subtask>Ensure responsive design (mobile-first: 320px, 768px, 1024px, 1440px)</subtask>
+          <subtask>Ensure WCAG 2.1 Level AA accessibility compliance</subtask>
+          <subtask>Add page transition animations using PageTransition component</subtask>
+        </subtasks>
+      </task>
+      <task id="2" title="Create profile view component" ac="1">
+        <subtasks>
+          <subtask>Create component: src/components/profile/ProfileView.tsx</subtask>
+          <subtask>Display current email address (read-only with edit button)</subtask>
+          <subtask>Display display name/username (read-only with edit button)</subtask>
+          <subtask>Display profile picture with upload/change button</subtask>
+          <subtask>Display account creation date from createdAt field</subtask>
+          <subtask>Display last login timestamp from lastLogin field</subtask>
+          <subtask>Display preferences section (theme preference, notification settings)</subtask>
+        </subtasks>
+      </task>
+      <task id="3" title="Create profile edit form component" ac="2">
+        <subtasks>
+          <subtask>Create component: src/components/profile/ProfileEditForm.tsx</subtask>
+          <subtask>Use ShadCN/UI Form components with react-hook-form</subtask>
+          <subtask>Add email field with validation (RFC 5322)</subtask>
+          <subtask>Add display name field with validation (2-50 characters)</subtask>
+          <subtask>Add profile picture upload field with image validation</subtask>
+          <subtask>Add theme preference selector (light/dark/system)</subtask>
+          <subtask>Add notification settings toggles</subtask>
+        </subtasks>
+      </task>
+      <task id="4" title="Implement profile update API endpoint" ac="2">
+        <subtasks>
+          <subtask>Create API route: src/app/api/user/profile/route.ts</subtask>
+          <subtask>Implement PATCH handler for profile updates</subtask>
+          <subtask>Validate authenticated session using NextAuth.js</subtask>
+          <subtask>Validate request body using Zod schemas</subtask>
+          <subtask>Handle email changes (send verification email, require confirmation)</subtask>
+          <subtask>Handle display name updates</subtask>
+          <subtask>Handle theme preference updates</subtask>
+          <subtask>Handle notification settings updates</subtask>
+        </subtasks>
+      </task>
+      <task id="5" title="Implement profile picture upload functionality" ac="2">
+        <subtasks>
+          <subtask>Create API route: src/app/api/user/profile/avatar/route.ts</subtask>
+          <subtask>Implement POST handler for avatar upload</subtask>
+          <subtask>Validate authenticated session</subtask>
+          <subtask>Validate image file (max size 5MB, formats: JPG, PNG, WebP)</subtask>
+          <subtask>Resize image to max dimensions (e.g., 512x512px)</subtask>
+          <subtask>Compress image before storage</subtask>
+          <subtask>Generate thumbnail version (e.g., 128x128px)</subtask>
+          <subtask>Upload to Supabase Storage in avatars/ bucket</subtask>
+        </subtasks>
+      </task>
+      <task id="6" title="Implement email change verification flow" ac="2">
+        <subtasks>
+          <subtask>Create email change request API endpoint: src/app/api/user/profile/email/request/route.ts</subtask>
+          <subtask>Validate new email address (RFC 5322, unique)</subtask>
+          <subtask>Generate secure verification token</subtask>
+          <subtask>Store token with expiration (e.g., 24 hours)</subtask>
+          <subtask>Send verification email with confirmation link</subtask>
+          <subtask>Create email verification confirmation endpoint: src/app/api/user/profile/email/verify/route.ts</subtask>
+          <subtask>Invalidate all existing sessions (security requirement)</subtask>
+        </subtasks>
+      </task>
+      <task id="7" title="Integrate profile page with TanStack Query" ac="1,2">
+        <subtasks>
+          <subtask>Create custom hook: src/hooks/useProfile.ts</subtask>
+          <subtask>Use TanStack Query for profile data fetching</subtask>
+          <subtask>Implement profile update mutation with optimistic updates</subtask>
+          <subtask>Implement avatar upload mutation</subtask>
+        </subtasks>
+      </task>
+      <task id="8" title="Update database schema if needed" ac="1,2">
+        <subtasks>
+          <subtask>Review Prisma schema for user profile fields</subtask>
+          <subtask>Add notification preferences fields if needed (e.g., emailNotifications, pushNotifications)</subtask>
+          <subtask>Ensure theme preference field exists (themePreference already exists)</subtask>
+        </subtasks>
+      </task>
+      <task id="9" title="Add navigation link to profile page" ac="1">
+        <subtasks>
+          <subtask>Update navigation component: src/components/navigation/MainNavigation.tsx</subtask>
+          <subtask>Add "Profile" link to user menu dropdown</subtask>
+        </subtasks>
+      </task>
+      <task id="10" title="Accessibility and responsive design compliance" ac="1,2">
+        <subtasks>
+          <subtask>Ensure all forms meet WCAG 2.1 Level AA compliance</subtask>
+          <subtask>Add proper ARIA labels to all form fields</subtask>
+          <subtask>Verify keyboard navigation works correctly</subtask>
+          <subtask>Test screen reader compatibility</subtask>
+        </subtasks>
+      </task>
+      <task id="11" title="Integration and E2E testing" ac="1,2">
+        <subtasks>
+          <subtask>Create integration test for profile update flow</subtask>
+          <subtask>Test: View profile → Edit profile → Save changes → Verify updates</subtask>
+          <subtask>Test: Upload profile picture → Verify image appears</subtask>
+          <subtask>Test: Change email → Verify verification email sent → Verify email updated</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am logged in and viewing my profile page</given>
+      <when>I view my profile</when>
+      <then>
+        <item>The system displays current email address (editable, requires verification if changed)</item>
+        <item>The system displays display name or username (editable)</item>
+        <item>The system displays profile picture (upload/change capability)</item>
+        <item>The system displays account creation date</item>
+        <item>The system displays last login timestamp</item>
+        <item>The system displays preferences section (theme preference, notification settings, etc.)</item>
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I am logged in and viewing my profile page</given>
+      <when>I update information</when>
+      <then>
+        <item>Form validates all fields in real-time</item>
+        <item>Changes save successfully with confirmation feedback</item>
+        <item>Email changes require verification (send verification email, confirm before updating)</item>
+        <item>Profile picture uploads with image validation (max size 5MB, formats: JPG, PNG, WebP)</item>
+        <item>Image compression/optimization before storage</item>
+        <item>Updates reflect immediately in the UI</item>
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="User Account & Access">
+        <snippet>FR4: Users can update profile information and preferences. Profile management includes email, display name, profile picture, and user preferences like theme and notifications.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Authentication">
+        <snippet>NextAuth.js 4.24.12 for session management. Session stored in secure HTTP-only cookie. Supabase Auth for OAuth providers. Session invalidation using Supabase Admin API auth.admin.signOut(userId).</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Database">
+        <snippet>Prisma ORM with PostgreSQL via Supabase. User model includes fields: id, email, name, avatar, themePreference, createdAt, updatedAt, lastLogin. Profile data stored in user table.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Backend Platform">
+        <snippet>Supabase Storage for avatar images. Use avatars/ bucket for profile pictures. Image optimization: resize to max dimensions, compress, generate thumbnail.</snippet>
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Story 1.6: User Profile Management">
+        <snippet>Profile page route: /profile or /settings/profile. Form components: ShadCN/UI form with react-hook-form. Image upload: multipart/form-data, store in Supabase Storage. API endpoint: PATCH /api/user/profile.</snippet>
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Responsive Design & Accessibility">
+        <snippet>WCAG 2.1 Level AA compliance required. Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px. Touch targets minimum 44px for mobile. Keyboard navigation support for all interactive elements.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-5-password-reset-flow.md" title="Previous Story Learnings" section="Dev Agent Record">
+        <snippet>Auth Infrastructure Available: NextAuth.js configured with OAuth providers. Session management helpers available at src/lib/auth/nextauth-helpers.ts. Validation Utilities: Email validation schemas available at src/lib/auth/validation.ts with RFC 5322 email validation. Form Components: ShadCN/UI Form components with react-hook-form integration already established.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file path="src/app/api/profile/route.ts" kind="api-route" symbol="GET, PATCH" lines="1-134" reason="Existing profile API endpoint that handles GET and PATCH requests. Can be extended or used as reference for new /api/user/profile endpoint." />
+      <file path="src/hooks/useProfile.ts" kind="hook" symbol="useProfile" lines="1-115" reason="Existing profile hook using fetch API. Should be refactored to use TanStack Query for better caching and state management." />
+      <file path="src/components/auth/UserProfile.tsx" kind="component" symbol="UserProfile" lines="1-320" reason="Existing user profile component. Can be used as reference for profile display patterns and structure." />
+      <file path="src/lib/auth/validation.ts" kind="utility" symbol="emailSchema, validateEmail" lines="1-148" reason="Email validation utilities using RFC 5322 standard. Reuse for profile email validation." />
+      <file path="src/lib/supabase/server.ts" kind="utility" symbol="createSupabaseServerClient" lines="1-39" reason="Supabase server client creation utility. Use for Supabase Storage operations in API routes." />
+      <file path="src/lib/supabase/client.ts" kind="utility" symbol="supabase" lines="1-16" reason="Supabase client for client-side operations. Use for client-side Storage operations if needed." />
+      <file path="prisma/schema.prisma" kind="schema" symbol="User" lines="14-34" reason="User model schema. Includes email, name, avatar, themePreference, createdAt, updatedAt, lastLogin fields. May need to add notification preference fields." />
+      <file path="src/components/profile/ProfileEditor.tsx" kind="component" symbol="ProfileEditor" reason="Existing profile editor component. Review for patterns and potentially reuse or extend." />
+      <file path="src/components/profile/AvatarUpload.tsx" kind="component" symbol="AvatarUpload" reason="Existing avatar upload component. Review for image upload patterns and potentially reuse or extend." />
+      <file path="src/app/profile/page.tsx" kind="page" symbol="ProfilePage" reason="Existing profile page. Review structure and potentially extend or create new version in (dashboard) route group." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="react-dom" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="react-hook-form" version="^7.65.0" />
+        <package name="@hookform/resolvers" version="^5.2.2" />
+        <package name="next-auth" version="^4.24.12" />
+        <package name="@supabase/supabase-js" version="^2.38.0" />
+        <package name="@supabase/ssr" version="^0.1.0" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="date-fns" version="^4.1.0" />
+        <package name="lucide-react" version="^0.548.0" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <description>Profile route must be in dashboard route group: src/app/(dashboard)/profile/page.tsx</description>
+      <source>bmad/docs/epics.md#Story-1.6-Technical-Notes</source>
+    </constraint>
+    <constraint type="component">
+      <description>Use ShadCN/UI form components with react-hook-form for all form inputs</description>
+      <source>bmad/docs/epics.md#Story-1.6-Technical-Notes</source>
+    </constraint>
+    <constraint type="storage">
+      <description>Profile pictures must be stored in Supabase Storage avatars/ bucket</description>
+      <source>bmad/docs/epics.md#Story-1.6-Technical-Notes</source>
+    </constraint>
+    <constraint type="validation">
+      <description>Email validation must use RFC 5322 standard from src/lib/auth/validation.ts</description>
+      <source>bmad/docs/sprint-artifacts/1-5-password-reset-flow.md#Dev-Agent-Record</source>
+    </constraint>
+    <constraint type="security">
+      <description>Email changes require verification and must invalidate all existing sessions using Supabase Admin API auth.admin.signOut(userId)</description>
+      <source>bmad/docs/sprint-artifacts/1-5-password-reset-flow.md#Dev-Agent-Record</source>
+    </constraint>
+    <constraint type="accessibility">
+      <description>All forms must meet WCAG 2.1 Level AA compliance with minimum 4.5:1 color contrast ratio for text</description>
+      <source>bmad/docs/prd.md#Accessibility-Level</source>
+    </constraint>
+    <constraint type="responsive">
+      <description>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px</description>
+      <source>bmad/docs/prd.md#Responsive-Design</source>
+    </constraint>
+    <constraint type="testing">
+      <description>Maintain minimum 80% test coverage for all new code. Use TDD approach: write tests before implementation</description>
+      <source>.specify/memory/constitution.md#Testing-Requirements</source>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/profile" kind="REST endpoint" signature="GET /api/profile → { id, email, name, avatar, role, subscriptionTier, themePreference, createdAt, lastLogin }" path="src/app/api/profile/route.ts" />
+    <interface name="PATCH /api/profile" kind="REST endpoint" signature="PATCH /api/profile { name?, themePreference? } → { success, profile, message }" path="src/app/api/profile/route.ts" />
+    <interface name="useProfile Hook" kind="React Hook" signature="useProfile(): { profile, isLoading, error, fetchProfile, updateProfile, clearError }" path="src/hooks/useProfile.ts" />
+    <interface name="emailSchema" kind="Zod Schema" signature="emailSchema: z.string().email().refine(RFC_5322_EMAIL_REGEX)" path="src/lib/auth/validation.ts" />
+    <interface name="User Model" kind="Prisma Model" signature="User { id, email, name, avatar, themePreference, createdAt, updatedAt, lastLogin }" path="prisma/schema.prisma" />
+    <interface name="Supabase Storage" kind="Storage API" signature="supabase.storage.from('avatars').upload(path, file, options)" path="src/lib/supabase/client.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing standards require minimum 80% test coverage for all new code. Use TDD approach following Red-Green-Refactor cycle. Test types include: unit tests for components and utilities, integration tests for profile update flow, E2E tests for complete profile management flow, and accessibility tests using @axe-core/playwright. All tests should verify WCAG 2.1 AA compliance. Profile testing should cover complete flow (view → edit → save → verify), avatar upload, email change verification, and preference updates. Image upload testing should verify file validation (size, format), image compression, thumbnail generation, and storage upload. Security testing should verify session invalidation after email change, authentication requirements, and authorization (users can only update own profile).
+    </standards>
+    <locations>
+      <location>tests/unit/components/profile/</location>
+      <location>tests/integration/api/profile/</location>
+      <location>tests/e2e/profile/</location>
+      <location>tests/e2e/auth/</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test profile page renders correctly with all fields displayed</idea>
+      <idea ac="1">Test profile view component displays user data correctly</idea>
+      <idea ac="1">Test accessibility compliance using @axe-core/playwright</idea>
+      <idea ac="2">Test form validation works correctly for all fields</idea>
+      <idea ac="2">Test profile update API endpoint with valid and invalid data</idea>
+      <idea ac="2">Test avatar upload with valid and invalid image files</idea>
+      <idea ac="2">Test image compression and thumbnail generation</idea>
+      <idea ac="2">Test email change verification flow end-to-end</idea>
+      <idea ac="2">Test session invalidation after email change</idea>
+      <idea ac="2">Test optimistic updates in TanStack Query mutations</idea>
+      <idea ac="1,2">Test complete profile management flow: view → edit → save → verify</idea>
+      <idea ac="1,2">Test responsive design at all breakpoints (320px, 768px, 1024px, 1440px)</idea>
+    </ideas>
+  </tests>
+</story-context>

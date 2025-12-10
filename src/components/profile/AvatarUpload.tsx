@@ -40,21 +40,23 @@ export function AvatarUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // Validate file type (JPG, PNG, WebP only as per story requirements)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: 'Invalid File Type',
-        description: 'Please select an image file (JPEG, PNG, WebP, or GIF).',
+        description: 'Please select an image file (JPG, PNG, or WebP).',
         variant: 'destructive',
       });
       return;
     }
 
-    // Validate file size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (5MB as per story requirements)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
       toast({
         title: 'File Too Large',
-        description: 'Please select an image smaller than 2MB.',
+        description: 'Please select an image smaller than 5MB.',
         variant: 'destructive',
       });
       return;
@@ -74,7 +76,7 @@ export function AvatarUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/profile/avatar', {
+      const response = await fetch('/api/user/profile/avatar', {
         method: 'POST',
         body: formData,
       });
@@ -116,7 +118,7 @@ export function AvatarUpload({
     setIsDeleting(true);
 
     try {
-      const response = await fetch('/api/profile/avatar', {
+      const response = await fetch('/api/user/profile/avatar', {
         method: 'DELETE',
       });
 
@@ -174,7 +176,7 @@ export function AvatarUpload({
             Recommended: Square image, at least 200x200 pixels
           </p>
           <p className="text-sm text-muted-foreground">
-            Supported formats: JPEG, PNG, WebP, GIF (max 2MB)
+            Supported formats: JPG, PNG, WebP (max 5MB)
           </p>
         </div>
 
@@ -182,7 +184,7 @@ export function AvatarUpload({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             onChange={handleFileSelect}
             className="hidden"
             aria-label="Upload avatar"

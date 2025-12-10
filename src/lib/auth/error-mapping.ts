@@ -175,6 +175,30 @@ const errorMessages: Record<AuthErrorCode, UserFriendlyError> = {
     ],
     isRetryable: true,
   },
+  [AuthErrorCode.OAUTH_ERROR]: {
+    code: AuthErrorCode.OAUTH_ERROR,
+    message: 'OAuth authentication failed',
+    action: 'retry_oauth',
+    nextSteps: [
+      'Try signing in with OAuth again',
+      'Check your internet connection',
+      'Make sure you authorized the application',
+      'Try using email and password instead',
+    ],
+    isRetryable: true,
+  },
+  [AuthErrorCode.OAUTH_ACCESS_DENIED]: {
+    code: AuthErrorCode.OAUTH_ACCESS_DENIED,
+    message: 'OAuth access was denied',
+    action: 'retry_oauth',
+    nextSteps: [
+      'Try signing in with OAuth again',
+      'Make sure you click "Allow" or "Authorize" when prompted',
+      'Check that you have the necessary permissions',
+      'Try using email and password instead',
+    ],
+    isRetryable: true,
+  },
 };
 
 /**

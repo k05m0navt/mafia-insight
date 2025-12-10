@@ -42,7 +42,29 @@ export class ThemeService {
   }
 
   private initializeTheme(): void {
-    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme;
+    // Check for guest preferences in session storage first (for guests)
+    let storedTheme: Theme | null = null;
+
+    if (typeof window !== 'undefined') {
+      try {
+        // Try session storage for guest preferences
+        const guestPrefs = sessionStorage.getItem('guest_preferences');
+        if (guestPrefs) {
+          const prefs = JSON.parse(guestPrefs);
+          if (prefs.theme && ['light', 'dark'].includes(prefs.theme)) {
+            storedTheme = prefs.theme as Theme;
+          }
+        }
+      } catch (_error) {
+        // Ignore session storage errors, fall back to localStorage
+      }
+
+      // Fall back to localStorage if no guest preference found
+      if (!storedTheme) {
+        storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme;
+      }
+    }
+
     if (storedTheme && ['light', 'dark'].includes(storedTheme)) {
       this.currentTheme = storedTheme;
     } else {
@@ -77,7 +99,7 @@ export class ThemeService {
     return this.currentTheme;
   }
 
-  setTheme(theme: Theme): void {
+  setTheme(theme: Theme, isGuest: boolean = false): void {
     if (!['light', 'dark'].includes(theme)) {
       throw new ThemeError('Invalid theme');
     }
@@ -85,7 +107,20 @@ export class ThemeService {
     this.currentTheme = theme;
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      if (isGuest) {
+        // Store in session storage for guests
+        try {
+          const guestPrefs = sessionStorage.getItem('guest_preferences');
+          const prefs = guestPrefs ? JSON.parse(guestPrefs) : {};
+          prefs.theme = theme;
+          sessionStorage.setItem('guest_preferences', JSON.stringify(prefs));
+        } catch (error) {
+          console.warn('Failed to save guest theme preference:', error);
+        }
+      } else {
+        // Store in localStorage for authenticated users
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      }
     }
 
     this.applyTheme();

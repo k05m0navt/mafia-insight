@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.2</storyId>
+    <title>Email Authentication - User Registration</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-2-email-authentication-user-registration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>new user</asA>
+    <iWant>to create an account using my email address</iWant>
+    <soThat>I can access personalized analytics and save my preferences</soThat>
+    <tasks>
+      <task id="1" ac="1">Implement email validation with RFC 5322 standard (AC: #1)
+        - Create Zod schema for email validation using RFC 5322 regex pattern
+        - Integrate email validation into registration form
+        - Add real-time email validation feedback (on blur or while typing)
+        - Test: Verify email validation rejects invalid formats and accepts valid ones
+        - Test: Verify validation feedback appears in real-time</task>
+      <task id="2" ac="1">Implement password validation and strength meter (AC: #1)
+        - Create password validation schema: minimum 8 characters, 1 uppercase, 1 number, 1 special character
+        - Build password strength meter component with visual indicators (weak/medium/strong)
+        - Implement real-time password strength calculation
+        - Add password requirements helper text
+        - Test: Verify password validation enforces all requirements
+        - Test: Verify strength meter shows accurate feedback</task>
+      <task id="3" ac="1,2">Create registration form with ShadCN/UI components (AC: #1, #2)
+        - Use ShadCN/UI Form components with react-hook-form integration
+        - Implement email, password, and confirm password fields
+        - Add real-time validation feedback for each field
+        - Implement loading state (button disabled, spinner shown) during submission
+        - Ensure form follows design system (Competitive Data theme colors, responsive layout)
+        - Test: Verify form accessibility (keyboard navigation, screen reader compatibility)
+        - Test: Verify form works on all responsive breakpoints (320px, 768px, 1024px, 1440px)</task>
+      <task id="4" ac="1">Implement account creation API endpoint (AC: #1)
+        - Create POST /api/auth/register endpoint
+        - Validate request body using Zod schema
+        - Hash password using bcrypt with salt rounds ≥10 (or use Supabase Auth password hashing)
+        - Create user record in database via Prisma
+        - Set default user role to "USER"
+        - Test: Verify password is hashed before storage
+        - Test: Verify duplicate email addresses are rejected
+        - Test: Verify API returns appropriate error messages</task>
+      <task id="5" ac="1">Implement email verification flow (AC: #1)
+        - Generate secure verification token (32+ characters, URL-safe)
+        - Store verification token in database with expiration (24 hours)
+        - Send verification email via SMTP/email service with confirmation link
+        - Create email verification confirmation page
+        - Create API endpoint to verify token and activate account
+        - Redirect to email verification prompt page after registration
+        - Test: Verify email is sent successfully
+        - Test: Verify token expires after 24 hours
+        - Test: Verify account activation works correctly</task>
+      <task id="6" ac="2">Implement error handling and user feedback (AC: #2)
+        - Create error mapping service for user-friendly error messages
+        - Display field-specific error messages below relevant fields (red, 14px font size)
+        - Ensure error messages are clear and actionable
+        - Keep fields focused for correction after validation errors
+        - Handle network errors gracefully
+        - Test: Verify all error scenarios display appropriate messages
+        - Test: Verify error messages meet WCAG 2.1 AA contrast requirements</task>
+      <task id="7" ac="1">Integrate with NextAuth.js authentication system (AC: #1)
+        - Configure NextAuth.js for email/password authentication
+        - Integrate registration flow with NextAuth.js session management
+        - Ensure compatibility with existing authentication infrastructure
+        - Test: Verify registration creates valid session after email verification
+        - Test: Verify session persists across browser tabs and devices</task>
+      <task id="8" ac="1,2">Accessibility and responsive design compliance (AC: #1, #2)
+        - Ensure form meets WCAG 2.1 Level AA compliance
+        - Add proper ARIA labels to all form fields
+        - Verify keyboard navigation works correctly
+        - Test screen reader compatibility
+        - Ensure responsive design works at all breakpoints (320px, 768px, 1024px, 1440px)
+        - Test: Verify accessibility compliance using @axe-core/playwright
+        - Test: Verify responsive design on real devices</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criteria id="1">
+      <given>I am on the registration page</given>
+      <when>I enter a valid email address and password that meets requirements</when>
+      <then>
+        - Validates email format using RFC 5322 standard
+        - Validates password meets requirements: minimum 8 characters, at least 1 uppercase letter, 1 number, 1 special character
+        - Displays password strength meter with visual feedback (weak/medium/strong indicators)
+        - Shows real-time validation feedback for each field
+        - Displays loading state during account creation (spinner overlay or button loading state)
+        - Creates the account successfully and sends email verification
+        - Redirects to email verification prompt page
+        - Stores password securely using industry-standard hashing (bcrypt with salt rounds ≥10)
+      </then>
+    </criteria>
+    <criteria id="2">
+      <given>Validation fails</given>
+      <then>
+        - Error messages appear below the relevant field (red, 14px font size)
+        - Error messages are clear and actionable
+        - Fields remain focused for correction
+      </then>
+    </criteria>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="User Account & Access">
+        FR1: Users can create accounts with email or social authentication. Includes requirements for email validation, password security, and account creation flow.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Authentication">
+        NextAuth.js 4.24.12 for authentication handling and session management. Supabase Auth for OAuth providers. Cookie-based sessions with secure HTTP-only cookies.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Database">
+        Prisma ORM 5.0.0 for type-safe database access. PostgreSQL via Supabase. User model defined in prisma/schema.prisma with email, name, role, and authentication fields.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Decision Summary">
+        Zod 4.1.12 for schema validation throughout the application. Used for email, password, and form data validation.
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Design System Foundation">
+        ShadCN/UI (New York style) components configured with Competitive Data theme. Form components with react-hook-form integration. CSS variables for theming (Deep Indigo #4f46e5, Cyan #06b6d4, Purple #8b5cf6).
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Responsive Design">
+        Mobile-first approach with breakpoints: 320px, 768px, 1024px, 1440px. Touch-optimized interactions for mobile devices.
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Accessibility Level">
+        WCAG 2.1 Level AA compliance required. Keyboard navigation support. Screen reader compatibility. Color contrast ratios meet WCAG standards (minimum 4.5:1).
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epics Document" section="Story 1.2: Email Authentication - User Registration">
+        Complete story definition with acceptance criteria and technical notes. Use NextAuth.js, Zod schema for validation (RFC 5322 regex pattern), password hashing via Supabase Auth or NextAuth.js with bcrypt, email verification flow with secure tokens.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-1-visual-design-system-foundation.md" title="Story 1.1 Context" section="Dev Agent Record">
+        Design system available with CSS variables, ShadCN/UI components, icon system, responsive utilities, animation system, accessibility testing framework established.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/components/auth/SignupForm.tsx" kind="component" symbol="SignupForm" reason="Existing registration form component that needs enhancement with RFC 5322 email validation, password strength meter, and improved error handling">
+        Current implementation uses basic email validation and needs upgrade to RFC 5322 standard. Missing password strength meter. Error handling needs enhancement for field-specific messages.
+      </artifact>
+      <artifact path="src/app/(auth)/signup/page.tsx" kind="page" symbol="SignupPage" reason="Registration page that will display the enhanced SignupForm component">
+        Existing page structure ready, needs integration with enhanced form component.
+      </artifact>
+      <artifact path="src/lib/auth.ts" kind="service" symbol="AuthService" reason="Authentication service with register method that needs enhancement for email verification flow">
+        Current register method exists but needs email verification token generation and email sending integration.
+      </artifact>
+      <artifact path="src/lib/validation.ts" kind="utility" symbol="validateEmail, validatePassword, validateSignupCredentials" lines="39-157" reason="Current validation functions need upgrade to RFC 5322 email validation and stronger password requirements">
+        Current email validation uses basic regex. Password validation requires minimum 8 chars, uppercase, number, special character. Need to align with story requirements.
+      </artifact>
+      <artifact path="src/lib/users/user-service.ts" kind="service" symbol="UserService.createUser" lines="64-99" reason="User creation service method that can be referenced for account creation pattern">
+        Shows pattern for creating users via Prisma. Can be adapted for registration endpoint.
+      </artifact>
+      <artifact path="src/components/ui/form.tsx" kind="component" symbol="Form, FormField, FormControl, FormMessage" reason="ShadCN/UI form components that should be used for the registration form">
+        Pre-configured ShadCN/UI form components with react-hook-form integration ready for use.
+      </artifact>
+      <artifact path="src/lib/auth/error-mapping.ts" kind="service" symbol="ErrorMappingService" reason="Error mapping service for user-friendly error messages already implemented">
+        Can be used for displaying clear, actionable error messages per story requirements.
+      </artifact>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="User model" lines="14-32" reason="User database model that stores account information including email, name, role">
+        User model structure. May need email verification token fields added.
+      </artifact>
+      <artifact path="src/app/api/auth/[...nextauth]/route.ts" kind="api" symbol="NextAuth handler" reason="NextAuth.js route handler for authentication configuration">
+        NextAuth.js configuration endpoint that needs integration with registration flow.
+      </artifact>
+      <artifact path="src/hooks/useAuth.ts" kind="hook" symbol="useAuth.register" lines="144-182" reason="React hook for authentication with register method">
+        Existing auth hook that can be used for registration state management.
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0">Next.js framework with App Router</package>
+        <package name="next-auth" version="^4.24.12">Authentication and session management</package>
+        <package name="@next-auth/supabase-adapter" version="^0.2.1">Supabase adapter for NextAuth</package>
+        <package name="react" version="^19.2.0">React component framework</package>
+        <package name="react-dom" version="^19.2.0">React DOM renderer</package>
+        <package name="react-hook-form" version="^7.65.0">Form state management</package>
+        <package name="@hookform/resolvers" version="^5.2.2">Form validation resolvers</package>
+        <package name="zod" version="^4.1.12">Schema validation</package>
+        <package name="@prisma/client" version="^5.0.0">Prisma database client</package>
+        <package name="@supabase/supabase-js" version="^2.38.0">Supabase client</package>
+        <package name="resend" version="^6.3.0">Email sending service</package>
+        <package name="lucide-react" version="^0.548.0">Icon library</package>
+        <package name="tailwind-merge" version="^3.3.1">Tailwind utility merging</package>
+        <package name="class-variance-authority" version="^0.7.1">Component variant styling</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use NextAuth.js 4.24.12 for authentication handling and session management</constraint>
+    <constraint>Implement email validation using Zod schema with RFC 5322 regex pattern (must be RFC 5322 compliant, not basic regex)</constraint>
+    <constraint>Password hashing: Use Supabase Auth or NextAuth.js with bcrypt (salt rounds ≥10)</constraint>
+    <constraint>Use ShadCN/UI Form components with react-hook-form integration for form handling</constraint>
+    <constraint>Use Prisma ORM for database operations with PostgreSQL via Supabase</constraint>
+    <constraint>Use Zod for schema validation throughout (email, password, form data)</constraint>
+    <constraint>Mobile-first responsive design with breakpoints: 320px, 768px, 1024px, 1440px</constraint>
+    <constraint>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text</constraint>
+    <constraint>Implement custom error mapping service for user-friendly error messages</constraint>
+    <constraint>Follow design system: Competitive Data theme colors (Deep Indigo #4f46e5, Cyan #06b6d4, Purple #8b5cf6)</constraint>
+    <constraint>Component location: Auth components in src/components/auth/ directory</constraint>
+    <constraint>API routes: Authentication endpoints in src/app/api/auth/ directory</constraint>
+    <constraint>Auth utilities: Authentication utilities in src/lib/auth/ directory</constraint>
+    <constraint>Maintain 80%+ test coverage with unit, integration, and E2E tests</constraint>
+    <constraint>Follow TDD approach (Red-Green-Refactor cycle) - write tests before implementation</constraint>
+    <constraint>Use @axe-core/playwright for E2E accessibility testing</constraint>
+    <constraint>Error messages must appear below relevant fields in red, 14px font size</constraint>
+    <constraint>Password requirements: minimum 8 characters, 1 uppercase, 1 number, 1 special character</constraint>
+    <constraint>Email verification token: 32+ characters, URL-safe, 24-hour expiration</constraint>
+    <constraint>Default user role: "USER" (not admin)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/auth/register" kind="REST endpoint" path="src/app/api/auth/register/route.ts">
+      <signature>
+        POST /api/auth/register
+        Request Body: {
+          email: string (RFC 5322 validated),
+          password: string (min 8 chars, 1 uppercase, 1 number, 1 special),
+          name: string
+        }
+        Response: {
+          success: boolean,
+          user?: User,
+          error?: string
+        }
+      </signature>
+    </interface>
+    <interface name="POST /api/auth/verify-email" kind="REST endpoint" path="src/app/api/auth/verify-email/route.ts">
+      <signature>
+        POST /api/auth/verify-email
+        Request Body: {
+          token: string (32+ characters, URL-safe)
+        }
+        Response: {
+          success: boolean,
+          message?: string,
+          error?: string
+        }
+      </signature>
+    </interface>
+    <interface name="AuthService.register" kind="function" path="src/lib/auth.ts">
+      <signature>
+        async register(userData: RegisterData): Promise&lt;AuthResponse&gt;
+        RegisterData: {
+          email: string,
+          password: string,
+          name: string
+        }
+      </signature>
+    </interface>
+    <interface name="SignupForm Component" kind="component" path="src/components/auth/SignupForm.tsx">
+      <signature>
+        SignupForm({ onSuccess?: () =&gt; void, className?: string })
+        Props: {
+          onSuccess?: callback function,
+          className?: string for styling
+        }
+      </signature>
+    </interface>
+    <interface name="Zod Email Validation Schema" kind="schema" path="src/lib/auth/validation.ts (to be created)">
+      <signature>
+        emailSchema: z.string().email().refine((email) =&gt; RFC_5322_REGEX.test(email))
+        RFC 5322 compliant email validation
+      </signature>
+    </interface>
+    <interface name="Zod Password Validation Schema" kind="schema" path="src/lib/auth/validation.ts (to be created)">
+      <signature>
+        passwordSchema: z.string()
+          .min(8)
+          .regex(/[A-Z]/, "Must contain uppercase letter")
+          .regex(/[0-9]/, "Must contain number")
+          .regex(/[^A-Za-z0-9]/, "Must contain special character")
+      </signature>
+    </interface>
+    <interface name="PasswordStrengthMeter Component" kind="component" path="src/components/auth/PasswordStrengthMeter.tsx (to be created)">
+      <signature>
+        PasswordStrengthMeter({ password: string })
+        Props: {
+          password: string to analyze
+        }
+        Returns: Visual strength indicators (weak/medium/strong)
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Maintain minimum 80% test coverage for all new code. Use TDD approach: write tests before implementation, follow Red-Green-Refactor cycle. Test types: Unit tests for components and utilities (Vitest), integration tests for API endpoints (Vitest), E2E tests for complete registration flow (Playwright), accessibility tests using @axe-core/playwright. Test locations: Unit tests in tests/unit/, integration tests in tests/integration/, E2E tests in tests/e2e/. Follow existing test patterns from tests/e2e/auth/signup.spec.ts and tests/unit/auth/auth.service.test.ts.
+    </standards>
+    <locations>
+      <location>tests/unit/auth/ - Unit tests for validation utilities and auth services</location>
+      <location>tests/integration/auth/ - Integration tests for API endpoints</location>
+      <location>tests/e2e/auth/ - E2E tests for complete registration flow</location>
+      <location>tests/components/auth/ - Component tests for form components</location>
+    </locations>
+    <ideas>
+      <idea acId="1">Test email validation with RFC 5322 standard: Test valid emails (standard, plus signs, dots), invalid emails (missing @, invalid domain, special characters), edge cases</idea>
+      <idea acId="1">Test password validation: Minimum 8 characters enforced, uppercase letter required, number required, special character required, all requirements combined</idea>
+      <idea acId="1">Test password strength meter: Weak passwords show weak indicator, medium passwords show medium indicator, strong passwords show strong indicator, real-time updates as user types</idea>
+      <idea acId="1">Test real-time validation feedback: Email validation shows feedback on blur, password validation shows feedback while typing, field-specific error messages appear immediately</idea>
+      <idea acId="1">Test loading state: Button disabled during submission, spinner shown during account creation, form fields disabled during submission</idea>
+      <idea acId="1">Test account creation: Successfully creates account in database, password is hashed before storage (verify hash format), default role set to "USER", duplicate email addresses rejected</idea>
+      <idea acId="1">Test email verification: Verification token generated and stored, verification email sent successfully, token expires after 24 hours, account activation works on token verification</idea>
+      <idea acId="1">Test redirect flow: Redirects to email verification prompt page after registration, verification prompt page displays correctly</idea>
+      <idea acId="2">Test error messages: Error messages appear below relevant fields, error messages in red color, error messages in 14px font size, error messages are clear and actionable, fields remain focused for correction</idea>
+      <idea acId="1,2">Test accessibility: WCAG 2.1 Level AA compliance, keyboard navigation works, screen reader compatibility, ARIA labels on all form fields, focus indicators visible</idea>
+      <idea acId="1,2">Test responsive design: Form works at 320px breakpoint, form works at 768px breakpoint, form works at 1024px breakpoint, form works at 1440px breakpoint</idea>
+      <idea acId="1">Test NextAuth.js integration: Registration creates valid session after email verification, session persists across browser tabs, session persists across devices</idea>
+    </ideas>
+  </tests>
+</story-context>
+

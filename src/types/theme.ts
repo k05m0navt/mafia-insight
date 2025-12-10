@@ -14,6 +14,7 @@ export interface ThemeContextType {
   toggleTheme: () => void;
   isDark: boolean;
   isLight: boolean;
+  mounted?: boolean; // Optional: indicates if component has mounted (client-side only)
 }
 
 export interface ThemeProviderContext extends ThemeContextType {

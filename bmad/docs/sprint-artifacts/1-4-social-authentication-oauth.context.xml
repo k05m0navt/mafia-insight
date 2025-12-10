@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.4</storyId>
+    <title>Social Authentication (OAuth)</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-4-social-authentication-oauth.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>new or existing user</asA>
+    <iWant>to sign in using my social media account (Google, GitHub, etc.)</iWant>
+    <soThat>I can access the platform quickly without creating a separate password</soThat>
+    <tasks>
+      <task id="1" ac="1,4">Configure OAuth providers in NextAuth.js (AC: #1, #4)
+        - Install required NextAuth.js OAuth provider packages (Google, GitHub)
+        - Add Google OAuth provider to NextAuth.js configuration in `src/lib/auth.ts`
+        - Add GitHub OAuth provider to NextAuth.js configuration (optional)
+        - Configure OAuth callback URLs for each provider
+        - Set up environment variables for OAuth client IDs and secrets
+        - Implement PKCE (Proof Key for Code Exchange) for enhanced security
+        - Configure OAuth scopes: request only email and profile (minimum necessary permissions)
+        - Test: Verify OAuth providers are properly configured
+        - Test: Verify PKCE flow works correctly
+        - Test: Verify OAuth state parameter validation prevents CSRF</task>
+      <task id="2" ac="1,3">Implement OAuth account linking logic (AC: #1, #3)
+        - Create account linking service in `src/lib/auth/oauth-linking.ts`
+        - Implement email matching logic: if OAuth email matches existing account, link accounts
+        - Implement account creation logic: if email doesn't exist, create new account
+        - Store OAuth provider ID and encrypted access token in database
+        - Support multiple OAuth providers per user (link Google and GitHub to same account)
+        - Update Prisma schema if needed to support OAuth account linking (add account table or extend user table)
+        - Test: Verify account linking works for existing users
+        - Test: Verify new account creation works for new users
+        - Test: Verify multiple OAuth providers can be linked to same account</task>
+      <task id="3" ac="2">Create OAuth authentication buttons component (AC: #2)
+        - Create `src/components/auth/OAuthButtons.tsx` component
+        - Use NextAuth.js `signIn()` function with provider ID
+        - Display provider icons (Google logo, GitHub logo) using Icon component
+        - Style buttons to match design system (Competitive Data theme colors)
+        - Implement loading state during OAuth flow (button disabled, spinner shown)
+        - Ensure buttons are accessible (keyboard navigation, ARIA labels)
+        - Add "Sign in with Google" and "Sign in with GitHub" buttons
+        - Test: Verify buttons render correctly on login and signup pages
+        - Test: Verify buttons are accessible via keyboard
+        - Test: Verify loading states work correctly</task>
+      <task id="4" ac="2">Add OAuth buttons to login and signup pages (AC: #2)
+        - Update `src/app/(auth)/login/page.tsx` to include OAuth buttons
+        - Update `src/app/(auth)/signup/page.tsx` to include OAuth buttons
+        - Add visual separator ("or" divider) between OAuth buttons and email/password form
+        - Ensure responsive layout works at all breakpoints (320px, 768px, 1024px, 1440px)
+        - Test: Verify OAuth buttons appear on login page
+        - Test: Verify OAuth buttons appear on signup page
+        - Test: Verify responsive layout works correctly</task>
+      <task id="5" ac="1">Implement OAuth error handling (AC: #1)
+        - Create error mapping for OAuth provider errors
+        - Handle OAuth callback errors (access denied, invalid state, etc.)
+        - Display user-friendly error messages for OAuth failures
+        - Log OAuth errors to security_events table for monitoring
+        - Redirect to error page with clear error message if OAuth fails
+        - Test: Verify error handling works for all OAuth error scenarios
+        - Test: Verify error messages are user-friendly
+        - Test: Verify OAuth errors are logged correctly</task>
+      <task id="6" ac="1">Implement OAuth session management (AC: #1)
+        - Configure NextAuth.js callbacks to handle OAuth user data
+        - Map OAuth provider user data to NextAuth session
+        - Store OAuth provider information in session (for account linking display)
+        - Implement token refresh for OAuth providers that support it
+        - Ensure OAuth sessions work with existing session management infrastructure
+        - Test: Verify OAuth sessions are created correctly
+        - Test: Verify OAuth sessions persist across browser tabs
+        - Test: Verify token refresh works for OAuth providers</task>
+      <task id="7" ac="4">Security and audit logging (AC: #4)
+        - Log OAuth authentication events to security_events table
+        - Log account linking events (when OAuth account is linked to existing user)
+        - Implement OAuth state parameter validation to prevent CSRF
+        - Encrypt OAuth access tokens before storing in database
+        - Test: Verify OAuth events are logged correctly
+        - Test: Verify CSRF protection works (state parameter validation)
+        - Test: Verify OAuth tokens are encrypted in database</task>
+      <task id="8" ac="2">Accessibility and responsive design compliance (AC: #2)
+        - Ensure OAuth buttons meet WCAG 2.1 Level AA compliance
+        - Add proper ARIA labels to OAuth buttons
+        - Verify keyboard navigation works correctly
+        - Test screen reader compatibility
+        - Ensure responsive design works at all breakpoints (320px, 768px, 1024px, 1440px)
+        - Test: Verify accessibility compliance using @axe-core/playwright
+        - Test: Verify responsive design on real devices</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criteria id="1">
+      <given>I am on the registration or login page</given>
+      <when>I click a social authentication button (e.g., "Sign in with Google")</when>
+      <then>
+        - Redirects to OAuth provider authorization page
+        - Requests minimum necessary permissions (email, profile)
+        - After user authorizes, receives OAuth callback with authorization code
+        - Exchanges code for access token and user profile information
+        - Creates account if email doesn't exist, or links to existing account if email matches
+        - Creates secure session and redirects to dashboard
+        - Handles OAuth provider errors gracefully with user-friendly error messages
+      </then>
+    </criteria>
+    <criteria id="2">
+      <given>The social authentication buttons are displayed</given>
+      <then>
+        - Display provider icons (Google logo, GitHub logo, etc.)
+        - Have consistent styling matching the design system
+        - Show loading state during OAuth flow
+        - Are accessible via keyboard navigation
+      </then>
+    </criteria>
+    <criteria id="3">
+      <given>Account linking is required</given>
+      <then>
+        - If email from OAuth provider matches existing account, link OAuth account to existing user
+        - If email doesn't exist, create new account with OAuth provider information
+        - Store OAuth provider ID and access token (encrypted) for future authentication
+        - Support multiple OAuth providers per user (user can link Google and GitHub to same account)
+      </then>
+    </criteria>
+    <criteria id="4">
+      <given>OAuth authentication is performed</given>
+      <then>
+        - Use Authorization Code flow with PKCE for enhanced security
+        - Validate OAuth state parameter to prevent CSRF attacks
+        - Store OAuth tokens securely (encrypted in database)
+        - Implement token refresh for long-lived sessions
+        - Log OAuth authentication events to security_events table
+      </then>
+    </criteria>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="User Account & Access">
+        FR1: Users can create accounts with email or social authentication. Includes requirements for OAuth providers and account linking.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Authentication">
+        NextAuth.js 4.24.12 for authentication handling and session management. Supports OAuth providers. Cookie-based sessions with secure HTTP-only cookies. JWT strategy with 7-day expiration, refresh token rotation with 30-day expiration.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Database">
+        Prisma ORM 5.0.0 for type-safe database access. PostgreSQL via Supabase. User model defined in prisma/schema.prisma. May need Account model or extended User model for OAuth account linking.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epics Document" section="Story 1.4: Social Authentication (OAuth)">
+        Complete story definition with acceptance criteria and technical notes. Use NextAuth.js OAuth providers configuration. Supported providers: Google (required), GitHub (optional). OAuth flow: Authorization Code flow with PKCE for security. Account linking: Match by email address, create if new, link if existing.
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Design System Foundation">
+        ShadCN/UI (New York style) components configured with Competitive Data theme. Button components with consistent styling. CSS variables for theming (Deep Indigo #4f46e5, Cyan #06b6d4, Purple #8b5cf6).
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Responsive Design">
+        Mobile-first approach with breakpoints: 320px, 768px, 1024px, 1440px. Touch-optimized interactions for mobile devices.
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Accessibility Level">
+        WCAG 2.1 Level AA compliance required. Keyboard navigation support. Screen reader compatibility. Color contrast ratios meet WCAG standards (minimum 4.5:1).
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-3-email-authentication-user-login.md" title="Story 1.3 Context" section="Dev Agent Record">
+        Auth infrastructure available: NextAuth.js configured with CredentialsProvider using Supabase Auth. Session management helpers available at `src/lib/auth/nextauth-helpers.ts`. Use existing authentication infrastructure.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-2-email-authentication-user-registration.md" title="Story 1.2 Context" section="Dev Agent Record">
+        Validation utilities: Email validation schemas available at `src/lib/auth/validation.ts` with RFC 5322 email validation. Form components: ShadCN/UI Form components with react-hook-form integration already established. Icon system: Icon wrapper component available at `src/components/ui/icon.tsx` for consistent Lucide React usage. Error handling: Error mapping service available for user-friendly error messages.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-1-visual-design-system-foundation.md" title="Story 1.1 Context" section="Dev Agent Record">
+        Design system available with CSS variables, ShadCN/UI components, icon system, responsive utilities, animation system, accessibility testing framework established.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/auth.ts" kind="service" symbol="authOptions, NextAuthOptions" reason="NextAuth.js configuration where OAuth providers need to be added. Currently configured with CredentialsProvider only. Need to add Google and GitHub OAuth providers with PKCE support">
+        Current configuration uses CredentialsProvider. Need to add OAuth providers (Google, GitHub) to providers array. Configure PKCE for enhanced security. Set up OAuth scopes for email and profile only.
+      </artifact>
+      <artifact path="src/app/(auth)/login/page.tsx" kind="page" symbol="LoginPage" reason="Login page that needs OAuth buttons added alongside existing email/password form">
+        Existing login page structure ready, needs integration with OAuth buttons component.
+      </artifact>
+      <artifact path="src/app/(auth)/signup/page.tsx" kind="page" symbol="SignupPage" reason="Signup page that needs OAuth buttons added alongside existing email/password form">
+        Existing signup page structure ready, needs integration with OAuth buttons component.
+      </artifact>
+      <artifact path="src/components/auth/OAuthButtons.tsx" kind="component" symbol="OAuthButtons" reason="New component to be created for OAuth authentication buttons (Google, GitHub)">
+        Component needs to be created from scratch. Use NextAuth.js signIn() function. Display provider icons. Implement loading states. Ensure accessibility compliance.
+      </artifact>
+      <artifact path="src/lib/auth/oauth-linking.ts" kind="service" symbol="OAuthLinkingService" reason="New service to be created for OAuth account linking logic">
+        Service needs to be created from scratch. Handle email matching, account creation, account linking, multiple provider support. Encrypt OAuth tokens before storage.
+      </artifact>
+      <artifact path="src/lib/auth/nextauth-helpers.ts" kind="utility" symbol="NextAuth helpers" reason="Existing NextAuth.js session management helpers that can be extended for OAuth session handling">
+        Existing helpers available for session management. May need extension for OAuth user data mapping and token refresh.
+      </artifact>
+      <artifact path="src/lib/auth/error-mapping.ts" kind="service" symbol="ErrorMappingService" reason="Existing error mapping service that needs OAuth error mappings added">
+        Existing error mapping service can be extended with OAuth provider error mappings for user-friendly error messages.
+      </artifact>
+      <artifact path="src/components/ui/icon.tsx" kind="component" symbol="Icon" reason="Icon wrapper component for consistent icon usage. May need Google/GitHub icons added or use SVG">
+        Existing icon component available. May need to add Google/GitHub provider icons or use SVG assets.
+      </artifact>
+      <artifact path="src/components/ui/button.tsx" kind="component" symbol="Button" reason="ShadCN/UI Button component for OAuth buttons styling">
+        Existing Button component from ShadCN/UI with design system styling ready for use.
+      </artifact>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="User model, Account model" reason="Database schema that may need Account model added or User model extended for OAuth account linking">
+        Current User model exists. May need to add Account model for OAuth provider accounts (provider, providerAccountId, access_token, refresh_token) or extend User model with OAuth fields.
+      </artifact>
+      <artifact path="src/app/api/auth/[...nextauth]/route.ts" kind="api" symbol="NextAuth handler" reason="NextAuth.js route handler that automatically handles OAuth callbacks">
+        Existing NextAuth.js route handler will automatically handle OAuth callbacks once providers are configured.
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0">Next.js framework with App Router</package>
+        <package name="next-auth" version="^4.24.12">Authentication and session management with OAuth provider support</package>
+        <package name="@next-auth/supabase-adapter" version="^0.2.1">Supabase adapter for NextAuth (optional, if using Supabase for OAuth)</package>
+        <package name="react" version="^19.2.0">React component framework</package>
+        <package name="react-dom" version="^19.2.0">React DOM renderer</package>
+        <package name="lucide-react" version="^0.548.0">Icon library (may need Google/GitHub icons or use SVG)</package>
+        <package name="@prisma/client" version="^5.0.0">Prisma database client</package>
+        <package name="@supabase/supabase-js" version="^2.38.0">Supabase client</package>
+        <package name="tailwind-merge" version="^3.3.1">Tailwind utility merging</package>
+        <package name="class-variance-authority" version="^0.7.1">Component variant styling</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use NextAuth.js 4.24.12 for OAuth provider configuration and session management</constraint>
+    <constraint>OAuth flow: Authorization Code flow with PKCE (Proof Key for Code Exchange) for enhanced security</constraint>
+    <constraint>OAuth providers: Google (required), GitHub (optional), others as needed</constraint>
+    <constraint>OAuth scopes: Request only email and profile (minimum necessary permissions)</constraint>
+    <constraint>Account linking: Match by email address, create new account if email doesn't exist, link to existing account if email matches</constraint>
+    <constraint>Support multiple OAuth providers per user (user can link Google and GitHub to same account)</constraint>
+    <constraint>Store OAuth provider ID and encrypted access token in database</constraint>
+    <constraint>Implement OAuth state parameter validation to prevent CSRF attacks</constraint>
+    <constraint>Log OAuth authentication events to security_events table for audit trail</constraint>
+    <constraint>Use ShadCN/UI Button components with design system styling for OAuth buttons</constraint>
+    <constraint>Use Icon component from `src/components/ui/icon.tsx` for provider icons (may need to add Google/GitHub icons or use SVG)</constraint>
+    <constraint>Mobile-first responsive design with breakpoints: 320px, 768px, 1024px, 1440px</constraint>
+    <constraint>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text</constraint>
+    <constraint>Implement custom error mapping for OAuth provider errors with user-friendly messages</constraint>
+    <constraint>Follow design system: Competitive Data theme colors (Deep Indigo #4f46e5, Cyan #06b6d4, Purple #8b5cf6)</constraint>
+    <constraint>Component location: Auth components in src/components/auth/ directory</constraint>
+    <constraint>API routes: OAuth callbacks handled automatically by NextAuth.js via /api/auth/[...nextauth]/route.ts</constraint>
+    <constraint>Auth utilities: Authentication utilities in src/lib/auth/ directory</constraint>
+    <constraint>Maintain 80%+ test coverage with unit, integration, and E2E tests</constraint>
+    <constraint>Follow TDD approach (Red-Green-Refactor cycle) - write tests before implementation</constraint>
+    <constraint>Use @axe-core/playwright for E2E accessibility testing</constraint>
+    <constraint>Session strategy: JWT with refresh token rotation, session expires 7 days, refresh token expires 30 days</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="NextAuth OAuth Provider Configuration" kind="configuration" path="src/lib/auth.ts">
+      <signature>
+        GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          authorization: {
+            params: {
+              scope: "openid email profile",
+              prompt: "consent",
+            },
+          },
+        })
+        GitHubProvider({
+          clientId: process.env.GITHUB_CLIENT_ID,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          authorization: {
+            params: {
+              scope: "user:email",
+            },
+          },
+        })
+        Configure OAuth providers with PKCE support in NextAuth.js authOptions
+      </signature>
+    </interface>
+    <interface name="OAuthButtons Component" kind="component" path="src/components/auth/OAuthButtons.tsx (to be created)">
+      <signature>
+        OAuthButtons({ onSuccess?: () =&gt; void, className?: string })
+        Props: {
+          onSuccess?: callback function after OAuth authentication,
+          className?: string for styling
+        }
+        Uses NextAuth.js signIn() function with provider ID
+        Displays provider buttons with icons and loading states
+      </signature>
+    </interface>
+    <interface name="OAuth Account Linking Service" kind="service" path="src/lib/auth/oauth-linking.ts (to be created)">
+      <signature>
+        async linkAccount(provider: string, providerAccountId: string, email: string, accessToken: string, refreshToken?: string): Promise&lt;User&gt;
+        async createAccountFromOAuth(provider: string, providerAccountId: string, email: string, name: string, accessToken: string, refreshToken?: string): Promise&lt;User&gt;
+        async findAccountByEmail(email: string): Promise&lt;User | null&gt;
+        Handles OAuth account creation, linking, and email matching logic
+      </signature>
+    </interface>
+    <interface name="NextAuth OAuth Callback" kind="callback" path="src/lib/auth.ts">
+      <signature>
+        callbacks: {
+          async signIn({ user, account, profile }) {
+            // Handle OAuth account linking
+            // Create or link account based on email
+            // Return true to allow sign in
+          },
+          async jwt({ token, user, account }) {
+            // Map OAuth user data to JWT token
+            // Store provider information
+          },
+          async session({ session, token }) {
+            // Map OAuth provider info to session
+          }
+        }
+        NextAuth.js callbacks for OAuth flow handling
+      </signature>
+    </interface>
+    <interface name="Prisma Account Model (if needed)" kind="schema" path="prisma/schema.prisma (may need to be created)">
+      <signature>
+        model Account {
+          id                String  @id @default(uuid())
+          userId            String
+          type              String  // "oauth"
+          provider          String  // "google", "github"
+          providerAccountId String
+          refresh_token     String? @db.Text
+          access_token      String? @db.Text
+          expires_at        Int?
+          token_type        String?
+          scope             String?
+          id_token          String? @db.Text
+          session_state     String?
+
+          user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+          @@unique([provider, providerAccountId])
+          @@map("accounts")
+        }
+        Optional Account model for OAuth provider accounts (standard NextAuth.js pattern)
+      </signature>
+    </interface>
+    <interface name="Environment Variables" kind="configuration" path=".env or .env.local">
+      <signature>
+        GOOGLE_CLIENT_ID=your_google_client_id
+        GOOGLE_CLIENT_SECRET=your_google_client_secret
+        GITHUB_CLIENT_ID=your_github_client_id
+        GITHUB_CLIENT_SECRET=your_github_client_secret
+        NEXTAUTH_URL=http://localhost:3000
+        NEXTAUTH_SECRET=your_nextauth_secret
+        OAuth provider credentials and NextAuth.js configuration
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Maintain minimum 80% test coverage for all new code. Use TDD approach: write tests before implementation, follow Red-Green-Refactor cycle. Test types: Unit tests for components and utilities (Vitest), integration tests for OAuth flow (Vitest), E2E tests for complete OAuth authentication (Playwright), accessibility tests using @axe-core/playwright. Test locations: Unit tests in tests/unit/, integration tests in tests/integration/, E2E tests in tests/e2e/. Follow existing test patterns from tests/e2e/auth/login-accessibility.spec.ts and tests/unit/auth/auth.service.test.ts.
+    </standards>
+    <locations>
+      <location>tests/unit/auth/ - Unit tests for OAuth linking service and utilities</location>
+      <location>tests/integration/auth/ - Integration tests for OAuth flow and account linking</location>
+      <location>tests/e2e/auth/ - E2E tests for complete OAuth authentication flow</location>
+      <location>tests/components/auth/ - Component tests for OAuthButtons component</location>
+    </locations>
+    <ideas>
+      <idea acId="1">Test OAuth provider configuration: Verify Google provider is configured, verify GitHub provider is configured (optional), verify PKCE is enabled, verify OAuth scopes are correct (email, profile only), verify callback URLs are configured</idea>
+      <idea acId="1">Test OAuth flow: Redirect to OAuth provider authorization page, receive OAuth callback with authorization code, exchange code for access token, retrieve user profile information, create secure session, redirect to dashboard</idea>
+      <idea acId="1">Test account creation from OAuth: Create new account if email doesn't exist, store OAuth provider information, set default user role to "USER", create secure session</idea>
+      <idea acId="1">Test account linking: Link OAuth account to existing user if email matches, store OAuth provider information, support multiple providers per user, verify account is linked correctly</idea>
+      <idea acId="1">Test OAuth error handling: Handle access denied errors, handle invalid state parameter errors, handle OAuth provider errors, display user-friendly error messages, log errors to security_events table</idea>
+      <idea acId="2">Test OAuth buttons display: Provider icons display correctly (Google, GitHub), buttons have consistent styling matching design system, buttons show loading state during OAuth flow, buttons are accessible via keyboard navigation</idea>
+      <idea acId="2">Test OAuth buttons on pages: OAuth buttons appear on login page, OAuth buttons appear on signup page, visual separator ("or" divider) displays correctly, responsive layout works at all breakpoints</idea>
+      <idea acId="3">Test account linking logic: Email matching works correctly, account creation works for new emails, account linking works for existing emails, multiple OAuth providers can be linked to same account, OAuth tokens are stored encrypted</idea>
+      <idea acId="4">Test security features: PKCE flow works correctly, OAuth state parameter validation prevents CSRF attacks, OAuth tokens are encrypted before storage, token refresh works for long-lived sessions, OAuth authentication events are logged to security_events table</idea>
+      <idea acId="2">Test accessibility: WCAG 2.1 Level AA compliance, keyboard navigation works, screen reader compatibility, ARIA labels on OAuth buttons, focus indicators visible</idea>
+      <idea acId="2">Test responsive design: OAuth buttons work at 320px breakpoint, OAuth buttons work at 768px breakpoint, OAuth buttons work at 1024px breakpoint, OAuth buttons work at 1440px breakpoint</idea>
+      <idea acId="1">Test session management: OAuth sessions are created correctly, OAuth sessions persist across browser tabs, OAuth provider information is stored in session, token refresh works for OAuth providers</idea>
+    </ideas>
+  </tests>
+</story-context>
+

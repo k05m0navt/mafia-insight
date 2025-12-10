@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageLoading, PageError } from '@/components/ui/PageLoading';
+import { AnalyticsHero } from '@/components/analytics/AnalyticsHero';
 
 interface PlayerAnalytics {
   player: {
@@ -126,19 +127,12 @@ export default function TestPlayerAnalyticsPage() {
   return (
     <ErrorBoundary>
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">{analytics.player.name}</h1>
-            <p className="text-gray-600">ELO: {analytics.player.eloRating}</p>
-          </div>
-          <button
-            onClick={() => (window.location.href = '/test-players')}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            Back to Players
-          </button>
-        </div>
+        {/* Hero Section with Visual Asset */}
+        <AnalyticsHero
+          title={analytics.player.name}
+          subtitle={`ELO Rating: ${analytics.player.eloRating} • ${analytics.totalGames} games played`}
+          showIllustration={true}
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

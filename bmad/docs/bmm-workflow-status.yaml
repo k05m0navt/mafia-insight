@@ -1,0 +1,127 @@
+# Workflow Status - BMad Method Tracking
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: '2025-01-27T00:00:00.000Z'
+project: 'mafia-insight'
+project_type: 'brownfield'
+selected_track: 'bmad-method'
+field_type: 'brownfield'
+workflow_path: '.bmad/bmm/workflows/workflow-status/paths/method-brownfield.yaml'
+
+workflow_status:
+  # Prerequisite Phase: Documentation
+  # NOT a phase - prerequisite for brownfield without docs
+  prerequisite:
+    document-project:
+      status: 'required'
+      agent: 'analyst'
+      command: 'document-project'
+      output: 'Comprehensive project documentation'
+      purpose: 'Understand existing codebase before planning'
+      note: 'Prerequisite for brownfield projects. Check if docs/architecture/README.md and comprehensive docs exist.'
+
+  # Phase 0: Discovery (Optional)
+  # User-selected during workflow-init
+  phase_0_discovery:
+    brainstorm-project:
+      status: 'optional'
+      agent: 'analyst'
+      command: 'brainstorm-project'
+      included_by: 'user_choice'
+      note: 'Selected during workflow-init'
+
+    research:
+      status: 'bmad/docs/research-market-2025-01-27.md'
+      agent: 'analyst'
+      command: 'research'
+      included_by: 'user_choice'
+      note: 'Selected during workflow-init'
+
+    product-brief:
+      status: 'bmad/docs/product-brief-mafia-insight-2025-11-24.md'
+      agent: 'analyst'
+      command: 'product-brief'
+      included_by: 'user_choice'
+      note: 'Selected during workflow-init (less common for brownfield)'
+
+  # Phase 1: Planning
+  phase_1_planning:
+    prd:
+      status: 'bmad/docs/prd.md'
+      agent: 'pm'
+      command: 'prd'
+      output: 'PRD focused on new features/changes'
+      note: 'Must consider existing system constraints'
+
+    validate-prd:
+      status: 'optional'
+      agent: 'pm'
+      command: 'validate-prd'
+
+    create-design:
+      status: 'bmad/docs/ux-design-specification.md'
+      condition: 'if_has_ui'
+      agent: 'ux-designer'
+      command: 'create-design'
+      note: 'Completed: UX Design Specification with Component Specifications, Design Tokens, and Interaction Patterns'
+      outputs:
+        - 'bmad/docs/ux-design-specification.md'
+        - 'bmad/docs/component-specifications.md'
+        - 'bmad/docs/design-tokens.md'
+        - 'bmad/docs/interaction-patterns.md'
+        - 'bmad/docs/ux-design-directions.html'
+        - 'bmad/docs/ux-color-themes.html'
+
+  # Phase 2: Solutioning
+  phase_2_solutioning:
+    create-architecture:
+      status: 'bmad/docs/architecture.md'
+      agent: 'architect'
+      command: 'create-architecture'
+      output: 'Integration architecture - solution design for THIS project'
+      note: 'HIGHLY RECOMMENDED: Distills massive brownfield context into focused solution design. Prevents agent confusion.'
+
+    create-epics-and-stories:
+      status: 'bmad/docs/epics.md'
+      agent: 'pm'
+      command: 'create-epics-and-stories'
+      note: 'Required: Break down PRD into implementable epics and stories with full context (PRD + UX + Architecture)'
+
+    test-design:
+      status: 'recommended'
+      agent: 'tea'
+      command: 'test-design'
+      output: 'System-level testability review'
+      note: 'Testability assessment before gate check - auto-detects system-level mode'
+
+    validate-architecture:
+      status: 'optional'
+      agent: 'architect'
+      command: 'validate-architecture'
+
+    implementation-readiness:
+      status: 'bmad/docs/implementation-readiness-report-2025-12-02.md'
+      agent: 'architect'
+      command: 'implementation-readiness'
+      note: 'Validates PRD + UX + Architecture + Epics cohesion before implementation'
+
+  # Phase 3: Implementation
+  phase_3_implementation:
+    sprint-planning:
+      status: 'required'
+      agent: 'sm'
+      command: 'sprint-planning'
+      note: 'Creates sprint plan with stories'

@@ -76,6 +76,21 @@ if (typeof window !== 'undefined') {
     });
   }
 
+  // Mock ResizeObserver for Radix UI components
+  if (!window.ResizeObserver) {
+    window.ResizeObserver = class ResizeObserver {
+      observe() {
+        // no-op
+      }
+      unobserve() {
+        // no-op
+      }
+      disconnect() {
+        // no-op
+      }
+    } as any;
+  }
+
   const { storage: localStorageMock, reset: resetLocalStorage } =
     createStorageMock();
   Object.defineProperty(window, 'localStorage', {

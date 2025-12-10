@@ -1,0 +1,106 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2025-11-22T15:51:03.300Z",
+    "last_updated": "2025-11-22T17:54:25.300Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "exhaustive",
+  "project_root": "/Users/k05m0navt/Programming/PetProjects/Web/mafia-insight",
+  "output_folder": "bmad/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2025-11-22T15:51:03.300Z",
+      "summary": "Classified as monolith with 1 part (web - Next.js application)"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2025-11-22T15:52:49.300Z",
+      "summary": "Found 26+ existing docs across multiple categories"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2025-11-22T15:52:49.300Z",
+      "summary": "Technology stack analyzed: Next.js 16, React 19, TypeScript, Prisma, Supabase"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:39:05.300Z",
+      "summary": "Conditional analysis completed: API contracts, data models, state management, UI components documented"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:39:05.300Z",
+      "summary": "Source tree analysis generated (462 TypeScript/TSX files)"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:39:05.300Z",
+      "summary": "Development and operational information extracted"
+    },
+    {
+      "step": "step_7",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:39:05.300Z",
+      "summary": "Architecture patterns detected: Clean Architecture, Hexagonal Architecture, monolith structure"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:54:25.300Z",
+      "summary": "Supporting documentation generated: quick-reference.md"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2025-11-22T17:54:25.300Z",
+      "summary": "Master index generated: index.md (primary AI retrieval source)"
+    }
+  ],
+  "current_step": "step_10",
+  "findings": {
+    "project_classification": {
+      "repository_type": "monolith",
+      "parts_count": 1,
+      "primary_tech": "Next.js 16"
+    },
+    "technology_stack": {
+      "framework": "Next.js 16.0.0",
+      "language": "TypeScript 5.0.0",
+      "database": "PostgreSQL via Supabase",
+      "orm": "Prisma 5.0.0",
+      "ui": "ShadCN/UI + Radix UI",
+      "state_management": "TanStack Query + Zustand"
+    }
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "project-structure.md",
+    "existing-documentation-inventory.md",
+    "technology-stack.md",
+    "data-models.md",
+    "api-contracts.md",
+    "state-management.md",
+    "component-inventory.md",
+    "source-tree-analysis.md",
+    "development-operations.md",
+    "architecture.md",
+    "quick-reference.md",
+    "index.md"
+  ],
+  "resume_instructions": "Starting from step 4 - performing conditional analysis based on project type",
+  "project_types": [
+    {
+      "part_id": "main",
+      "project_type_id": "web",
+      "display_name": "Next.js Web Application"
+    }
+  ]
+}

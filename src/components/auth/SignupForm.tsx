@@ -1,234 +1,299 @@
 'use client';
 
-import React, { useState } from 'react';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authService } from '@/services/AuthService';
-import { validateSignupCredentials } from '@/lib/auth';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
+import {
+  registrationSchema,
+  type RegistrationFormData,
+} from '@/lib/auth/validation';
+import { Loader2 } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
+import { Eye, EyeOff } from 'lucide-react';
+import { ErrorMappingService } from '@/lib/auth/error-mapping';
+import { AuthAction } from '@/lib/types/auth';
 
 interface SignupFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (email?: string) => void;
   className?: string;
 }
 
 export function SignupForm({ onSuccess, className = '' }: SignupFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const errorMappingService = React.useMemo(
+    () => new ErrorMappingService(),
+    []
+  );
+
+  const form = useForm<RegistrationFormData>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      name: '',
+    },
+    mode: 'onBlur', // Validate on blur for real-time feedback
   });
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const password = form.watch('password');
+  const email = form.watch('email');
 
-    // Clear validation errors when user starts typing
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]: '' }));
+  // Real-time email validation feedback
+  React.useEffect(() => {
+    if (email && form.formState.touchedFields.email) {
+      form.trigger('email');
     }
+  }, [email, form]);
 
-    // Clear auth error when user starts typing
-    if (error) {
-      setError(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Get form data from the form element itself as a fallback
-    const form = e.currentTarget;
-    const formElements = form.elements as typeof form.elements & {
-      name: HTMLInputElement;
-      email: HTMLInputElement;
-      password: HTMLInputElement;
-      confirmPassword: HTMLInputElement;
-    };
-
-    // Use form elements values if state is empty (fallback for testing tools)
-    const submitData = {
-      name: formData.name || formElements.name?.value || '',
-      email: formData.email || formElements.email?.value || '',
-      password: formData.password || formElements.password?.value || '',
-      confirmPassword:
-        formData.confirmPassword || formElements.confirmPassword?.value || '',
-    };
-
-    // Clear previous validation errors
-    setValidationErrors({});
-
-    // Validate form data
-    const validation = validateSignupCredentials(submitData);
-    if (!validation.isValid) {
-      setValidationErrors(validation.errors);
-      return;
-    }
-
+  const onSubmit = async (data: RegistrationFormData) => {
     try {
       setIsSubmitting(true);
-      setError(null);
+      setSubmitError(null);
 
-      const result = await authService.register(submitData);
+      const result = await authService.register({
+        email: data.email,
+        password: data.password,
+        name: data.name,
+      });
 
       if (result.success) {
-        // Clear form on success
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-        });
-        onSuccess?.();
+        form.reset();
+        onSuccess?.(data.email);
       } else {
-        setError(result.error || 'Registration failed');
+        // Map error to user-friendly message
+        try {
+          const friendlyError = errorMappingService.mapAndFormatError(
+            { message: result.error || 'Registration failed' },
+            AuthAction.SIGNUP
+          );
+          setSubmitError(friendlyError.message);
+        } catch {
+          // Fallback to original error if mapping fails
+          setSubmitError(result.error || 'Registration failed');
+        }
       }
-    } catch (error) {
-      console.error('Signup failed:', error);
-      setError(error instanceof Error ? error.message : 'Registration failed');
+    } catch (_error) {
+      console.error('Signup failed:', _error);
+
+      // Handle network errors
+      if (_error instanceof TypeError && _error.message.includes('fetch')) {
+        const networkError = errorMappingService.getUserFriendlyError(
+          errorMappingService.mapSupabaseError({ message: 'network error' }),
+          AuthAction.SIGNUP
+        );
+        setSubmitError(networkError.message);
+      } else {
+        // Map other errors
+        const friendlyError = errorMappingService.mapAndFormatError(
+          _error,
+          AuthAction.SIGNUP
+        );
+        setSubmitError(friendlyError.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const hasValidationErrors = Object.values(validationErrors).some(
-    (error) => error
-  );
-  const hasError = error || hasValidationErrors;
-  const errorMessage = error || Object.values(validationErrors)[0] || '';
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`space-y-4 ${className}`}
-      data-testid="signup-form"
-    >
-      <div>
-        <label
-          htmlFor="name"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Name
-        </label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          value={formData.name}
-          onChange={handleInputChange}
-          disabled={isSubmitting}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Enter your name"
-          data-testid="name"
-          aria-label="Name"
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          disabled={isSubmitting}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Enter your email"
-          data-testid="email"
-          aria-label="Email"
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          disabled={isSubmitting}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Enter your password"
-          data-testid="password"
-          aria-label="Password"
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="confirmPassword"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Confirm Password
-        </label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={handleInputChange}
-          disabled={isSubmitting}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Confirm your password"
-          data-testid="confirmPassword"
-          aria-label="Confirm Password"
-        />
-      </div>
-
-      {hasError && (
-        <div
-          className="text-red-600 dark:text-red-400 text-sm"
-          data-testid="error-message"
-        >
-          {errorMessage}
-        </div>
-      )}
-
-      {hasValidationErrors && (
-        <div
-          className="text-red-600 dark:text-red-400 text-sm"
-          data-testid="validation-error"
-        >
-          {Object.values(validationErrors).map((error, index) => (
-            <div key={index}>{error}</div>
-          ))}
-        </div>
-      )}
-
-      {isSubmitting && (
-        <div className="flex items-center justify-center" data-testid="loading">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-            Creating account...
-          </span>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        data-testid="signup-button"
-        aria-label="Sign Up"
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={`space-y-4 ${className}`}
+        data-testid="signup-form"
+        noValidate
+        aria-label="Registration form"
       >
-        {isSubmitting ? 'Creating account...' : 'Sign Up'}
-      </button>
-    </form>
+        {/* Name Field */}
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormControl>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  autoComplete="name"
+                  disabled={isSubmitting}
+                  aria-label="Name"
+                  data-testid="name"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Email Field */}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="email">Email</FormLabel>
+              <FormControl>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                  disabled={isSubmitting}
+                  aria-label="Email"
+                  data-testid="email"
+                  {...field}
+                  onBlur={(_e) => {
+                    field.onBlur();
+                    // Trigger validation on blur for real-time feedback
+                    form.trigger('email');
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Password Field */}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="password">Password</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                    aria-label="Password"
+                    data-testid="password"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }
+                    tabIndex={-1}
+                  >
+                    <Icon
+                      icon={showPassword ? EyeOff : Eye}
+                      size="sm"
+                      decorative
+                    />
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+              {/* Password Strength Meter */}
+              {password && (
+                <PasswordStrengthMeter
+                  password={password}
+                  showRequirements
+                  className="mt-2"
+                />
+              )}
+            </FormItem>
+          )}
+        />
+
+        {/* Confirm Password Field */}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm your password"
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                    aria-label="Confirm Password"
+                    data-testid="confirmPassword"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={
+                      showConfirmPassword ? 'Hide password' : 'Show password'
+                    }
+                    tabIndex={-1}
+                  >
+                    <Icon
+                      icon={showConfirmPassword ? EyeOff : Eye}
+                      size="sm"
+                      decorative
+                    />
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Submit Error */}
+        {submitError && (
+          <div
+            className="text-sm font-medium text-destructive"
+            style={{ fontSize: '14px' }}
+            data-testid="error-message"
+            role="alert"
+            aria-live="polite"
+          >
+            {submitError}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full"
+          data-testid="signup-button"
+          aria-label="Sign Up"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              <span>Creating account...</span>
+            </>
+          ) : (
+            'Sign Up'
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }

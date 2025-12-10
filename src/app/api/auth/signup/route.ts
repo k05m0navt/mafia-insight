@@ -1,36 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db';
+import { registrationSchema } from '@/lib/auth/validation';
 import { setAuthTokenCookie, setUserRoleCookie } from '@/lib/utils/apiAuth';
-
-// Signup request body schema
-const SignupSchema = z
-  .object({
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { z } from 'zod';
 
 /**
  * POST /api/auth/signup
- * Create a new user account
+ * Create a new user account with email/password authentication
+ *
+ * Validates registration data using RFC 5322 email validation and password requirements,
+ * creates user via Supabase Auth (handles password hashing), and creates user profile
+ * in database via Prisma.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const data = SignupSchema.parse(body);
 
-    // Sign up user with Supabase Auth
+    // Validate request body using Zod schema (RFC 5322 email, password requirements)
+    const validationResult = registrationSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorDetails = validationResult.error?.issues || [];
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation failed',
+          details: errorDetails.map((err: z.ZodIssue) => ({
+            path: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = validationResult.data;
+
+    // Check if user with this email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'An account with this email already exists',
+        },
+        { status: 409 } // Conflict
+      );
+    }
+
+    // Create Supabase client with SSR cookie support
+    const supabase = await createRouteHandlerClient();
+
+    // Sign up user with Supabase Auth (handles password hashing with bcrypt, salt rounds ≥10)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -38,15 +63,25 @@ export async function POST(request: NextRequest) {
         data: {
           name: data.name,
         },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/verify-email`,
       },
     });
 
     if (authError) {
-      console.error('Supabase auth error:', authError);
+      console.error('[SIGNUP API] Supabase auth error:', authError);
+
+      // Map Supabase errors to user-friendly messages
+      let errorMessage = authError.message;
+      if (authError.message.includes('already registered')) {
+        errorMessage = 'An account with this email already exists';
+      } else if (authError.message.includes('Password')) {
+        errorMessage = 'Password does not meet requirements';
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: authError.message,
+          error: errorMessage,
         },
         { status: 400 }
       );
@@ -62,20 +97,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user profile in our users table
-    const { error: profileError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      email: data.email,
-      name: data.name,
-      role: 'user',
-      subscriptionTier: 'FREE',
-      themePreference: 'light',
-    });
+    // Create user profile in database via Prisma (default role: user)
+    try {
+      await prisma.user.create({
+        data: {
+          id: authData.user.id,
+          email: data.email,
+          name: data.name,
+          role: 'user', // Default role (UserRole enum: 'user', 'admin', 'guest', 'moderator')
+          subscriptionTier: 'FREE',
+          themePreference: 'system',
+        },
+      });
+    } catch (profileError) {
+      console.error('[SIGNUP API] Profile creation error:', profileError);
 
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Don't fail the signup if profile creation fails
-      // The user can still sign in and we can create the profile later
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to create user profile. Please try again.',
+        },
+        { status: 500 }
+      );
     }
 
     // Create response
@@ -104,23 +147,12 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Signup error:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: error.issues,
-        },
-        { status: 400 }
-      );
-    }
+    console.error('[SIGNUP API] Registration error:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create account',
+        error: 'Failed to create account. Please try again.',
       },
       { status: 500 }
     );
