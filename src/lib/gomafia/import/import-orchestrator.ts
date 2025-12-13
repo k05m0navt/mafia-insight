@@ -16,6 +16,7 @@ import {
   SkippedEntitiesManager,
   SkippedEntityData,
 } from './skipped-entities-manager';
+import { GameRawData } from '../validators/game-schema';
 
 type ImportPhase =
   | 'CLUBS'
@@ -1226,10 +1227,11 @@ export class ImportOrchestrator {
       })
     );
 
-    if (this.currentSyncLogId) {
+    const syncLogId = this.currentSyncLogId;
+    if (syncLogId) {
       await resilientDB.execute((db) =>
         db.syncLog.update({
-          where: { id: this.currentSyncLogId },
+          where: { id: syncLogId },
           data: {
             status: 'COMPLETED',
             endTime: new Date(),
@@ -1373,7 +1375,7 @@ export class ImportOrchestrator {
         });
 
         const { TournamentGamesScraper } = await import(
-          '../../scrapers/tournament-games-scraper'
+          '@/lib/gomafia/scrapers/tournament-games-scraper'
         );
         const scraper = new TournamentGamesScraper(page);
 
@@ -1402,12 +1404,10 @@ export class ImportOrchestrator {
 
           try {
             // Scrape games from tournament
-            const games = await scraper.scrapeTournamentGames(
-              tournament.gomafiaId
-            );
+            const games = await scraper.scrapeGames(tournament.gomafiaId);
 
             // Filter games: only import games with date > lastSyncAt
-            const newGames = games.filter((game) => {
+            const newGames = games.filter((game: GameRawData) => {
               const gameDate = new Date(game.date);
               return gameDate > lastSyncAt;
             });
@@ -1553,7 +1553,7 @@ export class ImportOrchestrator {
                       gamesUpdated,
                       errors,
                     } as Prisma.InputJsonValue)
-                  : null,
+                  : undefined,
             },
           })
         );
@@ -1587,10 +1587,11 @@ export class ImportOrchestrator {
       );
 
       // Update sync log with failure
-      if (this.currentSyncLogId) {
+      const syncLogId = this.currentSyncLogId;
+      if (syncLogId) {
         await resilientDB.execute((db) =>
           db.syncLog.update({
-            where: { id: this.currentSyncLogId },
+            where: { id: syncLogId },
             data: {
               status: 'FAILED',
               endTime: new Date(),

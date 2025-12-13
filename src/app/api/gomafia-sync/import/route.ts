@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
           {
             error: 'Invalid request',
             code: 'VALIDATION_ERROR',
-            details: validationResult.error.errors,
+            details: validationResult.error.issues,
           },
           { status: 400 }
         );
@@ -437,7 +437,7 @@ export async function POST(request: NextRequest) {
 
       // Clear controller and release lock
       currentImportController = null;
-      await lockManager.releaseLock(userId);
+      await lockManager.releaseLock(userId || undefined);
     });
 
     return NextResponse.json(

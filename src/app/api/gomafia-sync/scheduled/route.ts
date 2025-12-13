@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       // Get lastSyncAt timestamp
       const lastSyncAt = user.lastSyncAt || new Date(0); // Use epoch if never synced
 
-      let browser;
+      let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
       const syncStartTime = new Date();
       try {
         // Run incremental sync with retry logic for transient failures
@@ -162,7 +162,6 @@ export async function POST(request: NextRequest) {
           gamesUpdated: 0,
           errors: 1,
           error: error instanceof Error ? error.message : 'Unknown error',
-          willRetryOnNextSchedule: isTransientError,
         });
 
         // Log that this will be retried on next schedule if transient

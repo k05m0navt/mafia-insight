@@ -423,6 +423,7 @@ enum MetricPeriod {
 enum SyncType {
   FULL
   INCREMENTAL
+  HISTORICAL
 }
 
 enum SyncStatusEnum {
