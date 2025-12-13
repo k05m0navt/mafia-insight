@@ -9,12 +9,19 @@ export class AdvisoryLockManager {
 
   /**
    * Try to acquire the import advisory lock.
+   * @param userId Optional user ID for user-specific locks (allows different users to import simultaneously)
    * @returns true if lock was acquired, false if already held by another process
    */
-  async acquireLock(): Promise<boolean> {
+  async acquireLock(userId?: string): Promise<boolean> {
+    // If userId provided, use user-specific lock key (allows concurrent imports for different users)
+    // Otherwise, use system-wide lock
+    const lockId = userId
+      ? IMPORT_LOCK_ID + parseInt(userId.slice(0, 8), 16)
+      : IMPORT_LOCK_ID;
+
     const result = await resilientDB.execute(
       (db) => db.$queryRaw<[{ pg_try_advisory_lock: boolean }]>`
-        SELECT pg_try_advisory_lock(${IMPORT_LOCK_ID})
+        SELECT pg_try_advisory_lock(${lockId})
       `
     );
     return result[0].pg_try_advisory_lock;
@@ -22,11 +29,16 @@ export class AdvisoryLockManager {
 
   /**
    * Release the import advisory lock.
+   * @param userId Optional user ID for user-specific locks
    */
-  async releaseLock(): Promise<void> {
+  async releaseLock(userId?: string): Promise<void> {
+    const lockId = userId
+      ? IMPORT_LOCK_ID + parseInt(userId.slice(0, 8), 16)
+      : IMPORT_LOCK_ID;
+
     await resilientDB.execute(
       (db) => db.$queryRaw`
-        SELECT pg_advisory_unlock(${IMPORT_LOCK_ID})
+        SELECT pg_advisory_unlock(${lockId})
       `
     );
   }

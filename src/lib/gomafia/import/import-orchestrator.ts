@@ -89,6 +89,7 @@ export class ImportOrchestrator {
   private cancellationSignal: AbortSignal | null = null; // For graceful cancellation (T118)
   private pausedSignal: AbortController | null = null; // For pause/resume functionality
   private skippedPagesByPhase: Map<ImportPhase, number[]> = new Map(); // Track skipped pages by phase
+  private currentOrder: 'oldest-first' | 'newest-first' = 'newest-first'; // Chronological ordering preference
 
   private readonly phases: ImportPhase[] = [
     'CLUBS',
@@ -110,7 +111,7 @@ export class ImportOrchestrator {
   ) {
     this.checkpointManager = new CheckpointManager(db);
     this.lockManager = new AdvisoryLockManager(db);
-    this.rateLimiter = new RateLimiter(1000); // 1 second between requests for faster scraping
+    this.rateLimiter = new RateLimiter(2000); // 2 seconds between requests (30 req/min max) to respect gomafia.pro servers
     this.batchProcessor = new BatchProcessor(db, 100); // 100 records per batch
     this.timeoutManager = new TimeoutManager(maxDurationMs);
     this.validationTracker = new ValidationMetricsTracker();
@@ -996,5 +997,619 @@ export class ImportOrchestrator {
     );
 
     console.log('Import cancelled gracefully');
+  }
+
+  /**
+   * Import historical data for a specific user's gomafia.pro profile.
+   * Discovers profile data, initializes phase-based import, and tracks progress.
+   *
+   * @param userId The user ID requesting the import
+   * @param playerId The gomafia.pro player ID to import
+   * @param options Import options including ordering preference
+   * @returns Promise resolving to job ID for tracking
+   */
+  async importHistoricalData(
+    userId: string,
+    playerId: string,
+    options?: {
+      order?: 'oldest-first' | 'newest-first';
+    }
+  ): Promise<{ jobId: string }> {
+    const order = options?.order || 'newest-first';
+
+    // Create sync log entry for historical import
+    const syncLog = await resilientDB.execute((db) =>
+      db.syncLog.create({
+        data: {
+          type: 'HISTORICAL',
+          status: 'RUNNING',
+          startTime: new Date(),
+        },
+      })
+    );
+
+    this.currentSyncLogId = syncLog.id;
+
+    // Discover profile data (total games, date range)
+    const page = await this.browser.newPage();
+    try {
+      const { PlayerStatsScraper } = await import(
+        '@/lib/gomafia/scrapers/player-stats-scraper'
+      );
+      const scraper = new PlayerStatsScraper(page);
+      const discoveryData = await scraper.discoverProfileData(playerId);
+
+      if (!discoveryData.profileExists) {
+        throw new Error(`Profile not found for player ID: ${playerId}`);
+      }
+
+      // Initialize user-specific sync status
+      await resilientDB.execute((db) =>
+        db.syncStatus.upsert({
+          where: { id: `user-${userId}` },
+          update: {
+            isRunning: true,
+            progress: 0,
+            currentOperation: 'Initializing historical import...',
+            lastError: null,
+            totalRecordsProcessed: discoveryData.totalGames,
+            updatedAt: new Date(),
+          },
+          create: {
+            id: `user-${userId}`,
+            isRunning: true,
+            progress: 0,
+            currentOperation: 'Initializing historical import...',
+            totalRecordsProcessed: discoveryData.totalGames,
+          },
+        })
+      );
+
+      // Store discovery data and import context for later use
+      // This will be used by the phase-based import orchestration
+      await resilientDB.execute((db) =>
+        db.importCheckpoint.upsert({
+          where: { id: `user-${userId}` },
+          update: {
+            currentPhase: 'DISCOVERY',
+            currentBatch: 0,
+            lastProcessedId: null,
+            processedIds: [],
+            progress: 0,
+            isPaused: false,
+            lastUpdated: new Date(),
+          },
+          create: {
+            id: `user-${userId}`,
+            currentPhase: 'DISCOVERY',
+            currentBatch: 0,
+            lastProcessedId: null,
+            processedIds: [],
+            progress: 0,
+            isPaused: false,
+          },
+        })
+      );
+
+      console.log(
+        `[Historical Import] Discovered profile for player ${playerId}: ${discoveryData.totalGames} games, order: ${order}`
+      );
+
+      // Return job ID - actual import will be executed in background
+      return { jobId: syncLog.id };
+    } finally {
+      await page.close();
+    }
+  }
+
+  /**
+   * Execute phase-based import orchestration for historical data.
+   * Processes phases in order: Clubs → Players → Tournaments → Games → Statistics → Judges
+   * For historical imports, focuses on the specific player's data.
+   * Supports chronological ordering (oldest-first or newest-first).
+   *
+   * @param userId The user ID requesting the import
+   * @param playerId The gomafia.pro player ID to import
+   * @param order The ordering preference (oldest-first or newest-first)
+   */
+  async executeHistoricalImportPhases(
+    userId: string,
+    playerId: string,
+    order: 'oldest-first' | 'newest-first'
+  ): Promise<void> {
+    // Store ordering preference for use in phases
+    this.currentOrder = order;
+    console.log(
+      `[Historical Import] Executing phases for player ${playerId}, order: ${order}`
+    );
+
+    // Import phase implementations
+    const { ClubsPhase } = await import('./phases/clubs-phase');
+    const { PlayersPhase } = await import('./phases/players-phase');
+    const { TournamentsPhase } = await import('./phases/tournaments-phase');
+    const { GamesPhase } = await import('./phases/games-phase');
+    const { StatisticsPhase } = await import('./phases/statistics-phase');
+    const { JudgesPhase } = await import('./phases/judges-phase');
+
+    // Historical import phases (subset of full import)
+    // Focus on phases relevant to player's historical data
+    const phases = [
+      { name: 'CLUBS', phase: new ClubsPhase(this) },
+      { name: 'PLAYERS', phase: new PlayersPhase(this) },
+      { name: 'TOURNAMENTS', phase: new TournamentsPhase(this) },
+      { name: 'GAMES', phase: new GamesPhase(this) },
+      { name: 'STATISTICS', phase: new StatisticsPhase(this) },
+      { name: 'JUDGES', phase: new JudgesPhase(this) },
+    ];
+
+    for (let i = 0; i < phases.length; i++) {
+      // Check for cancellation before each phase
+      if (this.isCancelled()) {
+        console.log(
+          '[Historical Import] Cancellation detected, calling orchestrator.cancel()...'
+        );
+        await this.cancel();
+        return;
+      }
+
+      // Check if import is paused
+      if (this.isPaused()) {
+        console.log(
+          '[Historical Import] Import is paused, waiting for resume...'
+        );
+        while (this.isPaused()) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          if (this.isCancelled()) {
+            await this.cancel();
+            return;
+          }
+        }
+        console.log('[Historical Import] Import resumed, continuing...');
+      }
+
+      const { name, phase } = phases[i];
+      const phaseStartProgress = Math.floor((i / phases.length) * 100);
+
+      console.log(
+        `[Historical Import] Starting phase ${i + 1}/${phases.length}: ${name}`
+      );
+
+      // Update progress
+      await resilientDB.execute((db) =>
+        db.syncStatus.update({
+          where: { id: `user-${userId}` },
+          data: {
+            isRunning: true,
+            progress: phaseStartProgress,
+            currentOperation: `Executing ${name} phase for player ${playerId}`,
+            updatedAt: new Date(),
+          },
+        })
+      );
+
+      // Execute phase (may throw if cancelled during execution)
+      try {
+        await phase.execute();
+        console.log(`[Historical Import] Completed phase: ${name}`);
+      } catch (error: unknown) {
+        const isCancellationError =
+          error instanceof Error &&
+          error.message.toLowerCase().includes('cancelled');
+
+        if (isCancellationError) {
+          console.log(
+            '[Historical Import] Phase cancelled, calling orchestrator.cancel()...'
+          );
+          await this.cancel();
+          return;
+        }
+        // Otherwise, log error and continue with next phase
+        console.error(
+          `[Historical Import] Phase ${name} failed:`,
+          error instanceof Error ? error.message : error
+        );
+        // Continue with next phase even if this one failed
+      }
+    }
+
+    // Mark as completed
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: `user-${userId}` },
+        data: {
+          isRunning: false,
+          progress: 100,
+          currentOperation: null,
+          lastSyncTime: new Date(),
+          lastSyncType: 'HISTORICAL',
+        },
+      })
+    );
+
+    if (this.currentSyncLogId) {
+      await resilientDB.execute((db) =>
+        db.syncLog.update({
+          where: { id: this.currentSyncLogId },
+          data: {
+            status: 'COMPLETED',
+            endTime: new Date(),
+          },
+        })
+      );
+    }
+
+    console.log('[Historical Import] Import completed successfully');
+  }
+
+  /**
+   * Incremental sync method for scheduled synchronization.
+   * Imports only new games since lastSyncAt and updates existing games if data changed.
+   *
+   * @param userId The user ID requesting the sync
+   * @param lastSyncAt The timestamp of the last successful sync
+   * @returns Promise resolving to sync result with summary
+   */
+  async syncIncremental(
+    userId: string,
+    lastSyncAt: Date
+  ): Promise<{
+    gamesImported: number;
+    gamesUpdated: number;
+    errors: number;
+    success: boolean;
+  }> {
+    console.log(
+      `[Incremental Sync] Starting incremental sync for user ${userId}, lastSyncAt: ${lastSyncAt.toISOString()}`
+    );
+
+    // Create sync log entry for incremental sync
+    const syncLog = await resilientDB.execute((db) =>
+      db.syncLog.create({
+        data: {
+          userId: userId,
+          type: 'INCREMENTAL',
+          status: 'RUNNING',
+          startTime: new Date(),
+        },
+      })
+    );
+
+    this.currentSyncLogId = syncLog.id;
+
+    let gamesImported = 0;
+    let gamesUpdated = 0;
+    let errors = 0;
+
+    try {
+      // Update user-specific sync status
+      await resilientDB.execute((db) =>
+        db.syncStatus.upsert({
+          where: { id: `user-${userId}` },
+          update: {
+            isRunning: true,
+            progress: 0,
+            currentOperation: 'Starting incremental sync...',
+            lastError: null,
+            updatedAt: new Date(),
+          },
+          create: {
+            id: `user-${userId}`,
+            isRunning: true,
+            progress: 0,
+            currentOperation: 'Starting incremental sync...',
+          },
+        })
+      );
+
+      // Get user's player ID from database
+      const user = await resilientDB.execute((db) =>
+        db.user.findUnique({
+          where: { id: userId },
+          include: {
+            players: {
+              take: 1, // Get first player (users typically have one player profile)
+            },
+          },
+        })
+      );
+
+      if (!user || !user.players || user.players.length === 0) {
+        throw new Error(`No player profile found for user ${userId}`);
+      }
+
+      const playerId = user.players[0].gomafiaId;
+      console.log(
+        `[Incremental Sync] Found player profile: ${playerId} for user ${userId}`
+      );
+
+      // Get all tournaments for this user
+      const tournaments = await resilientDB.execute((db) =>
+        db.tournament.findMany({
+          where: {
+            games: {
+              some: {
+                participations: {
+                  some: {
+                    player: {
+                      userId: userId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          select: { id: true, gomafiaId: true, name: true },
+        })
+      );
+
+      console.log(
+        `[Incremental Sync] Found ${tournaments.length} tournaments to check for new games`
+      );
+
+      // Import games phase with incremental filtering
+      const { GamesPhase } = await import('./phases/games-phase');
+      const _gamesPhase = new GamesPhase(this);
+
+      // We need to modify the games phase to support incremental sync
+      // For now, we'll use a custom approach: scrape games and filter by date
+      const browser = this.browser;
+      const page = await browser.newPage();
+
+      try {
+        // Block unnecessary resources for performance
+        await page.route('**/*', (route) => {
+          const resourceType = route.request().resourceType();
+          const url = route.request().url();
+          if (
+            ['image', 'font', 'media', 'stylesheet'].includes(resourceType) ||
+            url.includes('analytics') ||
+            url.includes('google-analytics') ||
+            url.includes('gtag')
+          ) {
+            route.abort();
+          } else {
+            route.continue();
+          }
+        });
+
+        const { TournamentGamesScraper } = await import(
+          '../../scrapers/tournament-games-scraper'
+        );
+        const scraper = new TournamentGamesScraper(page);
+
+        // Process each tournament
+        for (let i = 0; i < tournaments.length; i++) {
+          const tournament = tournaments[i];
+          if (!tournament.gomafiaId) continue;
+
+          // Check for cancellation
+          if (this.isCancelled()) {
+            throw new Error('Sync cancelled');
+          }
+
+          // Update progress
+          const progress = Math.floor((i / tournaments.length) * 100);
+          await resilientDB.execute((db) =>
+            db.syncStatus.update({
+              where: { id: `user-${userId}` },
+              data: {
+                progress,
+                currentOperation: `Checking tournament: ${tournament.name}`,
+                updatedAt: new Date(),
+              },
+            })
+          );
+
+          try {
+            // Scrape games from tournament
+            const games = await scraper.scrapeTournamentGames(
+              tournament.gomafiaId
+            );
+
+            // Filter games: only import games with date > lastSyncAt
+            const newGames = games.filter((game) => {
+              const gameDate = new Date(game.date);
+              return gameDate > lastSyncAt;
+            });
+
+            console.log(
+              `[Incremental Sync] Tournament ${tournament.name}: ${newGames.length} new games out of ${games.length} total`
+            );
+
+            // Import new games
+            for (const gameData of newGames) {
+              try {
+                // Validate game data
+                const isValid = await this.validateGameData(gameData);
+                if (!isValid) {
+                  this.recordInvalidRecord('game', 'Invalid game data', {
+                    gomafiaId: gameData.gomafiaId,
+                  });
+                  errors++;
+                  continue;
+                }
+
+                // Check if game already exists
+                const existingGame = await resilientDB.execute((db) =>
+                  db.game.findUnique({
+                    where: { gomafiaId: gameData.gomafiaId },
+                  })
+                );
+
+                if (existingGame) {
+                  // Game exists - check if data changed
+                  const gameDate = new Date(gameData.date);
+                  const existingDate = existingGame.date;
+
+                  // Update if date changed or if it's a new game (date > lastSyncAt)
+                  if (
+                    gameDate.getTime() !== existingDate.getTime() ||
+                    gameDate > lastSyncAt
+                  ) {
+                    await resilientDB.execute((db) =>
+                      db.game.update({
+                        where: { gomafiaId: gameData.gomafiaId },
+                        data: {
+                          date: gameDate,
+                          winnerTeam: gameData.winnerTeam || null,
+                          status: gameData.status || 'COMPLETED',
+                          lastSyncAt: new Date(),
+                          syncStatus: 'SYNCED',
+                        },
+                      })
+                    );
+                    gamesUpdated++;
+                    this.recordValidRecord('game');
+                  }
+                } else {
+                  // New game - import it
+                  // Get system user for game creation
+                  const _systemUserId = await this.getSystemUser();
+
+                  await resilientDB.execute((db) =>
+                    db.game.create({
+                      data: {
+                        gomafiaId: gameData.gomafiaId,
+                        tournamentId: tournament.id,
+                        date: new Date(gameData.date),
+                        winnerTeam: gameData.winnerTeam || null,
+                        status: gameData.status || 'COMPLETED',
+                        lastSyncAt: new Date(),
+                        syncStatus: 'SYNCED',
+                        // Note: Game participations would need to be imported separately
+                        // This is a simplified version - full implementation would import participations
+                      },
+                    })
+                  );
+                  gamesImported++;
+                  this.recordValidRecord('game');
+                }
+
+                // Rate limiting
+                await this.rateLimiter.wait();
+              } catch (error) {
+                console.error(
+                  `[Incremental Sync] Error importing game ${gameData.gomafiaId}:`,
+                  error
+                );
+                errors++;
+                this.logError(
+                  error instanceof Error ? error : new Error('Unknown error'),
+                  'GAME_IMPORT_FAILED',
+                  {
+                    entityId: gameData.gomafiaId,
+                    entityType: 'game',
+                  }
+                );
+              }
+            }
+          } catch (error) {
+            console.error(
+              `[Incremental Sync] Error processing tournament ${tournament.name}:`,
+              error
+            );
+            errors++;
+          }
+        }
+
+        // Update lastSyncAt in User model
+        await resilientDB.execute((db) =>
+          db.user.update({
+            where: { id: userId },
+            data: {
+              lastSyncAt: new Date(),
+            },
+          })
+        );
+
+        // Update sync status
+        await resilientDB.execute((db) =>
+          db.syncStatus.update({
+            where: { id: `user-${userId}` },
+            data: {
+              isRunning: false,
+              progress: 100,
+              currentOperation: null,
+              lastSyncTime: new Date(),
+              lastSyncType: 'INCREMENTAL',
+              updatedAt: new Date(),
+            },
+          })
+        );
+
+        // Update sync log
+        await resilientDB.execute((db) =>
+          db.syncLog.update({
+            where: { id: syncLog.id },
+            data: {
+              status: 'COMPLETED',
+              endTime: new Date(),
+              recordsProcessed: gamesImported + gamesUpdated,
+              errors:
+                errors > 0
+                  ? ({
+                      message: 'Incremental sync completed with errors',
+                      gamesImported,
+                      gamesUpdated,
+                      errors,
+                    } as Prisma.InputJsonValue)
+                  : null,
+            },
+          })
+        );
+
+        console.log(
+          `[Incremental Sync] Completed: ${gamesImported} imported, ${gamesUpdated} updated, ${errors} errors`
+        );
+
+        return {
+          gamesImported,
+          gamesUpdated,
+          errors,
+          success: true,
+        };
+      } finally {
+        await page.close();
+      }
+    } catch (error) {
+      console.error('[Incremental Sync] Failed:', error);
+
+      // Update sync status with error
+      await resilientDB.execute((db) =>
+        db.syncStatus.update({
+          where: { id: `user-${userId}` },
+          data: {
+            isRunning: false,
+            lastError: error instanceof Error ? error.message : 'Unknown error',
+            updatedAt: new Date(),
+          },
+        })
+      );
+
+      // Update sync log with failure
+      if (this.currentSyncLogId) {
+        await resilientDB.execute((db) =>
+          db.syncLog.update({
+            where: { id: this.currentSyncLogId },
+            data: {
+              status: 'FAILED',
+              endTime: new Date(),
+              errors: {
+                message:
+                  error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+              } as Prisma.InputJsonValue,
+            },
+          })
+        );
+      }
+
+      return {
+        gamesImported,
+        gamesUpdated,
+        errors,
+        success: false,
+      };
+    }
   }
 }

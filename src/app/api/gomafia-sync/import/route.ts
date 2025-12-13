@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
 import { prisma as db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 import { Prisma } from '@prisma/client';
 import { ImportOrchestrator } from '@/lib/gomafia/import/import-orchestrator';
+import {
+  historicalImportRequestSchema,
+  extractPlayerIdFromUrl,
+} from '@/lib/gomafia/validators/import-request-schema';
+import { authenticateRequest } from '@/lib/apiAuth';
 
 declare global {
   var currentOrchestratorInstance: ImportOrchestrator | null | undefined;
@@ -130,11 +135,218 @@ export async function GET() {
 /**
  * POST /api/gomafia-sync/import
  * Trigger initial data import from gomafia.pro
+ * Supports both full system import and user-specific historical import
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const lockManager = new AdvisoryLockManager(db);
 
   try {
+    // Authenticate user for historical imports
+    let userId: string | null = null;
+    try {
+      const { user } = await authenticateRequest(request);
+      userId = user.id;
+    } catch (_authError) {
+      // Authentication is optional for full system imports (backward compatibility)
+      // But required for historical imports
+    }
+
+    // Parse request body
+    const body = await request.json().catch(() => ({}));
+
+    // Check if this is a historical import request
+    const isHistoricalImport =
+      body.profileUrl || body.playerId || body.order !== undefined;
+
+    if (isHistoricalImport) {
+      // Historical import requires authentication
+      if (!userId) {
+        return NextResponse.json(
+          {
+            error: 'Authentication required for historical import',
+            code: 'AUTH_REQUIRED',
+          },
+          { status: 401 }
+        );
+      }
+
+      // Validate historical import request
+      const validationResult = historicalImportRequestSchema.safeParse(body);
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            error: 'Invalid request',
+            code: 'VALIDATION_ERROR',
+            details: validationResult.error.errors,
+          },
+          { status: 400 }
+        );
+      }
+
+      const { profileUrl, playerId, order } = validationResult.data;
+
+      // Extract player ID from URL if provided
+      const finalPlayerId =
+        playerId || (profileUrl ? extractPlayerIdFromUrl(profileUrl) : null);
+
+      if (!finalPlayerId) {
+        return NextResponse.json(
+          {
+            error: 'Player ID could not be extracted from URL',
+            code: 'INVALID_URL',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Try to acquire user-specific advisory lock (allows different users to import simultaneously)
+      const acquired = await lockManager.acquireLock(userId);
+
+      if (!acquired) {
+        // Another import is already running for this user
+        const status = await db.syncStatus.findUnique({
+          where: { id: `user-${userId}` },
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Import operation already in progress for this user',
+            code: 'IMPORT_RUNNING',
+            details: {
+              progress: status?.progress || 0,
+              currentOperation: status?.currentOperation || 'Unknown',
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      // Verify profile exists on gomafia.pro (initial profile page scrape)
+      const { chromium } = await import('playwright');
+      const browser = await chromium.launch({ headless: true });
+      const page = await browser.newPage();
+
+      try {
+        await page.goto(`https://gomafia.pro/stats/${finalPlayerId}`, {
+          waitUntil: 'load',
+          timeout: 30000,
+        });
+
+        // Check if profile page loaded successfully (not 404)
+        const pageTitle = await page.title();
+        if (
+          pageTitle.includes('404') ||
+          page.url().includes('404') ||
+          (await page.$('.error, .not-found')) !== null
+        ) {
+          await browser.close();
+          await lockManager.releaseLock();
+          return NextResponse.json(
+            {
+              error: 'Profile not found on gomafia.pro',
+              code: 'PROFILE_NOT_FOUND',
+            },
+            { status: 404 }
+          );
+        }
+      } catch (scrapeError) {
+        await browser.close();
+        await lockManager.releaseLock(userId);
+        return NextResponse.json(
+          {
+            error: 'Failed to verify profile existence',
+            code: 'PROFILE_VERIFICATION_FAILED',
+            details: {
+              message:
+                scrapeError instanceof Error
+                  ? scrapeError.message
+                  : 'Unknown error',
+            },
+          },
+          { status: 500 }
+        );
+      } finally {
+        await browser.close();
+      }
+
+      // Create sync log entry for historical import
+      const syncLog = await db.syncLog.create({
+        data: {
+          type: 'HISTORICAL',
+          status: 'RUNNING',
+          startTime: new Date(),
+        },
+      });
+
+      // Initialize user-specific sync status
+      await db.syncStatus.upsert({
+        where: { id: `user-${userId}` },
+        update: {
+          isRunning: true,
+          progress: 0,
+          currentOperation: 'Initializing historical import...',
+          lastError: null,
+          updatedAt: new Date(),
+        },
+        create: {
+          id: `user-${userId}`,
+          isRunning: true,
+          progress: 0,
+          currentOperation: 'Initializing historical import...',
+        },
+      });
+
+      // Create AbortController for cancellation support
+      currentImportController = new AbortController();
+
+      // Start historical import in background
+      startHistoricalImportInBackground(
+        syncLog.id,
+        userId,
+        finalPlayerId,
+        order || 'newest-first',
+        lockManager,
+        currentImportController.signal
+      ).catch(async (error) => {
+        console.error('Historical import failed:', error);
+
+        await db.syncLog.update({
+          where: { id: syncLog.id },
+          data: {
+            status: 'FAILED',
+            endTime: new Date(),
+            errors: {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              stack: error.stack,
+            },
+          },
+        });
+
+        await db.syncStatus.update({
+          where: { id: `user-${userId}` },
+          data: {
+            isRunning: false,
+            lastError: error instanceof Error ? error.message : 'Unknown error',
+          },
+        });
+
+        currentImportController = null;
+        await lockManager.releaseLock(userId);
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Historical import started successfully',
+          jobId: syncLog.id,
+          playerId: finalPlayerId,
+          order: order || 'newest-first',
+        },
+        { status: 202 }
+      );
+    }
+
+    // Full system import (existing behavior for backward compatibility)
     // Try to acquire advisory lock
     const acquired = await lockManager.acquireLock();
 
@@ -157,8 +369,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse request body for options
-    const body = await request.json().catch(() => ({}));
     const forceRestart = body.forceRestart || false;
 
     // Create sync log entry
@@ -227,7 +437,7 @@ export async function POST(request: Request) {
 
       // Clear controller and release lock
       currentImportController = null;
-      await lockManager.releaseLock();
+      await lockManager.releaseLock(userId);
     });
 
     return NextResponse.json(
@@ -243,7 +453,7 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error('Import trigger failed:', error);
 
-    // Ensure lock is released on error
+    // Ensure lock is released on error (for full system imports, no userId)
     try {
       await lockManager.releaseLock();
     } catch (releaseError) {
@@ -590,6 +800,111 @@ async function startImportInBackground(
     if (typeof globalThis !== 'undefined') {
       globalThis.currentOrchestratorInstance = null;
     }
+
+    throw error;
+  } finally {
+    // Always release lock and close browser
+    if (browser) {
+      await browser.close();
+    }
+    await lockManager.releaseLock();
+  }
+}
+
+/**
+ * Background historical import execution for user-specific profile data.
+ * Initializes orchestrator and starts phase-based import.
+ *
+ * @param syncLogId The sync log ID for tracking
+ * @param userId The user ID requesting the import
+ * @param playerId The gomafia.pro player ID to import
+ * @param order The ordering preference (oldest-first or newest-first)
+ * @param lockManager The advisory lock manager
+ * @param cancellationSignal AbortSignal for graceful cancellation
+ */
+async function startHistoricalImportInBackground(
+  syncLogId: string,
+  userId: string,
+  playerId: string,
+  order: 'oldest-first' | 'newest-first',
+  lockManager: AdvisoryLockManager,
+  cancellationSignal: AbortSignal
+): Promise<void> {
+  const { chromium } = await import('playwright');
+  let browser;
+
+  try {
+    console.log(
+      `[Historical Import] Starting import for user ${userId}, player ${playerId}, order: ${order}`
+    );
+
+    // Launch browser for scraping
+    browser = await chromium.launch({ headless: true });
+
+    // Create orchestrator
+    const orchestrator = new ImportOrchestrator(db, browser);
+
+    // Store orchestrator instance globally for pause/resume operations
+    currentOrchestratorInstance = orchestrator;
+    if (typeof globalThis !== 'undefined') {
+      globalThis.currentOrchestratorInstance = orchestrator;
+    }
+
+    // Set cancellation signal for graceful shutdown
+    orchestrator.setCancellationSignal(cancellationSignal);
+
+    // Initialize historical import (discovers profile data)
+    const { jobId } = await orchestrator.importHistoricalData(
+      userId,
+      playerId,
+      {
+        order,
+      }
+    );
+
+    console.log(`[Historical Import] Initialized import with job ID: ${jobId}`);
+
+    // Execute phase-based import orchestration
+    await orchestrator.executeHistoricalImportPhases(userId, playerId, order);
+    await db.syncLog.update({
+      where: { id: syncLogId },
+      data: {
+        status: 'COMPLETED',
+        endTime: new Date(),
+      },
+    });
+
+    await db.syncStatus.update({
+      where: { id: `user-${userId}` },
+      data: {
+        isRunning: false,
+        progress: 100,
+        currentOperation: null,
+      },
+    });
+  } catch (error: unknown) {
+    console.error('[Historical Import] Import failed:', error);
+
+    // Mark as failed
+    await db.syncLog.update({
+      where: { id: syncLogId },
+      data: {
+        status: 'FAILED',
+        endTime: new Date(),
+        errors: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      },
+    });
+
+    await db.syncStatus.update({
+      where: { id: `user-${userId}` },
+      data: {
+        isRunning: false,
+        lastError: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
 
     throw error;
   } finally {

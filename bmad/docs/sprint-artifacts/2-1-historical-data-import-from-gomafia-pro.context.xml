@@ -1,0 +1,204 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>1</storyId>
+    <title>Historical Data Import from gomafia.pro</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to import my complete historical game data from gomafia.pro</iWant>
+    <soThat>I can see my full game history and analytics in the platform</soThat>
+    <tasks>
+      <task id="1">Create import trigger API endpoint (AC: #1)</task>
+      <task id="2">Implement import orchestrator initialization (AC: #1)</task>
+      <task id="3">Implement profile page scraper for discovery (AC: #1)</task>
+      <task id="4">Implement phase-based import orchestration (AC: #1)</task>
+      <task id="5">Implement batch processing for large datasets (AC: #2)</task>
+      <task id="6">Implement progress tracking and real-time updates (AC: #1)</task>
+      <task id="7">Create import status API endpoint (AC: #1)</task>
+      <task id="8">Implement rate limiting for respectful scraping (AC: #2)</task>
+      <task id="9">Implement error handling and logging (AC: #2)</task>
+      <task id="10">Create import status UI page (AC: #1)</task>
+      <task id="11">Implement chronological ordering option (AC: #1)</task>
+      <task id="12">Implement database relationship integrity (AC: #1)</task>
+      <task id="13">Implement concurrent import prevention (AC: #2)</task>
+      <task id="14">Integration and E2E testing (AC: #1, #2)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am logged in and have a gomafia.pro profile URL</given>
+      <when>I trigger the historical import</when>
+      <then>
+        - Accepts gomafia.pro profile URL or player ID as input
+        - Validates URL format and verifies profile exists on gomafia.pro
+        - Initiates background import process for all available historical data
+        - Scrapes player profile page to discover total games and date range
+        - Processes games in chronological order (oldest first) or reverse chronological (newest first)
+        - Imports all entities: Player, Games, Tournaments, Clubs, Judges, Statistics
+        - Stores imported data in database with proper relationships
+        - Tracks import progress (percentage complete, current game number, estimated time remaining)
+        - Displays progress in real-time on import status page
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>An import is running</given>
+      <when>The import processes data</when>
+      <then>
+        - Handles large datasets (1000+ games) without timeout or memory issues
+        - Rate limiting to avoid overwhelming gomafia.pro servers (respectful scraping)
+        - Incremental progress updates (save checkpoint every N games)
+        - Error handling for individual game failures (log and continue)
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="Data Import & Synchronization">
+        System can import historical game data from gomafia.pro. Users can view import progress in real-time. System validates imported data quality with ≥98% accuracy threshold.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="GoMafia.pro Integration">
+        Use Playwright for browser automation. Existing scrapers in src/lib/gomafia/scrapers/. Enforce 2-second delay between requests (30 requests per minute max). Use existing RateLimiter class. Store import status in sync_status table. Use existing CheckpointManager for checkpoint persistence. Use PostgreSQL advisory locks. Use existing AdvisoryLock wrapper. Lock key should include user_id to allow different users to import simultaneously.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="State Management">
+        Use TanStack Query for server state (import status polling). Configuration in src/lib/queryClient.ts. Use refetchInterval for real-time updates.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="API Contracts">
+        API request/response format patterns. Query parameters: Zod schema validation in route handler. Request body: JSON, validated with Zod. Success responses: Direct data or wrapped in { data: ... }. Error responses: { error: string, code: string, message: string }.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Testing">
+        Testing patterns and standards. Unit tests for scrapers, parsers, orchestrator; integration tests for complete import flow; E2E tests for user journey (trigger import → view progress → completion); accessibility tests using axe-core.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Accessibility">
+        WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Story 2.1: Historical Data Import from gomafia.pro">
+        Story acceptance criteria and technical notes. Use existing ImportOrchestrator class. Follow phase-based import pattern (Clubs → Players → Tournaments → Games → Statistics → Judges). Process games in batches of 50-100 for efficiency. Use existing BatchProcessor class.
+      </doc>
+      <doc path="specs/003-gomafia-data-import/plan.md" title="GoMafia Data Import Implementation Plan" section="Project Structure">
+        Import logic in src/lib/gomafia/ directory following Clean Architecture patterns. Tests organized by type (unit/integration/e2e) with comprehensive coverage for all new scraping and import functionality.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="service" symbol="ImportOrchestrator" lines="1-1000" reason="Core orchestrator class that coordinates all import phases. Manages checkpoints, validation, batch processing, progress tracking, and timeout enforcement. Contains phase-based import logic (CLUBS, PLAYERS, TOURNAMENTS, GAMES, STATISTICS, JUDGES)."/>
+      <artifact path="src/lib/gomafia/import/checkpoint-manager.ts" kind="service" symbol="CheckpointManager" lines="1-100" reason="Manages import checkpoints for resume capability. Cursor-based resumption pattern. Handles checkpoint save, load, and clear operations."/>
+      <artifact path="src/lib/gomafia/import/batch-processor.ts" kind="service" symbol="BatchProcessor" lines="1-101" reason="Batch processor for handling large datasets in memory-efficient chunks. Processes records in batches to avoid memory issues and enable checkpoint persistence. Default batch size: 100 records per batch."/>
+      <artifact path="src/lib/gomafia/import/rate-limiter.ts" kind="service" symbol="RateLimiter" reason="Enforces rate limiting to respect gomafia.pro servers. Default: 2-second delay between requests (30 requests per minute max)."/>
+      <artifact path="src/lib/gomafia/import/advisory-lock.ts" kind="service" symbol="AdvisoryLockManager" reason="PostgreSQL advisory lock wrapper for concurrent import prevention. Lock key includes user_id to allow different users to import simultaneously."/>
+      <artifact path="src/lib/gomafia/import/skipped-entities-manager.ts" kind="service" symbol="SkippedEntitiesManager" reason="Stores failed scraping operations. Logs errors to skipped_entities table for manual retry capability. Handles error classification and retry tracking."/>
+      <artifact path="src/lib/gomafia/import/integrity-checker.ts" kind="service" symbol="IntegrityChecker" reason="Verifies referential integrity of imported relationships. Ensures foreign key relationships are valid after each phase."/>
+      <artifact path="src/lib/gomafia/scrapers/player-stats-scraper.ts" kind="service" symbol="PlayerStatsScraper" reason="Scraper for player profile pages. Can be extended to extract total games count and date range for import discovery."/>
+      <artifact path="src/app/api/gomafia-sync/import/route.ts" kind="api-route" symbol="POST handler" reason="Existing import API endpoint structure. Can be extended or used as reference for creating new import trigger endpoint."/>
+      <artifact path="src/lib/apiAuth.ts" kind="utility" symbol="authenticateRequest" lines="11-68" reason="API authentication middleware for verifying user context in import API endpoints. Returns user and role information."/>
+      <artifact path="src/lib/queryClient.ts" kind="config" symbol="queryClient" reason="TanStack Query configuration. Use refetchInterval for real-time progress updates."/>
+      <artifact path="src/components/ui/progress.tsx" kind="component" symbol="Progress" reason="ShadCN/UI Progress component for visual progress bar in import status UI."/>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="SyncStatus model" lines="272-287" reason="Database model for tracking import status. Fields: progress, currentOperation, lastError, validationRate, totalRecordsProcessed, validRecords, invalidRecords."/>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="ImportCheckpoint model" lines="289-301" reason="Database model for import checkpoint persistence. Fields: currentPhase, currentBatch, lastProcessedId, processedIds, progress, isPaused."/>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="SkippedEntity model" lines="303-320" reason="Database model for storing failed scraping operations. Fields: phase, entityType, entityId, pageNumber, errorCode, errorMessage, errorDetails, retryCount, status."/>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="16.0.0"/>
+        <package name="react" version="19.2.0"/>
+        <package name="typescript" version="5.0.0"/>
+        <package name="playwright" version="1.56.1"/>
+        <package name="@tanstack/react-query" version="5.0.0"/>
+        <package name="zod" version="4.1.12"/>
+        <package name="@prisma/client" version="5.0.0"/>
+        <package name="next-auth" version="4.24.12"/>
+        <package name="@radix-ui/react-progress" version="latest"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <description>Clean Architecture + Hexagonal Architecture patterns. Domain layer cannot import application/adapters/infrastructure. Application layer cannot import adapters/infrastructure. Follow layer dependency rules.</description>
+    </constraint>
+    <constraint type="pattern">
+      <description>Use existing ImportOrchestrator class. Follow phase-based import pattern (Clubs → Players → Tournaments → Games → Statistics → Judges). Process games in batches of 50-100 for efficiency.</description>
+    </constraint>
+    <constraint type="rate-limiting">
+      <description>Enforce 2-second delay between requests (30 requests per minute max) to respect gomafia.pro servers. Use existing RateLimiter class.</description>
+    </constraint>
+    <constraint type="concurrency">
+      <description>Use PostgreSQL advisory locks. Use existing AdvisoryLock wrapper. Lock key should include user_id to allow different users to import simultaneously.</description>
+    </constraint>
+    <constraint type="validation">
+      <description>Use Zod schemas for data validation. Existing validators in src/lib/gomafia/validators/ directory.</description>
+    </constraint>
+    <constraint type="state-management">
+      <description>Use TanStack Query for server state (import status polling). Use refetchInterval for real-time updates. Configuration in src/lib/queryClient.ts.</description>
+    </constraint>
+    <constraint type="ui">
+      <description>Use ShadCN/UI components. Follow existing component patterns for forms and data display. Use Progress component for visual progress bar.</description>
+    </constraint>
+    <constraint type="responsive">
+      <description>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</description>
+    </constraint>
+    <constraint type="accessibility">
+      <description>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</description>
+    </constraint>
+    <constraint type="testing">
+      <description>Maintain minimum 80% test coverage. TDD approach: Write tests before implementation. Include unit tests for scrapers and orchestrator, integration tests for import flow, E2E tests for complete import journey, accessibility tests using axe-core.</description>
+    </constraint>
+    <constraint type="error-handling">
+      <description>Use existing SkippedEntitiesManager to store failed scraping operations. Log errors to skipped_entities table for manual retry capability. Continue import after individual failures.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/gomafia-sync/import" kind="REST endpoint" signature="POST /api/gomafia-sync/import
+Request Body: { profileUrl: string } | { playerId: string }
+Response: { jobId: string, status: string, message: string }" path="src/app/api/gomafia-sync/import/route.ts"/>
+    <interface name="GET /api/gomafia-sync/import/status" kind="REST endpoint" signature="GET /api/gomafia-sync/import/status?jobId={jobId}
+Response: { 
+  percentageComplete: number, 
+  currentGameNumber: number, 
+  totalGames: number, 
+  estimatedTimeRemaining: number, 
+  currentPhase: string,
+  status: 'running' | 'completed' | 'failed' | 'paused'
+}" path="src/app/api/gomafia-sync/import/status/route.ts"/>
+    <interface name="ImportOrchestrator.importHistoricalData" kind="method" signature="async importHistoricalData(userId: string, profileUrl: string, options?: { order?: 'oldest-first' | 'newest-first' }): Promise&lt;{ jobId: string }&gt;" path="src/lib/gomafia/import/import-orchestrator.ts"/>
+    <interface name="CheckpointManager.saveCheckpoint" kind="method" signature="async saveCheckpoint(checkpoint: ImportCheckpoint): Promise&lt;void&gt;" path="src/lib/gomafia/import/checkpoint-manager.ts"/>
+    <interface name="CheckpointManager.loadCheckpoint" kind="method" signature="async loadCheckpoint(): Promise&lt;ImportCheckpoint | null&gt;" path="src/lib/gomafia/import/checkpoint-manager.ts"/>
+    <interface name="RateLimiter.wait" kind="method" signature="async wait(): Promise&lt;void&gt;" path="src/lib/gomafia/import/rate-limiter.ts"/>
+    <interface name="AdvisoryLockManager.acquireLock" kind="method" signature="async acquireLock(userId: string): Promise&lt;boolean&gt;" path="src/lib/gomafia/import/advisory-lock.ts"/>
+    <interface name="AdvisoryLockManager.releaseLock" kind="method" signature="async releaseLock(userId: string): Promise&lt;void&gt;" path="src/lib/gomafia/import/advisory-lock.ts"/>
+    <interface name="SkippedEntitiesManager.recordSkippedEntity" kind="method" signature="async recordSkippedEntity(data: SkippedEntityData): Promise&lt;void&gt;" path="src/lib/gomafia/import/skipped-entities-manager.ts"/>
+    <interface name="authenticateRequest" kind="function" signature="async authenticateRequest(request: NextRequest): Promise&lt;{ user: User, role: string }&gt;" path="src/lib/apiAuth.ts"/>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Maintain minimum 80% test coverage for all new code. Follow TDD approach: Write tests before implementation, follow Red-Green-Refactor cycle. Use Vitest for unit and integration tests, Playwright for E2E tests. Test types: Unit tests for scrapers, parsers, orchestrator; integration tests for complete import flow; E2E tests for user journey (trigger import → view progress → completion); accessibility tests using @axe-core/playwright for E2E accessibility testing, verify WCAG 2.1 AA compliance. Import flow testing: Test complete flow (trigger import → profile discovery → phase execution → progress tracking → completion), test error handling, test concurrent import prevention, test large dataset handling (1000+ games).
+    </standards>
+    <locations>
+      <location>tests/unit/gomafia/scrapers/</location>
+      <location>tests/unit/gomafia/import/</location>
+      <location>tests/integration/gomafia/import/</location>
+      <location>tests/e2e/import/</location>
+    </locations>
+    <ideas>
+      <test id="AC1-1" criterion="1" type="unit">Test profile URL validation using Zod schema. Verify valid gomafia.pro URLs are accepted, invalid URLs are rejected.</test>
+      <test id="AC1-2" criterion="1" type="unit">Test profile existence verification. Mock Playwright page to verify profile page scraping for discovery.</test>
+      <test id="AC1-3" criterion="1" type="integration">Test complete import flow: Trigger import → Verify profile discovery → Verify phase execution → Verify progress tracking → Verify completion.</test>
+      <test id="AC1-4" criterion="1" type="e2e">Test user journey: User triggers import → Views progress page → Sees real-time updates → Import completes.</test>
+      <test id="AC1-5" criterion="1" type="e2e">Test accessibility of import status page using @axe-core/playwright. Verify WCAG 2.1 AA compliance.</test>
+      <test id="AC2-1" criterion="2" type="integration">Test large dataset import (1000+ games) with timeout prevention. Verify memory usage stays within limits.</test>
+      <test id="AC2-2" criterion="2" type="unit">Test rate limiting enforces 2-second delays. Verify rate limiting works across multiple scrapers.</test>
+      <test id="AC2-3" criterion="2" type="integration">Test error handling with individual game failures. Verify errors are logged correctly, import continues after individual failures, error summary is accurate.</test>
+      <test id="AC2-4" criterion="2" type="integration">Test concurrent import prevention. Verify concurrent imports are prevented, lock is released after completion, lock is released after failure.</test>
+      <test id="AC1-6" criterion="1" type="unit">Test chronological ordering option. Verify games process in correct order (oldest first or newest first), progress reflects ordering correctly.</test>
+      <test id="AC1-7" criterion="1" type="integration">Test database relationship integrity. Verify relationships are established correctly (Games reference valid Player IDs, Players reference valid Club IDs, Games reference valid Tournament IDs), integrity violations are detected.</test>
+    </ideas>
+  </tests>
+</story-context>
