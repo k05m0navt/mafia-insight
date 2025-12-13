@@ -31,10 +31,21 @@ describe('ImportOrchestrator - importHistoricalData', () => {
   let mockBrowser: Browser;
   let mockPage: Page;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mocks
     vi.clearAllMocks();
     mockDiscoverProfileData.mockReset();
+
+    // Re-setup PlayerStatsScraper mock implementation after clearing
+    // This ensures the mock is available for dynamic imports
+    const playerStatsScraperModule = await import(
+      '@/lib/gomafia/scrapers/player-stats-scraper'
+    );
+    vi.mocked(playerStatsScraperModule.PlayerStatsScraper).mockImplementation(
+      () => ({
+        discoverProfileData: mockDiscoverProfileData,
+      })
+    );
 
     // Setup mock database
     mockDb = {
