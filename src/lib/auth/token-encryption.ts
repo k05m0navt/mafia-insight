@@ -4,14 +4,22 @@ import crypto from 'crypto';
  * Encryption key from environment variable
  * In production, use a secure key management service
  */
-const ENCRYPTION_KEY = process.env.OAUTH_TOKEN_ENCRYPTION_KEY || '';
 const ALGORITHM = 'aes-256-gcm';
+
+/**
+ * Get encryption key from environment variable (checked dynamically)
+ */
+function getEncryptionKey(): string {
+  return process.env.OAUTH_TOKEN_ENCRYPTION_KEY || '';
+}
 
 /**
  * Encrypt OAuth token before storing in database
  */
 export async function encryptToken(token: string): Promise<string> {
-  if (!ENCRYPTION_KEY) {
+  const encryptionKey = getEncryptionKey();
+
+  if (!encryptionKey) {
     console.warn(
       '[OAuth] OAUTH_TOKEN_ENCRYPTION_KEY not set, tokens will be stored in plain text (NOT RECOMMENDED)'
     );
@@ -22,7 +30,7 @@ export async function encryptToken(token: string): Promise<string> {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
       ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY, 'hex'),
+      Buffer.from(encryptionKey, 'hex'),
       iv
     );
 
@@ -43,7 +51,9 @@ export async function encryptToken(token: string): Promise<string> {
  * Decrypt OAuth token from database
  */
 export async function decryptToken(encryptedToken: string): Promise<string> {
-  if (!ENCRYPTION_KEY) {
+  const encryptionKey = getEncryptionKey();
+
+  if (!encryptionKey) {
     // If no encryption key, assume token is stored in plain text
     return encryptedToken;
   }
@@ -61,7 +71,7 @@ export async function decryptToken(encryptedToken: string): Promise<string> {
 
     const decipher = crypto.createDecipheriv(
       ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY, 'hex'),
+      Buffer.from(encryptionKey, 'hex'),
       iv
     );
 
