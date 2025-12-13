@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth } from '@/lib/apiAuth';
 import { formatErrorResponse } from '@/lib/errors';
 import { prisma } from '@/lib/db';
+import { UserRole } from '@prisma/client';
 
 /**
  * GET /api/admin/users
@@ -30,20 +31,23 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: {
-      role?: string;
+      role?: UserRole;
       OR?: Array<{ email?: { contains: string }; name?: { contains: string } }>;
     } = {};
 
     // Role filter
     if (roleFilter) {
-      where.role = roleFilter.toLowerCase();
+      const normalizedRole = roleFilter.toLowerCase() as UserRole;
+      if (['guest', 'user', 'moderator', 'admin'].includes(normalizedRole)) {
+        where.role = normalizedRole;
+      }
     }
 
     // Search filter (email or name)
     if (search) {
       where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search } },
+        { name: { contains: search } },
       ];
     }
 

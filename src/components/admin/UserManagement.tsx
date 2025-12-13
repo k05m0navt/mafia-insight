@@ -118,8 +118,9 @@ export function UserManagement() {
         );
       }
 
-      setUsers(data.users);
-      setPagination(data.pagination);
+      const successData = data as UsersResponse;
+      setUsers(successData.users);
+      setPagination(successData.pagination);
     } catch (error) {
       console.error('Failed to fetch users:', error);
       toast({

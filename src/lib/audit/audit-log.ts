@@ -22,7 +22,7 @@ export async function logAdminAction(entry: AuditLogEntry): Promise<void> {
         targetUserId: entry.targetUserId,
         oldValue: entry.oldValue,
         newValue: entry.newValue,
-        metadata: entry.metadata || {},
+        metadata: (entry.metadata || {}) as any,
       },
     });
   } catch (error) {

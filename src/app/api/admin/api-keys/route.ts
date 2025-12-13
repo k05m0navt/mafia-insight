@@ -5,7 +5,7 @@ import { formatErrorResponse } from '@/lib/errors';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate with admin access
-    await withAdminAuth()(request);
+    await withAdminAuth(request);
 
     // Return API key management information
     const apiKeys = [
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate with admin access
-    await withAdminAuth()(request);
+    await withAdminAuth(request);
 
     const body = await request.json();
     const { name, permissions } = body;

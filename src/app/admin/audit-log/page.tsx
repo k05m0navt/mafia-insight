@@ -99,8 +99,9 @@ export default function AdminAuditLogPage() {
         );
       }
 
-      setEntries(data.entries);
-      setPagination(data.pagination);
+      const successData = data as AuditLogResponse;
+      setEntries(successData.entries);
+      setPagination(successData.pagination);
     } catch (error) {
       console.error('Failed to fetch audit logs:', error);
     } finally {
