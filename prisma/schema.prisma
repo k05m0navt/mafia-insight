@@ -32,6 +32,8 @@ model User {
   accounts     Account[]
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens EmailChangeToken[]
+  adminAuditLogs      AuditLog[] @relation("AdminAuditLogs")
+  targetAuditLogs    AuditLog[] @relation("TargetAuditLogs")
 
   @@map("users")
 }
@@ -440,6 +442,35 @@ enum FirstShootType {
   ZERO_MAFIA
   ONE_TWO_MAFIA
   THREE_MAFIA
+}
+
+enum AuditActionType {
+  ROLE_CHANGE
+  USER_DELETE
+  USER_CREATE
+  USER_UPDATE
+  PERMISSION_CHANGE
+  SYSTEM_CONFIG_CHANGE
+}
+
+model AuditLog {
+  id          String          @id @default(uuid())
+  actionType  AuditActionType
+  adminUserId String
+  targetUserId String?
+  oldValue    String?
+  newValue    String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  admin  User  @relation("AdminAuditLogs", fields: [adminUserId], references: [id])
+  target User? @relation("TargetAuditLogs", fields: [targetUserId], references: [id])
+
+  @@index([adminUserId])
+  @@index([targetUserId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 model Region {

@@ -5,7 +5,7 @@ import { formatErrorResponse } from '@/lib/errors';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate with admin access
-    await withAdminAuth()(request);
+    await withAdminAuth(request);
 
     // Return protected route configuration
     const protectedRoutes = [

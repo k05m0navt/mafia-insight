@@ -12,6 +12,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -22,8 +37,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/components/hooks/use-toast';
-import { Loader2, UserPlus, Shield, Users } from 'lucide-react';
+import { Loader2, UserPlus, Search } from 'lucide-react';
 import { format } from 'date-fns';
+import { UserRoleManager } from './UserRoleManager';
 
 interface User {
   id: string;
@@ -31,24 +47,42 @@ interface User {
   name: string;
   avatar?: string | null;
   role: string;
-  subscriptionTier: string;
-  createdAt: string;
   lastLogin?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface UserStats {
-  totalUsers: number;
-  adminCount: number;
-  moderatorCount: number;
-  activeUsers: number;
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface UsersResponse {
+  users: User[];
+  pagination: Pagination;
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  message?: string;
+  code?: string;
+  statusCode?: number;
 }
 
 export function UserManagement() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -56,17 +90,36 @@ export function UserManagement() {
     password: '',
     confirmPassword: '',
   });
+  const [isCreating, setIsCreating] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/users');
-      const data = await response.json();
+      setIsLoading(true);
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+      });
+
+      if (search) {
+        params.append('search', search);
+      }
+
+      if (roleFilter && roleFilter !== 'all') {
+        params.append('role', roleFilter);
+      }
+
+      const response = await fetch(`/api/admin/users?${params}`);
+      const data: UsersResponse | ApiErrorResponse = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch users');
+        const errorData = data as ApiErrorResponse;
+        throw new Error(
+          errorData.error || errorData.message || 'Failed to fetch users'
+        );
       }
 
       setUsers(data.users);
+      setPagination(data.pagination);
     } catch (error) {
       console.error('Failed to fetch users:', error);
       toast({
@@ -77,25 +130,33 @@ export function UserManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/users?stats=true');
-      const data = await response.json();
-
-      if (response.ok) {
-        setStats(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  }, []);
+  }, [pagination.page, pagination.limit, search, roleFilter, toast]);
 
   useEffect(() => {
     fetchUsers();
-    fetchStats();
-  }, [fetchUsers, fetchStats]);
+  }, [fetchUsers]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.page === 1) {
+        fetchUsers();
+      } else {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, fetchUsers, pagination.page]);
+
+  // Reset to page 1 when role filter changes
+  useEffect(() => {
+    if (pagination.page !== 1) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    } else {
+      fetchUsers();
+    }
+  }, [roleFilter, fetchUsers, pagination.page]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -137,7 +198,6 @@ export function UserManagement() {
 
       // Refresh users list
       fetchUsers();
-      fetchStats();
     } catch (error) {
       console.error('Create admin error:', error);
       toast({
@@ -149,6 +209,11 @@ export function UserManagement() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleRoleUpdate = () => {
+    // Refresh users list after role update
+    fetchUsers();
   };
 
   const getInitials = (name: string) => {
@@ -171,7 +236,17 @@ export function UserManagement() {
     }
   };
 
-  if (isLoading) {
+  const getAccountStatus = (user: User) => {
+    // Account is active if user has logged in within last 90 days
+    if (!user.lastLogin) return 'Inactive';
+    const lastLogin = new Date(user.lastLogin);
+    const daysSinceLogin = Math.floor(
+      (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysSinceLogin <= 90 ? 'Active' : 'Inactive';
+  };
+
+  if (isLoading && users.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -184,63 +259,19 @@ export function UserManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Admins</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.adminCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Moderators</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.moderatorCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Active (30d)
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeUsers}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* User Management Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle>User Management</CardTitle>
               <CardDescription>
-                Manage user accounts and permissions
+                Manage user accounts, roles, and permissions
               </CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <UserPlus className="mr-2 h-4 w-4" />
                   Create Admin
                 </Button>
@@ -327,49 +358,151 @@ export function UserManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={user.avatar || undefined}
-                      alt={user.name}
-                    />
-                    <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{user.name}</p>
-                      <Badge
-                        variant={getRoleBadgeVariant(user.role)}
-                        className="capitalize"
-                      >
-                        {user.role}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>
-                    Joined {format(new Date(user.createdAt), 'MMM d, yyyy')}
-                  </p>
-                  {user.lastLogin && (
-                    <p className="text-xs">
-                      Last login{' '}
-                      {format(new Date(user.lastLogin), 'MMM d, HH:mm')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by email or name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+                aria-label="Search users"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="moderator">Moderator</SelectItem>
+                <SelectItem value="guest">Guest</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Users Table */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && users.length > 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-muted-foreground"
+                    >
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={user.avatar || undefined}
+                              alt={user.name}
+                            />
+                            <AvatarFallback>
+                              {getInitials(user.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{user.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={getRoleBadgeVariant(user.role)}
+                          className="capitalize"
+                        >
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getAccountStatus(user)}</TableCell>
+                      <TableCell>
+                        {user.lastLogin
+                          ? format(
+                              new Date(user.lastLogin),
+                              'MMM d, yyyy HH:mm'
+                            )
+                          : 'Never'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <UserRoleManager
+                          userId={user.id}
+                          currentRole={user.role}
+                          onRoleUpdate={handleRoleUpdate}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
+                of {pagination.total} users
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.max(1, prev.page - 1),
+                    }))
+                  }
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.min(prev.totalPages, prev.page + 1),
+                    }))
+                  }
+                  disabled={
+                    pagination.page >= pagination.totalPages || isLoading
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
