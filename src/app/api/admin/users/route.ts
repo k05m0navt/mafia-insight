@@ -1,77 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@/lib/supabase/server';
-import { getAllUsers, getUserStats } from '@/services/auth/adminService';
-import { z } from 'zod';
+import { withAdminAuth } from '@/lib/apiAuth';
+import { formatErrorResponse } from '@/lib/errors';
 import { prisma } from '@/lib/db';
-import { requireAuthCookie } from '@/lib/utils/apiAuth';
-import { AdminController } from '@/adapters/controllers/admin-controller';
-import { ApplicationValidationError } from '@/application/errors';
-
-const adminController = new AdminController();
-
-// Create admin schema
-const CreateAdminSchema = z
-  .object({
-    email: z.string().email('Invalid email format'),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
+import { UserRole } from '@prisma/client';
 
 /**
  * GET /api/admin/users
- * Get all users (admin only)
+ * Get all users with pagination, search, and filtering (admin only)
+ * Query parameters:
+ *   - page: Page number (default: 1)
+ *   - limit: Items per page (default: 50, max: 100)
+ *   - search: Search by email or name
+ *   - role: Filter by role (user, admin, moderator, guest)
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check auth-token cookie first (primary auth method)
-    const authError = requireAuthCookie(request);
-    if (authError) {
-      return authError;
-    }
+    // Authenticate and verify admin role
+    await withAdminAuth(request);
 
-    // Also verify with Supabase for user data
-    const supabase = await createRouteHandlerClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const userProfile = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      select: { role: true },
-    });
-
-    if (userProfile?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden: Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Check if requesting stats or full list
     const { searchParams } = new URL(request.url);
-    const statsOnly = searchParams.get('stats') === 'true';
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get('limit') || '50', 10))
+    );
+    const search = searchParams.get('search') || '';
+    const roleFilter = searchParams.get('role') || '';
 
-    if (statsOnly) {
-      const stats = await getUserStats();
-      return NextResponse.json(stats);
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: {
+      role?: UserRole;
+      OR?: Array<{ email?: { contains: string }; name?: { contains: string } }>;
+    } = {};
+
+    // Role filter
+    if (roleFilter) {
+      const normalizedRole = roleFilter.toLowerCase() as UserRole;
+      if (['guest', 'user', 'moderator', 'admin'].includes(normalizedRole)) {
+        where.role = normalizedRole;
+      }
     }
 
-    const users = await getAllUsers();
-    return NextResponse.json({ users });
+    // Search filter (email or name)
+    if (search) {
+      where.OR = [
+        { email: { contains: search } },
+        { name: { contains: search } },
+      ];
+    }
+
+    // Fetch users and total count
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          avatar: true,
+          lastLogin: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error('Get users error:', error);
+
+    if (error instanceof Error) {
+      const errorResponse = formatErrorResponse(error);
+      return NextResponse.json(errorResponse, {
+        status:
+          errorResponse.code === 'AUTHORIZATION_ERROR'
+            ? 403
+            : errorResponse.code === 'AUTHENTICATION_ERROR'
+              ? 401
+              : 500,
+      });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to fetch users' },
+      {
+        error: 'Failed to fetch users',
+        message: 'An unexpected error occurred',
+      },
       { status: 500 }
     );
   }
@@ -79,81 +108,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/admin/users
- * Create new admin user (admin only)
+ * Method not allowed - POST is not part of the admin user management story requirements.
+ * Only GET is implemented per AC #1.
  */
-export async function POST(request: NextRequest) {
-  try {
-    // Check auth-token cookie first (primary auth method)
-    const authError = requireAuthCookie(request);
-    if (authError) {
-      return authError;
-    }
-
-    // Also verify with Supabase for user data
-    const supabase = await createRouteHandlerClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const userProfile = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      select: { role: true },
-    });
-
-    if (userProfile?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden: Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const data = CreateAdminSchema.parse(body);
-
-    const result = await adminController.createAdminUser({
-      email: data.email,
-      name: data.name,
-      password: data.password,
-    });
-
-    return NextResponse.json({
-      success: true,
-      user: result.user,
-      message: result.message,
-    });
-  } catch (error) {
-    console.error('Create admin error:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: 'Validation failed',
-          details: error.issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (error instanceof ApplicationValidationError) {
-      return NextResponse.json(
-        {
-          error: error.message,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to create admin',
-      },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Method not allowed', message: 'POST method is not supported' },
+    { status: 405 }
+  );
 }

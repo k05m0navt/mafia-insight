@@ -115,20 +115,13 @@ export function withAuth(requiredRole: string = 'USER') {
 
 /**
  * Middleware for admin API routes
+ * Requires user authentication and admin role
  */
-export function withAdminAuth() {
-  return async function adminAuthMiddleware(request: NextRequest) {
-    // Check API key first
-    validateApiKey(request);
-
-    // Also check authentication if available
-    try {
-      const { user, role } = await authenticateRequest(request);
-      requireRole(role, 'ADMIN');
-      return { user, role };
-    } catch {
-      // If authentication fails, still allow if API key is valid
-      return { user: null, role: 'ADMIN' };
-    }
-  };
+export async function withAdminAuth(request: NextRequest): Promise<{
+  user: User;
+  role: string;
+}> {
+  const { user, role } = await authenticateRequest(request);
+  requireRole(role, 'admin');
+  return { user, role };
 }

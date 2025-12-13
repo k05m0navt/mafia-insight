@@ -10,6 +10,8 @@ export interface Profile {
   role?: string;
   subscriptionTier?: string;
   themePreference?: string | null;
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
   createdAt: Date;
   lastLogin?: Date | null;
 }

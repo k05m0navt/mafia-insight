@@ -29,7 +29,7 @@ import Link from 'next/link';
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -71,7 +71,7 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
         rememberMe: data.rememberMe,
       });
 
-      if (result.success) {
+      if (result && result.success) {
         toast({
           title: 'Login Successful',
           description:
@@ -127,6 +127,22 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
         noValidate
         aria-label="Login form"
       >
+        {/* Validation Errors Container */}
+        {form.formState.errors.email || form.formState.errors.password ? (
+          <div data-testid="validation-error" className="space-y-2">
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.email.message}
+              </p>
+            )}
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.password.message}
+              </p>
+            )}
+          </div>
+        ) : null}
+
         {/* Email Field */}
         <FormField
           control={form.control}
@@ -144,6 +160,12 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
                   aria-label="Email"
                   data-testid="email"
                   {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    if (submitError) {
+                      setSubmitError(null);
+                    }
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -169,6 +191,12 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
                     aria-label="Password"
                     data-testid="password"
                     {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      if (submitError) {
+                        setSubmitError(null);
+                      }
+                    }}
                   />
                   <button
                     type="button"
@@ -241,6 +269,13 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
             aria-live="polite"
           >
             {submitError}
+          </div>
+        )}
+
+        {/* Loading Indicator */}
+        {isSubmitting && (
+          <div data-testid="loading" className="text-center">
+            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
           </div>
         )}
 

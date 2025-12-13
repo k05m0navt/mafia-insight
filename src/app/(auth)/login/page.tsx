@@ -24,7 +24,6 @@ export default function LoginPage() {
         <div
           className="max-w-md w-full space-y-8"
           data-testid="login-container"
-          role="main"
         >
           <div>
             <h1 className="text-3xl font-bold text-center text-foreground">

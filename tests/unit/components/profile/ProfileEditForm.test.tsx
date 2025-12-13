@@ -110,8 +110,12 @@ describe('ProfileEditForm', () => {
   it('should display notification settings toggles', () => {
     render(<ProfileEditForm user={mockUser} />);
 
-    expect(screen.getByText(/email notifications/i)).toBeInTheDocument();
-    expect(screen.getByText(/push notifications/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/email notifications/i).length).toBeGreaterThan(
+      0
+    );
+    expect(screen.getAllByText(/push notifications/i).length).toBeGreaterThan(
+      0
+    );
   });
 
   it('should validate name field minimum length', async () => {
@@ -235,27 +239,39 @@ describe('ProfileEditForm', () => {
 
   it('should trigger email change flow when email is changed', async () => {
     const user = userEvent.setup();
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+
     render(<ProfileEditForm user={mockUser} />);
 
     const editButton = screen.getByRole('button', { name: /edit/i });
     await user.click(editButton);
 
-    await waitFor(async () => {
+    // Wait for email input to be editable
+    await waitFor(() => {
       const emailInput = screen.getByDisplayValue('test@example.com');
-      await user.clear(emailInput);
-      await user.type(emailInput, 'newemail@example.com');
-
-      const submitButton = screen.getByRole('button', {
-        name: /save changes/i,
-      });
-      await user.click(submitButton);
+      expect(emailInput).not.toHaveAttribute('readOnly');
     });
+
+    const emailInput = screen.getByDisplayValue('test@example.com');
+    await user.clear(emailInput);
+    await user.type(emailInput, 'newemail@example.com');
+
+    const submitButton = screen.getByRole('button', {
+      name: /save changes/i,
+    });
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         '/api/user/profile/email/request',
         expect.objectContaining({
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ newEmail: 'newemail@example.com' }),
         })
       );
