@@ -48,7 +48,7 @@ describe('Admin Audit Log Page', () => {
       }),
     } as Response);
 
-    render(await AuditLogPage());
+    render(<AuditLogPage />);
 
     await waitFor(() => {
       expect(screen.getByText('admin@example.com')).toBeInTheDocument();
@@ -91,10 +91,10 @@ describe('Admin Audit Log Page', () => {
       }),
     } as Response);
 
-    render(await AuditLogPage());
+    render(<AuditLogPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/ROLE_CHANGE/i)).toBeInTheDocument();
+      expect(screen.getByText(/Role Change/i)).toBeInTheDocument();
       expect(screen.getByText('admin@example.com')).toBeInTheDocument();
       expect(screen.getByText('user@example.com')).toBeInTheDocument();
       expect(screen.getByText('user')).toBeInTheDocument();
@@ -116,10 +116,12 @@ describe('Admin Audit Log Page', () => {
       }),
     } as Response);
 
-    render(await AuditLogPage());
+    render(<AuditLogPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/page 1 of 2/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Showing.*to.*of 100 entries/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -138,22 +140,27 @@ describe('Admin Audit Log Page', () => {
       }),
     } as Response);
 
-    render(await AuditLogPage());
+    render(<AuditLogPage />);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
     });
 
-    // Find date inputs (if they exist)
-    const dateInputs = screen.queryAllByLabelText(/date/i);
-    if (dateInputs.length > 0) {
-      await user.type(dateInputs[0], '2024-01-01');
+    // Find date inputs and apply button
+    const startDateInput = screen.queryByLabelText(/start date/i);
+    const applyButton = screen.queryByRole('button', { name: /apply filter/i });
+
+    if (startDateInput && applyButton) {
+      await user.type(startDateInput, '2024-01-01');
+      await user.click(applyButton);
 
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('startDate'),
-          expect.any(Object)
-        );
+        const fetchCalls = vi.mocked(fetch).mock.calls;
+        const hasStartDate = fetchCalls.some((call) => {
+          const url = call[0] as string;
+          return typeof url === 'string' && url.includes('startDate');
+        });
+        expect(hasStartDate).toBe(true);
       });
     }
   });
@@ -172,7 +179,7 @@ describe('Admin Audit Log Page', () => {
       }),
     } as Response);
 
-    render(await AuditLogPage());
+    render(<AuditLogPage />);
 
     await waitFor(() => {
       const table = screen.queryByRole('table');

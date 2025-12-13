@@ -68,7 +68,7 @@ describe('OAuthLinkingService', () => {
         email: 'newuser@example.com',
         name: 'New User',
         avatar: 'https://example.com/avatar.jpg',
-        role: UserRole.user,
+        role: 'user' as UserRole,
         accounts: [
           {
             id: 'account-1',
@@ -105,7 +105,7 @@ describe('OAuthLinkingService', () => {
           email: 'newuser@example.com',
           name: 'New User',
           avatar: 'https://example.com/avatar.jpg',
-          role: UserRole.user,
+          role: 'user',
           accounts: {
             create: {
               type: 'oauth',

@@ -169,14 +169,14 @@ export function FeatureTour() {
                     : 'border-border hover:border-primary/50'
                 }`}
               >
-                <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3">
                   <Icon
                     className={`h-5 w-5 mt-0.5 ${
                       isActive ? 'text-primary' : 'text-muted-foreground'
                     }`}
-                    aria-hidden="true"
+                      aria-hidden="true"
                   />
-                  <div className="flex-1">
+                    <div className="flex-1">
                     <div className="font-semibold mb-1">{feature.title}</div>
                     <div className="text-sm text-muted-foreground line-clamp-2">
                       {feature.description}
@@ -215,16 +215,16 @@ export function FeatureTour() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
+          <CardHeader>
               <CardTitle className="text-lg">Performance Goals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
                 Set and track your performance objectives
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Call to Action */}
         <div className="text-center space-y-4">
@@ -235,7 +235,7 @@ export function FeatureTour() {
           <Button asChild size="lg">
             <Link href="/signup">Sign Up to Access Full Features</Link>
           </Button>
-        </div>
+    </div>
       </CardContent>
     </Card>
   );

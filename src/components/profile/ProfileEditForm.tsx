@@ -94,8 +94,8 @@ export function ProfileEditForm({ user: initialUser }: ProfileEditFormProps) {
       name: user.name,
       themePreference:
         (user.themePreference as 'light' | 'dark' | 'system') || 'system',
-      emailNotifications: (user as any).emailNotifications ?? true,
-      pushNotifications: (user as any).pushNotifications ?? false,
+      emailNotifications: user.emailNotifications ?? true,
+      pushNotifications: user.pushNotifications ?? false,
     } as ProfileEditFormData,
     mode: 'onChange', // Real-time validation
   });
@@ -211,7 +211,8 @@ export function ProfileEditForm({ user: initialUser }: ProfileEditFormProps) {
                         <Input
                           {...field}
                           type="email"
-                          disabled={!isEmailEditing || isLoading}
+                          readOnly={!isEmailEditing}
+                          disabled={isLoading}
                           className="bg-muted"
                           aria-label="Email address"
                           aria-describedby="email-description email-message"

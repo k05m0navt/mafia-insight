@@ -83,7 +83,7 @@ export function ProfileView({ user }: ProfileViewProps) {
       <CardContent className="space-y-6">
         {/* Avatar Section */}
         <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24" data-testid="profile-avatar-container">
             <AvatarImage src={user.avatar || undefined} alt={user.name} />
             <AvatarFallback className="text-2xl">
               {getInitials(user.name)}
