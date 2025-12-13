@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafia Insight - Color Theme Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .theme-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .theme-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .theme-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .theme-personality {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .color-swatch {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            position: relative;
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        .color-label {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            right: 4px;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .semantic-colors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .semantic-swatch {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .components-preview {
+            margin-top: 1.5rem;
+        }
+
+        .component-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            /* Will be overridden by theme */
+        }
+
+        .btn-secondary {
+            /* Will be overridden by theme */
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid;
+        }
+
+        .card-preview {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-content {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .input-preview {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-preview:focus {
+            outline: none;
+            border-width: 2px;
+        }
+
+        .comparison-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .comparison-mode .themes-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .comparison-mode .theme-card {
+            max-width: 100%;
+        }
+
+        /* Theme 1: Competitive Edge */
+        .theme-1 .color-swatch:nth-child(1) { background: #6366f1; } /* Primary - Indigo */
+        .theme-1 .color-swatch:nth-child(2) { background: #8b5cf6; } /* Secondary - Purple */
+        .theme-1 .color-swatch:nth-child(3) { background: #ec4899; } /* Accent - Pink */
+        .theme-1 .color-swatch:nth-child(4) { background: #1e293b; } /* Dark */
+
+        .theme-1 .semantic-swatch:nth-child(1) { background: #10b981; } /* Success */
+        .theme-1 .semantic-swatch:nth-child(2) { background: #f59e0b; } /* Warning */
+        .theme-1 .semantic-swatch:nth-child(3) { background: #ef4444; } /* Error */
+        .theme-1 .semantic-swatch:nth-child(4) { background: #3b82f6; } /* Info */
+
+        .theme-1 .btn-primary { background: #6366f1; color: white; }
+        .theme-1 .btn-primary:hover { background: #4f46e5; }
+        .theme-1 .btn-secondary { background: #8b5cf6; color: white; }
+        .theme-1 .btn-outline { border-color: #6366f1; color: #6366f1; }
+        .theme-1 .card-preview { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+        .theme-1 .input-preview { border-color: #cbd5e1; }
+        .theme-1 .input-preview:focus { border-color: #6366f1; }
+
+        /* Theme 2: Data Mastery */
+        .theme-2 .color-swatch:nth-child(1) { background: #0ea5e9; } /* Primary - Sky */
+        .theme-2 .color-swatch:nth-child(2) { background: #06b6d4; } /* Secondary - Cyan */
+        .theme-2 .color-swatch:nth-child(3) { background: #3b82f6; } /* Accent - Blue */
+        .theme-2 .color-swatch:nth-child(4) { background: #0f172a; } /* Dark */
+
+        .theme-2 .semantic-swatch:nth-child(1) { background: #10b981; } /* Success */
+        .theme-2 .semantic-swatch:nth-child(2) { background: #f59e0b; } /* Warning */
+        .theme-2 .semantic-swatch:nth-child(3) { background: #ef4444; } /* Error */
+        .theme-2 .semantic-swatch:nth-child(4) { background: #8b5cf6; } /* Info */
+
+        .theme-2 .btn-primary { background: #0ea5e9; color: white; }
+        .theme-2 .btn-primary:hover { background: #0284c7; }
+        .theme-2 .btn-secondary { background: #06b6d4; color: white; }
+        .theme-2 .btn-outline { border-color: #0ea5e9; color: #0ea5e9; }
+        .theme-2 .card-preview { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white; }
+        .theme-2 .input-preview { border-color: #cbd5e1; }
+        .theme-2 .input-preview:focus { border-color: #0ea5e9; }
+
+        /* Theme 3: Strategic Victory */
+        .theme-3 .color-swatch:nth-child(1) { background: #f59e0b; } /* Primary - Amber */
+        .theme-3 .color-swatch:nth-child(2) { background: #ef4444; } /* Secondary - Red */
+        .theme-3 .color-swatch:nth-child(3) { background: #ec4899; } /* Accent - Pink */
+        .theme-3 .color-swatch:nth-child(4) { background: #1e293b; } /* Dark */
+
+        .theme-3 .semantic-swatch:nth-child(1) { background: #10b981; } /* Success */
+        .theme-3 .semantic-swatch:nth-child(2) { background: #f59e0b; } /* Warning */
+        .theme-3 .semantic-swatch:nth-child(3) { background: #ef4444; } /* Error */
+        .theme-3 .semantic-swatch:nth-child(4) { background: #3b82f6; } /* Info */
+
+        .theme-3 .btn-primary { background: #f59e0b; color: white; }
+        .theme-3 .btn-primary:hover { background: #d97706; }
+        .theme-3 .btn-secondary { background: #ef4444; color: white; }
+        .theme-3 .btn-outline { border-color: #f59e0b; color: #f59e0b; }
+        .theme-3 .card-preview { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; }
+        .theme-3 .input-preview { border-color: #cbd5e1; }
+        .theme-3 .input-preview:focus { border-color: #f59e0b; }
+
+        /* Theme 4: Elite Analytics */
+        .theme-4 .color-swatch:nth-child(1) { background: #10b981; } /* Primary - Emerald */
+        .theme-4 .color-swatch:nth-child(2) { background: #14b8a6; } /* Secondary - Teal */
+        .theme-4 .color-swatch:nth-child(3) { background: #06b6d4; } /* Accent - Cyan */
+        .theme-4 .color-swatch:nth-child(4) { background: #0f172a; } /* Dark */
+
+        .theme-4 .semantic-swatch:nth-child(1) { background: #10b981; } /* Success */
+        .theme-4 .semantic-swatch:nth-child(2) { background: #f59e0b; } /* Warning */
+        .theme-4 .semantic-swatch:nth-child(3) { background: #ef4444; } /* Error */
+        .theme-4 .semantic-swatch:nth-child(4) { background: #3b82f6; } /* Info */
+
+        .theme-4 .btn-primary { background: #10b981; color: white; }
+        .theme-4 .btn-primary:hover { background: #059669; }
+        .theme-4 .btn-secondary { background: #14b8a6; color: white; }
+        .theme-4 .btn-outline { border-color: #10b981; color: #10b981; }
+        .theme-4 .card-preview { background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); color: white; }
+        .theme-4 .input-preview { border-color: #cbd5e1; }
+        .theme-4 .input-preview:focus { border-color: #10b981; }
+
+        /* Theme 5: Competitive Data (Hybrid #1 + #2) */
+        .theme-5 .color-swatch:nth-child(1) { background: #4f46e5; } /* Primary - Indigo (from #1, deeper) */
+        .theme-5 .color-swatch:nth-child(2) { background: #06b6d4; } /* Secondary - Cyan (from #2) */
+        .theme-5 .color-swatch:nth-child(3) { background: #8b5cf6; } /* Accent - Purple (from #1) */
+        .theme-5 .color-swatch:nth-child(4) { background: #0f172a; } /* Dark (from #2, professional) */
+
+        .theme-5 .semantic-swatch:nth-child(1) { background: #10b981; } /* Success */
+        .theme-5 .semantic-swatch:nth-child(2) { background: #f59e0b; } /* Warning */
+        .theme-5 .semantic-swatch:nth-child(3) { background: #ef4444; } /* Error */
+        .theme-5 .semantic-swatch:nth-child(4) { background: #3b82f6; } /* Info */
+
+        .theme-5 .btn-primary { background: #4f46e5; color: white; }
+        .theme-5 .btn-primary:hover { background: #4338ca; }
+        .theme-5 .btn-secondary { background: #06b6d4; color: white; }
+        .theme-5 .btn-outline { border-color: #4f46e5; color: #4f46e5; }
+        .theme-5 .card-preview { background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); color: white; }
+        .theme-5 .input-preview { border-color: #cbd5e1; }
+        .theme-5 .input-preview:focus { border-color: #4f46e5; }
+
+        .usage-description {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .usage-description h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .usage-description ul {
+            margin-left: 1.5rem;
+            color: #666;
+        }
+
+        .usage-description li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Mafia Insight Color Theme Explorer</h1>
+        <p class="subtitle">Explore 5 complete theme options with live UI component examples. Theme #5 combines the energy of Competitive Edge with the professionalism of Data Mastery.</p>
+
+        <div class="themes-grid" id="themesGrid">
+            <!-- Theme 1: Competitive Edge -->
+            <div class="theme-card theme-1">
+                <div class="theme-header">
+                    <div class="theme-name">Competitive Edge</div>
+                    <div class="theme-personality">Energetic • Bold • Engaging</div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-label">Primary<br>#6366f1</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Secondary<br>#8b5cf6</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Accent<br>#ec4899</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Dark<br>#1e293b</div>
+                    </div>
+                </div>
+
+                <div class="semantic-colors">
+                    <div class="semantic-swatch">Success</div>
+                    <div class="semantic-swatch">Warning</div>
+                    <div class="semantic-swatch">Error</div>
+                    <div class="semantic-swatch">Info</div>
+                </div>
+
+                <div class="components-preview">
+                    <div class="component-title">Buttons</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-outline">Outline</button>
+                    </div>
+
+                    <div class="component-title">Card</div>
+                    <div class="card-preview">
+                        <div class="card-title">Player Analytics</div>
+                        <div class="card-content">Win Rate: 68% • ELO: 1,245</div>
+                    </div>
+
+                    <div class="component-title">Input</div>
+                    <input type="text" class="input-preview" placeholder="Search players...">
+                </div>
+
+                <div class="usage-description">
+                    <h4>Best For:</h4>
+                    <ul>
+                        <li>Gaming community energy</li>
+                        <li>Competitive leaderboards</li>
+                        <li>Bold, modern aesthetic</li>
+                        <li>High engagement features</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Theme 2: Data Mastery -->
+            <div class="theme-card theme-2">
+                <div class="theme-header">
+                    <div class="theme-name">Data Mastery</div>
+                    <div class="theme-personality">Professional • Trustworthy • Analytical</div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-label">Primary<br>#0ea5e9</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Secondary<br>#06b6d4</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Accent<br>#3b82f6</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Dark<br>#0f172a</div>
+                    </div>
+                </div>
+
+                <div class="semantic-colors">
+                    <div class="semantic-swatch">Success</div>
+                    <div class="semantic-swatch">Warning</div>
+                    <div class="semantic-swatch">Error</div>
+                    <div class="semantic-swatch">Info</div>
+                </div>
+
+                <div class="components-preview">
+                    <div class="component-title">Buttons</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-outline">Outline</button>
+                    </div>
+
+                    <div class="component-title">Card</div>
+                    <div class="card-preview">
+                        <div class="card-title">Judge Analytics</div>
+                        <div class="card-content">Tournaments: 24 • Earnings: $1,200</div>
+                    </div>
+
+                    <div class="component-title">Input</div>
+                    <input type="text" class="input-preview" placeholder="Filter by date...">
+                </div>
+
+                <div class="usage-description">
+                    <h4>Best For:</h4>
+                    <ul>
+                        <li>Data visualization focus</li>
+                        <li>Professional analytics</li>
+                        <li>Trust and accuracy</li>
+                        <li>Judge segment appeal</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Theme 3: Strategic Victory -->
+            <div class="theme-card theme-3">
+                <div class="theme-header">
+                    <div class="theme-name">Strategic Victory</div>
+                    <div class="theme-personality">Bold • Dynamic • Exciting</div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-label">Primary<br>#f59e0b</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Secondary<br>#ef4444</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Accent<br>#ec4899</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Dark<br>#1e293b</div>
+                    </div>
+                </div>
+
+                <div class="semantic-colors">
+                    <div class="semantic-swatch">Success</div>
+                    <div class="semantic-swatch">Warning</div>
+                    <div class="semantic-swatch">Error</div>
+                    <div class="semantic-swatch">Info</div>
+                </div>
+
+                <div class="components-preview">
+                    <div class="component-title">Buttons</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-outline">Outline</button>
+                    </div>
+
+                    <div class="component-title">Card</div>
+                    <div class="card-preview">
+                        <div class="card-title">Role Performance</div>
+                        <div class="card-content">Don: 72% • Mafia: 65%</div>
+                    </div>
+
+                    <div class="component-title">Input</div>
+                    <input type="text" class="input-preview" placeholder="Compare players...">
+                </div>
+
+                <div class="usage-description">
+                    <h4>Best For:</h4>
+                    <ul>
+                        <li>High-energy gaming feel</li>
+                        <li>Standout visual identity</li>
+                        <li>Competitive atmosphere</li>
+                        <li>Bold brand presence</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Theme 4: Elite Analytics -->
+            <div class="theme-card theme-4">
+                <div class="theme-header">
+                    <div class="theme-name">Elite Analytics</div>
+                    <div class="theme-personality">Sophisticated • Premium • Growth-Focused</div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-label">Primary<br>#10b981</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Secondary<br>#14b8a6</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Accent<br>#06b6d4</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Dark<br>#0f172a</div>
+                    </div>
+                </div>
+
+                <div class="semantic-colors">
+                    <div class="semantic-swatch">Success</div>
+                    <div class="semantic-swatch">Warning</div>
+                    <div class="semantic-swatch">Error</div>
+                    <div class="semantic-swatch">Info</div>
+                </div>
+
+                <div class="components-preview">
+                    <div class="component-title">Buttons</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-outline">Outline</button>
+                    </div>
+
+                    <div class="component-title">Card</div>
+                    <div class="card-preview">
+                        <div class="card-title">Club Analytics</div>
+                        <div class="card-content">Members: 45 • Avg ELO: 1,180</div>
+                    </div>
+
+                    <div class="component-title">Input</div>
+                    <input type="text" class="input-preview" placeholder="Search clubs...">
+                </div>
+
+                <div class="usage-description">
+                    <h4>Best For:</h4>
+                    <ul>
+                        <li>Premium positioning</li>
+                        <li>Growth and success focus</li>
+                        <li>Professional analytics</li>
+                        <li>Sophisticated brand</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Theme 5: Hybrid - Competitive Data (Combined #1 + #2) -->
+            <div class="theme-card theme-5">
+                <div class="theme-header">
+                    <div class="theme-name">⭐ Competitive Data (Recommended)</div>
+                    <div class="theme-personality">Energetic • Professional • Engaging</div>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-swatch">
+                        <div class="color-label">Primary<br>#4f46e5</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Secondary<br>#06b6d4</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Accent<br>#8b5cf6</div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-label">Dark<br>#0f172a</div>
+                    </div>
+                </div>
+
+                <div class="semantic-colors">
+                    <div class="semantic-swatch">Success</div>
+                    <div class="semantic-swatch">Warning</div>
+                    <div class="semantic-swatch">Error</div>
+                    <div class="semantic-swatch">Info</div>
+                </div>
+
+                <div class="components-preview">
+                    <div class="component-title">Buttons</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-outline">Outline</button>
+                    </div>
+
+                    <div class="component-title">Card</div>
+                    <div class="card-preview">
+                        <div class="card-title">Player Analytics</div>
+                        <div class="card-content">Win Rate: 68% • ELO: 1,245</div>
+                    </div>
+
+                    <div class="component-title">Input</div>
+                    <input type="text" class="input-preview" placeholder="Search players...">
+                </div>
+
+                <div class="usage-description">
+                    <h4>Best For:</h4>
+                    <ul>
+                        <li>Gaming energy + Professional trust</li>
+                        <li>Engaging yet trustworthy</li>
+                        <li>Competitive + Analytical balance</li>
+                        <li>Perfect for all user segments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="comparison-toggle" onclick="toggleComparison()">Toggle Comparison Mode</button>
+
+    <script>
+        function toggleComparison() {
+            document.body.classList.toggle('comparison-mode');
+            const btn = document.querySelector('.comparison-toggle');
+            btn.textContent = document.body.classList.contains('comparison-mode') 
+                ? 'Exit Comparison' 
+                : 'Toggle Comparison Mode';
+        }
+    </script>
+</body>
+</html>
+

@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Route protection proxy with cookie-based authentication
+ * Distinguishes between authenticated and guest routes
+ * Redirects guests from protected routes to sign-in with return URL
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,12 +37,13 @@ export async function proxy(request: NextRequest) {
     '/profile',
     '/settings',
     '/admin',
+    '/dashboard', // Dashboard routes
   ];
 
   // Define admin-only routes
   const adminRoutes = ['/admin', '/(admin)'];
 
-  // Define public routes (don't need authentication)
+  // Define public routes (accessible to guests)
   const publicRoutes = [
     '/',
     '/login',
@@ -51,6 +54,9 @@ export async function proxy(request: NextRequest) {
     '/network-error',
     '/access-denied',
     '/admin/bootstrap', // Allow access to bootstrap page
+    '/docs', // Documentation pages
+    '/help', // Help pages
+    '/public', // Public statistics and features
   ];
 
   // Check if route is public

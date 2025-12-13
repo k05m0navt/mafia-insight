@@ -73,9 +73,17 @@ export const navigationMenu: NavigationItem[] = [
       },
       {
         id: 'admin-users',
-        label: 'Users',
+        label: 'User Management',
         path: '/admin/users',
         icon: 'Users',
+        requiresAuth: true,
+        requiredPermissions: ['admin:read'],
+      },
+      {
+        id: 'admin-audit-log',
+        label: 'Audit Log',
+        path: '/admin/audit-log',
+        icon: 'FileText',
         requiresAuth: true,
         requiredPermissions: ['admin:read'],
       },

@@ -1,0 +1,209 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>Visual Design System Foundation</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-1-visual-design-system-foundation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>the platform to have a modern, enticing, beautiful visual design system</iWant>
+    <soThat>the interface is visually appealing and creates an impressive first impression</soThat>
+    <tasks>
+      <task id="1" title="Configure Tailwind CSS with custom theme">
+        <subtasks>
+          <subtask>Set up Tailwind config with color tokens matching UX Design Specification</subtask>
+          <subtask>Configure responsive breakpoints (320px, 768px, 1024px, 1440px)</subtask>
+          <subtask>Set up CSS variables for theming (light/dark mode support)</subtask>
+          <subtask>Verify color contrast ratios meet WCAG 2.1 AA standards (4.5:1 minimum)</subtask>
+          <subtask>Test: Verify Tailwind config compiles without errors</subtask>
+          <subtask>Test: Verify color tokens are accessible via Tailwind classes</subtask>
+        </subtasks>
+      </task>
+      <task id="2" title="Implement ShadCN/UI component system with New York style">
+        <subtasks>
+          <subtask>Install ShadCN/UI base components (Button, Card, Input, etc.)</subtask>
+          <subtask>Configure ShadCN/UI to use New York style variant</subtask>
+          <subtask>Customize component styles to match design tokens</subtask>
+          <subtask>Test: Verify components render correctly with custom theme</subtask>
+          <subtask>Test: Verify components are accessible (keyboard navigation, screen readers)</subtask>
+        </subtasks>
+      </task>
+      <task id="3" title="Set up icon system with Lucide React">
+        <subtasks>
+          <subtask>Install lucide-react package</subtask>
+          <subtask>Create icon component wrapper for consistent usage</subtask>
+          <subtask>Document icon usage patterns</subtask>
+          <subtask>Test: Verify icons render correctly across all screen sizes</subtask>
+          <subtask>Test: Verify icons are accessible with proper ARIA labels</subtask>
+        </subtasks>
+      </task>
+      <task id="4" title="Configure CSS variables for theming">
+        <subtasks>
+          <subtask>Set up CSS custom properties for color tokens</subtask>
+          <subtask>Implement light/dark mode theme switching infrastructure</subtask>
+          <subtask>Create theme provider component</subtask>
+          <subtask>Test: Verify theme switching works correctly</subtask>
+          <subtask>Test: Verify theme persists across page reloads</subtask>
+        </subtasks>
+      </task>
+      <task id="5" title="Create responsive layout foundation">
+        <subtasks>
+          <subtask>Set up base layout components with responsive breakpoints</subtask>
+          <subtask>Implement mobile-first responsive utilities</subtask>
+          <subtask>Create responsive grid system</subtask>
+          <subtask>Test: Verify layouts adapt correctly at all breakpoints (320px, 768px, 1024px, 1440px)</subtask>
+          <subtask>Test: Verify layouts work on real mobile devices</subtask>
+        </subtasks>
+      </task>
+      <task id="6" title="Implement animation and transition system">
+        <subtasks>
+          <subtask>Set up animation utilities using Tailwind or Framer Motion</subtask>
+          <subtask>Create transition presets for common interactions</subtask>
+          <subtask>Implement smooth page transitions</subtask>
+          <subtask>Test: Verify animations are smooth (60fps) and performant</subtask>
+          <subtask>Test: Verify animations respect prefers-reduced-motion</subtask>
+        </subtasks>
+      </task>
+      <task id="7" title="Accessibility compliance verification">
+        <subtasks>
+          <subtask>Run accessibility audit using axe-core or similar</subtask>
+          <subtask>Verify color contrast ratios for all text/background combinations</subtask>
+          <subtask>Test keyboard navigation for all interactive elements</subtask>
+          <subtask>Test screen reader compatibility</subtask>
+          <subtask>Test: Verify WCAG 2.1 Level AA compliance</subtask>
+          <subtask>Test: Verify all interactive elements have focus indicators</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>The platform is accessed for the first time</given>
+      <when>A user views any page</when>
+      <then>
+        <requirement>Rich, carefully curated color palette (Competitive Data theme: Deep Indigo #4f46e5 primary, Cyan #06b6d4 secondary, Purple #8b5cf6 accent)</requirement>
+        <requirement>High-quality images and visual assets that enhance the analytics experience</requirement>
+        <requirement>Comprehensive, beautiful iconography using Lucide React icons</requirement>
+        <requirement>Impressive, thoughtfully designed layouts</requirement>
+        <requirement>Smooth, polished animations and transitions on interactive elements</requirement>
+        <requirement>WCAG 2.1 Level AA compliant color contrast ratios (4.5:1 minimum for text)</requirement>
+        <requirement>Responsive design that adapts beautifully across screen sizes (mobile-first: 320px, 768px, 1024px, 1440px breakpoints)</requirement>
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>All visual elements use the established design tokens from the UX Design Specification</given>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="Visual Design &amp; User Experience (FR59-FR66)">
+        <snippet>Interface uses modern, enticing, beautiful design (not minimalistic) with rich visual elements. System displays high-quality images and visual assets, smooth animations, carefully curated color palettes, comprehensive iconography, impressive layouts, and delightful micro-interactions.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Component Library">
+        <snippet>ShadCN/UI with New York style variant, installed via copy-paste model (not npm package) for full customization control. Built on Radix UI primitives ensuring accessibility (WCAG 2.1 Level AA).</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Styling">
+        <snippet>Tailwind CSS 3.3.0 with utility-first approach, custom theme matching UX Design Specification. CSS variables for theming with light/dark mode support.</snippet>
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Design System Foundation">
+        <snippet>ShadCN/UI (New York style) with copy-paste components for full customization control. Competitive Data theme with Deep Indigo #4f46e5 primary, Cyan #06b6d4 secondary, Purple #8b5cf6 accent. Responsive breakpoints: 320px, 768px, 1024px, 1440px.</snippet>
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Color System">
+        <snippet>Competitive Data theme: Primary #4f46e5 (Deep Indigo), Secondary #06b6d4 (Cyan), Accent #8b5cf6 (Purple). All colors meet WCAG 2.1 Level AA contrast requirements (4.5:1 minimum for text).</snippet>
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Story 1.1: Visual Design System Foundation">
+        <snippet>Story acceptance criteria and technical notes for visual design system implementation. References UX Design Specification sections 1.1, 3.1 (Color System), 3.2 (Typography).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="tailwind.config.mjs" kind="configuration" symbol="tailwindConfig" reason="Tailwind CSS configuration file. Needs to be updated with custom theme matching UX Design Specification color tokens and responsive breakpoints." />
+      <artifact path="components.json" kind="configuration" symbol="shadcnConfig" reason="ShadCN/UI configuration file. Already configured with New York style. May need updates for custom theme integration." />
+      <artifact path="src/app/globals.css" kind="stylesheet" symbol="globalStyles" lines="1-59" reason="Global CSS file with CSS variables for theming. Currently has default ShadCN theme. Needs to be updated with Competitive Data theme colors (Deep Indigo, Cyan, Purple)." />
+      <artifact path="src/components/providers/ThemeProvider.tsx" kind="component" symbol="ThemeProvider" reason="Theme provider component for light/dark mode switching. Already exists and can be reused. May need updates for new color tokens." />
+      <artifact path="src/lib/utils.ts" kind="utility" symbol="cn" reason="Utility function for className merging (used by ShadCN/UI components). Already exists and working." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="tailwindcss" version="^3.3.0" />
+        <package name="tailwindcss-animate" version="^1.0.7" />
+        <package name="lucide-react" version="^0.548.0" />
+        <package name="class-variance-authority" version="^0.7.1" />
+        <package name="clsx" version="^2.1.1" />
+        <package name="tailwind-merge" version="^3.3.1" />
+        <package name="@radix-ui/react-*" version="^1.1.0 - ^2.2.6" reason="Radix UI primitives used by ShadCN/UI components" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Component Library: Use ShadCN/UI with New York style variant, installed via copy-paste model (not npm package) for full customization control</constraint>
+    <constraint>Styling Approach: Tailwind CSS 3.3.0 with utility-first approach, custom theme matching UX Design Specification</constraint>
+    <constraint>Theme System: CSS variables for theming with light/dark mode support, managed via theme provider component</constraint>
+    <constraint>Responsive Design: Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px</constraint>
+    <constraint>Accessibility: WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text</constraint>
+    <constraint>Animation Library: Use Tailwind transitions or Framer Motion for smooth animations, respect prefers-reduced-motion</constraint>
+    <constraint>Test Coverage: Maintain minimum 80% test coverage for all new code</constraint>
+    <constraint>TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ThemeProvider" kind="React Component" signature="ThemeProvider({ children, defaultTheme?: Theme }): JSX.Element" path="src/components/providers/ThemeProvider.tsx">
+      <description>Theme context provider for light/dark mode switching. Provides theme state and toggle functionality.</description>
+    </interface>
+    <interface name="useTheme" kind="React Hook" signature="useTheme(): ThemeContextType" path="src/components/providers/ThemeProvider.tsx">
+      <description>Hook to access theme context. Returns theme, setTheme, toggleTheme, isDark, isLight.</description>
+    </interface>
+    <interface name="Tailwind Config" kind="Configuration" signature="export default { darkMode, content, theme: { extend: { colors, borderRadius, keyframes, animation } } }" path="tailwind.config.mjs">
+      <description>Tailwind CSS configuration. Needs custom color tokens and breakpoints added to theme.extend.</description>
+    </interface>
+    <interface name="CSS Variables" kind="CSS Custom Properties" signature=":root { --primary, --secondary, --accent, ... }" path="src/app/globals.css">
+      <description>CSS custom properties for theming. Defined in :root and .dark selectors. Needs Competitive Data theme colors.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test Coverage: Maintain minimum 80% test coverage for all new code. Test Types: Unit tests for components, integration tests for theme switching, accessibility tests using axe-core. TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle. Accessibility Testing: Use @axe-core/playwright for E2E accessibility testing, verify WCAG 2.1 AA compliance.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/components/</location>
+      <location>tests/e2e/</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">
+        <description>Test Tailwind config compilation: Verify tailwind.config.mjs compiles without errors and generates expected CSS classes</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test color token accessibility: Verify all color combinations meet WCAG 2.1 AA contrast ratios (4.5:1 minimum) using automated tools</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test responsive breakpoints: Verify layouts adapt correctly at 320px, 768px, 1024px, 1440px using viewport testing</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test ShadCN/UI components: Verify all base components render correctly with custom theme and are accessible (keyboard navigation, screen readers)</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test theme switching: Verify light/dark mode switching works correctly, theme persists across page reloads, and CSS variables update properly</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test animations: Verify animations are smooth (60fps), performant, and respect prefers-reduced-motion media query</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Test design token compliance: Verify all visual elements use design tokens from UX Design Specification (colors, spacing, typography)</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Test icon system: Verify Lucide React icons render correctly across all screen sizes and have proper ARIA labels for accessibility</description>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>
+

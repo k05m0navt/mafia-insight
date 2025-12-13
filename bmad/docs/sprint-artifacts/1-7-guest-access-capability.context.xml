@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>7</storyId>
+    <title>Guest Access Capability</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-7-guest-access-capability.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>visitor</asA>
+    <iWant>to access the platform as a guest with limited functionality</iWant>
+    <soThat>I can explore public features before creating an account</soThat>
+    <tasks>
+      <task id="1">Implement route protection middleware (AC: #1, #3)</task>
+      <task id="2">Create guest session management (AC: #1)</task>
+      <task id="3">Create public statistics API endpoint (AC: #1, #2)</task>
+      <task id="4">Create public statistics display component (AC: #1, #2)</task>
+      <task id="5">Create landing page with feature overview (AC: #1, #2)</task>
+      <task id="6">Create "Sign In Required" component (AC: #3)</task>
+      <task id="7">Update navigation for guest users (AC: #1)</task>
+      <task id="8">Create feature tour/demo mode component (AC: #2)</task>
+      <task id="9">Integrate guest preferences with theme system (AC: #1)</task>
+      <task id="10">Create public documentation/help pages (AC: #2)</task>
+      <task id="11">Integration and E2E testing (AC: #1, #2, #3)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am not logged in and visit the platform</given>
+      <when>I navigate the site</when>
+      <then>
+        - Allows access to public pages (landing page, public statistics, feature overview)
+        - Displays "Sign In" and "Sign Up" options prominently in navigation
+        - Shows limited preview of analytics features (read-only, sample data or aggregated public data)
+        - Prompts for account creation when trying to access personalized features
+        - Stores guest preferences in session storage (theme, language) that persist for session duration
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I am a guest user</given>
+      <when>I access guest-accessible features</when>
+      <then>
+        - Public overall statistics view (community-wide aggregated data)
+        - Feature tour or demo mode
+        - Marketing/landing page content
+        - Documentation or help pages
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>I am a guest user</given>
+      <when>I try to access features requiring authentication</when>
+      <then>
+        - Clear "Sign In Required" message
+        - Call-to-action to create account
+        - Smooth transition to sign-up flow
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Account &amp; Access - FR6</section>
+        <snippet>FR6: Users can access the platform as guests with limited functionality. Guest access allows visitors to explore public features before creating an account.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Authentication &amp; Authorization</section>
+        <snippet>NextAuth.js 4.24.12 for session management. Role-based access control (RBAC) with roles: guest, user, moderator, admin. Middleware for route protection. Authorization levels: GUEST (public access), USER (authenticated users), ADMIN (administrative access).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Request Flow</section>
+        <snippet>Request flow: User Request → Next.js App Router → HTTP Controller → Use Case → Domain Service → Repository/Adapter → Database. Middleware handles route protection and authentication checks.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Navigation Patterns</section>
+        <snippet>Navigation system is visually appealing and intuitive with engaging visual feedback. Mobile: bottom navigation or hamburger menu. Desktop: sidebar or top tabs. Context-aware navigation organizes content logically.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.7: Guest Access Capability</section>
+        <snippet>Guest-accessible features include: Public overall statistics view (community-wide aggregated data), Feature tour or demo mode, Marketing/landing page content, Documentation or help pages. Features requiring authentication show clear "Sign In Required" message with call-to-action.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.7: Technical Notes</section>
+        <snippet>Middleware or route guards to distinguish authenticated vs guest routes. Guest session management (temporary, no database record). Public API endpoints for aggregated/public data. Reference: PRD FR6, UX Design Specification (Navigation patterns).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/proxy.ts</path>
+        <kind>middleware</kind>
+        <symbol>proxy</symbol>
+        <lines>1-92</lines>
+        <reason>Route protection proxy with cookie-based authentication. Defines protected routes, admin routes, and public routes. Handles authentication checks via auth-token cookie.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/apiAuth.ts</path>
+        <kind>service</kind>
+        <symbol>authenticateRequest</symbol>
+        <lines>11-68</lines>
+        <reason>API authentication middleware for cookie-based authentication with Supabase. Throws AuthenticationError if authentication fails. Can be extended to support guest access detection.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/navigation.ts</path>
+        <kind>service</kind>
+        <symbol>getNavigationMenu</symbol>
+        <lines>1-91</lines>
+        <reason>Navigation service that returns menu items based on user role. Supports GUEST role. Can be extended to show guest-specific navigation items.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/navigation/menu/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>1-35</lines>
+        <reason>API endpoint for navigation menu. Already supports GUEST access - no authentication required. Returns menu items based on user role from cookie.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/auth/ProtectedRoute.tsx</path>
+        <kind>component</kind>
+        <symbol>ProtectedRoute</symbol>
+        <lines>1-162</lines>
+        <reason>Component for protecting routes that require authentication. Can be extended to show "Sign In Required" message for guest users trying to access protected routes.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/auth/GuestOnly.tsx</path>
+        <kind>component</kind>
+        <symbol>GuestOnly</symbol>
+        <lines>1-72</lines>
+        <reason>Component that renders content only for guest users. Useful for showing guest-specific UI elements like sign-up prompts.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/navigation/MainNavigation.tsx</path>
+        <kind>component</kind>
+        <symbol>MainNavigation</symbol>
+        <lines>1-100</lines>
+        <reason>Main navigation component. Should be updated to show "Sign In" and "Sign Up" options prominently for guests, and hide authenticated-only items.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/auth/nextauth-helpers.ts</path>
+        <kind>utility</kind>
+        <symbol>getSession</symbol>
+        <lines>1-50</lines>
+        <reason>NextAuth.js session helpers. Use existing authentication infrastructure for guest vs authenticated user detection.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/theme.ts</path>
+        <kind>service</kind>
+        <symbol>theme utilities</symbol>
+        <lines>1-50</lines>
+        <reason>Theme preference system. Extend to support guest preferences in session storage (not database, as guests have no user record).</reason>
+      </artifact>
+      <artifact>
+        <path>src/store/authStore.ts</path>
+        <kind>store</kind>
+        <symbol>authStore</symbol>
+        <lines>1-50</lines>
+        <reason>Zustand auth store. Can be extended to track guest state and preferences. Use session storage for guest preferences (not Zustand persistence, as it's temporary).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0">Next.js framework with App Router, middleware support</package>
+        <package name="next-auth" version="^4.24.12">Session management, authentication</package>
+        <package name="react" version="^19.2.0">React component framework</package>
+        <package name="zustand" version="^4.4.0">Client state management (for guest preferences in session storage)</package>
+        <package name="@tanstack/react-query" version="^5.0.0">Server state management for API calls</package>
+        <package name="zod" version="^4.1.12">Schema validation for API endpoints</package>
+        <package name="@radix-ui/react-*" version="^1.0.0">UI primitives for ShadCN/UI components</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <type>Architecture Pattern</type>
+      <description>Use Next.js middleware or route guards to distinguish authenticated vs guest routes. Follow Clean Architecture patterns with separation of concerns.</description>
+    </constraint>
+    <constraint>
+      <type>Session Management</type>
+      <description>Guest session management is temporary with no database record. Store guest preferences in session storage (browser sessionStorage API) that persist for session duration only.</description>
+    </constraint>
+    <constraint>
+      <type>API Design</type>
+      <description>Public API endpoints for aggregated/public data should be in src/app/api/public/ directory. Use Zod validation for all API endpoints.</description>
+    </constraint>
+    <constraint>
+      <type>State Management</type>
+      <description>Use session storage for guest preferences (temporary), TanStack Query for server state, Zustand for client state. Do not use Zustand persistence for guest preferences (session-only).</description>
+    </constraint>
+    <constraint>
+      <type>Responsive Design</type>
+      <description>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px. All components must be responsive and accessible.</description>
+    </constraint>
+    <constraint>
+      <type>Accessibility</type>
+      <description>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text. All interactive elements must be keyboard accessible.</description>
+    </constraint>
+    <constraint>
+      <type>Testing</type>
+      <description>Maintain minimum 80% test coverage. Write tests before implementation (TDD). Include unit tests, integration tests, E2E tests, and accessibility tests using @axe-core/playwright.</description>
+    </constraint>
+    <constraint>
+      <type>Component Patterns</type>
+      <description>Use ShadCN/UI components from src/components/ui/. Follow existing component patterns. Public components in src/components/public/, auth components in src/components/auth/.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Navigation Menu API</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/navigation/menu</signature>
+      <path>src/app/api/navigation/menu/route.ts</path>
+      <description>Returns navigation menu items based on user role. Already supports GUEST role. No authentication required.</description>
+    </interface>
+    <interface>
+      <name>Public Statistics API</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/public/statistics</signature>
+      <path>src/app/api/public/statistics/route.ts (to be created)</path>
+      <description>Returns aggregated public statistics (community-wide data). No authentication required. Should include caching for performance.</description>
+    </interface>
+    <interface>
+      <name>Guest Session Service</name>
+      <kind>TypeScript service</kind>
+      <signature>class GuestSessionService { getPreferences(), setPreferences(), clearSession() }</signature>
+      <path>src/lib/auth/guest-session.ts (to be created)</path>
+      <description>Service for managing guest session preferences (theme, language) in session storage. No database interaction.</description>
+    </interface>
+    <interface>
+      <name>Route Protection Middleware</name>
+      <kind>Next.js middleware</kind>
+      <signature>export function middleware(request: NextRequest): NextResponse</signature>
+      <path>src/middleware.ts (to be created or extended)</path>
+      <description>Middleware to protect routes and redirect guests from protected routes to sign-in with return URL.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing follows TDD approach with Red-Green-Refactor cycle. Minimum 80% test coverage required. Test types: unit tests for components and utilities, integration tests for guest access flow, E2E tests for complete guest access flow, accessibility tests using @axe-core/playwright. All tests must verify WCAG 2.1 AA compliance. Guest access testing includes: complete flow (landing → public stats → protected route → sign-in redirect), guest preferences persistence, public API accessibility. Route protection testing includes: middleware correctly identifies public vs protected routes, redirects work correctly, authentication requirements enforced.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">
+        <description>Test guest can access public pages (landing, public stats, docs) without authentication</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test navigation displays "Sign In" and "Sign Up" options prominently for guests</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test guest preferences (theme, language) are stored in session storage and persist during session</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Test guest preferences are cleared when session ends (browser close)</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Test public statistics API returns aggregated community-wide data without authentication</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Test feature tour/demo mode displays sample data correctly for guests</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Test documentation/help pages are accessible without authentication</description>
+      </idea>
+      <idea criterionId="3">
+        <description>Test "Sign In Required" component displays when guest tries to access protected route</description>
+      </idea>
+      <idea criterionId="3">
+        <description>Test redirect to sign-up flow with return URL stored for post-authentication redirect</description>
+      </idea>
+      <idea criterionId="3">
+        <description>Test middleware correctly identifies and protects authenticated-only routes</description>
+      </idea>
+      <idea criterionId="3">
+        <description>Test smooth transition to sign-up flow from protected route access attempt</description>
+      </idea>
+      <idea criterionId="1,2,3">
+        <description>E2E test: Guest visits landing page → Views public stats → Tries to access dashboard → Redirected to sign-in → Signs up → Redirected back to dashboard</description>
+      </idea>
+      <idea criterionId="1,2,3">
+        <description>Accessibility test: Verify all guest-accessible pages meet WCAG 2.1 AA compliance using @axe-core/playwright</description>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

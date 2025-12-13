@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { roleColors, featureColors } from '@/lib/constants/colors';
+import { PublicStatistics } from '@/components/public/PublicStatistics';
+import { FeatureTour } from '@/components/public/FeatureTour';
 
 export default function Home() {
   return (
@@ -19,7 +21,7 @@ export default function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="text-lg px-8 py-3">
-            <Link href="/players">View Players</Link>
+            <Link href="/signup">Get Started</Link>
           </Button>
           <Button
             asChild
@@ -27,9 +29,14 @@ export default function Home() {
             size="lg"
             className="text-lg px-8 py-3"
           >
-            <Link href="/clubs">Explore Clubs</Link>
+            <Link href="/login">Sign In</Link>
           </Button>
         </div>
+      </div>
+
+      {/* Public Statistics Section */}
+      <div className="mb-16">
+        <PublicStatistics />
       </div>
 
       {/* Features Section */}
@@ -141,6 +148,11 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Feature Tour Section */}
+      <div className="mb-16">
+        <FeatureTour />
+      </div>
+
       {/* CTA Section */}
       <div className="text-center">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
@@ -150,9 +162,19 @@ export default function Home() {
           Join thousands of players who are already improving their game with
           Mafia Insight.
         </p>
-        <Button asChild size="lg" className="text-lg px-8 py-3">
-          <Link href="/players">Get Started</Link>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild size="lg" className="text-lg px-8 py-3">
+            <Link href="/signup">Create Free Account</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="text-lg px-8 py-3"
+          >
+            <Link href="/login">Sign In</Link>
+          </Button>
+        </div>
       </div>
     </main>
   );

@@ -16,6 +16,8 @@ export enum AuthErrorCode {
   USER_NOT_FOUND = 'user_not_found',
   EMAIL_NOT_VERIFIED = 'email_not_verified',
   INVALID_TOKEN = 'invalid_token',
+  OAUTH_ERROR = 'oauth_error',
+  OAUTH_ACCESS_DENIED = 'oauth_access_denied',
 }
 
 /**

@@ -14,6 +14,7 @@ export interface User {
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterData {
@@ -227,6 +228,7 @@ export class AuthService {
         body: JSON.stringify({
           email: credentials.email,
           password: credentials.password,
+          rememberMe: credentials.rememberMe || false,
         }),
       });
 

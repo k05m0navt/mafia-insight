@@ -3,18 +3,99 @@ import { z } from 'zod';
 import { createRouteHandlerClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db';
 import { setAuthTokenCookie, setUserRoleCookie } from '@/lib/utils/apiAuth';
+import { checkRateLimit } from '@/lib/rateLimiter';
 
 // Login request body schema
 const LoginSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional().default(false),
 });
+
+/**
+ * Get client IP address from request
+ */
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  const ip = forwarded?.split(',')[0] || realIp || 'unknown';
+  return ip;
+}
+
+/**
+ * Log failed login attempt to security_events table
+ */
+async function logFailedLoginAttempt(
+  email: string,
+  ipAddress: string,
+  reason: string
+): Promise<void> {
+  try {
+    await prisma.securityEvent.create({
+      data: {
+        eventType: 'LOGIN_FAILED',
+        userId: null, // User not found or invalid credentials
+        email,
+        ipAddress,
+        userAgent: 'unknown', // Could extract from request if needed
+        details: {
+          reason,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+  } catch (error) {
+    // Log to console if database logging fails (e.g., table doesn't exist yet)
+    console.warn(
+      '[LOGIN API] Failed to log security event (table may not exist yet):',
+      error
+    );
+    console.warn('[LOGIN API] Security event details:', {
+      eventType: 'LOGIN_FAILED',
+      email,
+      ipAddress,
+      reason,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
 
 /**
  * POST /api/auth/login
  * Authenticate user and return session data
+ * Implements rate limiting (5 attempts/hour/IP), account enumeration prevention,
+ * and security event logging
  */
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Rate limiting: 5 attempts per hour per IP
+  const rateLimitResult = await checkRateLimit(`login:${clientIp}`, {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    maxRequests: 5,
+    keyPrefix: 'login_rate_limit:',
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many login attempts. Please try again later.',
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const data = LoginSchema.parse(body);
@@ -29,22 +110,21 @@ export async function POST(request: NextRequest) {
         password: data.password,
       });
 
-    if (authError) {
-      console.error('Supabase auth error:', authError);
-      return NextResponse.json(
-        {
-          success: false,
-          error: authError.message,
-        },
-        { status: 401 }
+    // Account enumeration prevention: Always return same error message
+    // Log failed attempts regardless of whether email exists
+    if (authError || !authData.user) {
+      // Log failed login attempt
+      await logFailedLoginAttempt(
+        data.email,
+        clientIp,
+        authError?.message || 'Invalid credentials'
       );
-    }
 
-    if (!authData.user) {
+      // Return generic error message to prevent account enumeration
       return NextResponse.json(
         {
           success: false,
-          error: 'Authentication failed',
+          error: 'Invalid email or password',
         },
         { status: 401 }
       );
@@ -148,10 +228,16 @@ export async function POST(request: NextRequest) {
     });
 
     // Create response
+    // Set session expiration based on rememberMe: 7 days for JWT, 30 days for refresh token
+    // If rememberMe is true, extend session duration
+    const sessionDuration = data.rememberMe
+      ? 30 * 24 * 60 * 60 * 1000 // 30 days
+      : 7 * 24 * 60 * 60 * 1000; // 7 days
+
     const token = authData.session?.access_token || 'mock-token-' + Date.now();
     const expiresAt = authData.session?.expires_at
       ? new Date(authData.session.expires_at * 1000)
-      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+      : new Date(Date.now() + sessionDuration);
 
     const response = NextResponse.json({
       success: true,

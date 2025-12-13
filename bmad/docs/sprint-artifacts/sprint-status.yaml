@@ -1,0 +1,95 @@
+# generated: 2025-01-27
+# project: mafia-insight
+# project_key: mafia-insight
+# tracking_system: file-system
+# story_location: "{project-root}/bmad/docs/sprint-artifacts"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2025-01-27
+project: mafia-insight
+project_key: mafia-insight
+tracking_system: file-system
+story_location: '{project-root}/bmad/docs/sprint-artifacts'
+
+development_status:
+  epic-1: backlog
+  1-1-visual-design-system-foundation: done
+  1-2-email-authentication-user-registration: done
+  1-3-email-authentication-user-login: done
+  1-4-social-authentication-oauth: done
+  1-5-password-reset-flow: done
+  1-6-user-profile-management: done
+  1-7-guest-access-capability: done
+  1-8-admin-role-management: done
+  epic-1-retrospective: completed
+
+  epic-2: backlog
+  2-1-historical-data-import-from-gomafia-pro: backlog
+  2-2-automatic-scheduled-synchronization: backlog
+  2-3-manual-data-synchronization-trigger: backlog
+  2-4-data-quality-validation-98-threshold: backlog
+  2-5-import-error-handling-retry-mechanisms: backlog
+  2-6-real-time-import-progress-tracking: backlog
+  2-7-checkpoint-resume-interrupted-imports: backlog
+  2-8-concurrent-import-prevention: backlog
+  2-9-referential-integrity-verification: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-role-based-performance-metrics-display: backlog
+  3-2-elo-rating-with-historical-trends: backlog
+  3-3-win-rate-analysis-across-roles: backlog
+  3-4-basic-performance-statistics-summaries: backlog
+  3-5-date-range-filtering-for-analytics: backlog
+  3-6-role-filtering-for-analytics: backlog
+  3-7-performance-trends-over-time: backlog
+  3-8-role-comparison-capability: backlog
+  3-9-analytics-navigation-data-display-components: backlog
+  3-10-mobile-pwa-access-responsive-layouts: backlog
+  3-11-responsive-charts-data-visualization: backlog
+  3-12-search-for-players-or-games: backlog
+  3-13-individual-game-detail-view: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-interactive-timeline-display: backlog
+  4-2-timeline-date-range-filtering: backlog
+  4-3-timeline-role-filtering: backlog
+  4-4-timeline-game-outcome-filtering: backlog
+  4-5-timeline-visual-performance-representation: backlog
+  4-6-mobile-responsive-timeline: backlog
+  4-7-interactive-timeline-elements-game-details: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-complete-tournament-history-tracking: backlog
+  5-2-games-judged-per-month-statistics: backlog
+  5-3-earnings-tracking-trends: backlog
+  5-4-judge-performance-metrics: backlog
+  5-5-judge-analytics-date-range-filtering: backlog
+  5-6-judge-analytics-trends-patterns: backlog
+  epic-5-retrospective: optional

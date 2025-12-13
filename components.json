@@ -15,6 +15,14 @@
     "utils": "@/lib/utils"
   },
   "registries": {
-    "@aceternity": "https://ui.aceternity.com/registry/{name}.json"
+    "@shadcn": "https://ui.shadcn.com/r",
+    "@aceternity": "https://ui.aceternity.com/registry/{name}.json",
+    "@magicui": "https://magicui.design/registry/{name}.json",
+    "@blocks": "https://blocks-ui.com/registry/{name}.json",
+    "@shadcnblocks": "https://shadcnblocks.com/registry/{name}.json",
+    "@reui": "https://reui.dev/registry/{name}.json",
+    "@smoothui": "https://smoothui.dev/registry/{name}.json",
+    "@shadcn-studio": "https://shadcn-studio.com/registry/{name}.json",
+    "@tailark": "https://tailark.com/registry/{name}.json"
   }
 }

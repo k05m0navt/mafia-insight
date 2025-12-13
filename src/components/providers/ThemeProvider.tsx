@@ -1,6 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  startTransition,
+} from 'react';
 import { Theme, ThemeContextType } from '@/types/theme';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -14,24 +20,53 @@ export function ThemeProvider({
   children,
   defaultTheme = 'light',
 }: ThemeProviderProps) {
-  // Initialize theme from localStorage on first render
-  const getInitialTheme = (): Theme => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') as Theme;
-      if (savedTheme && ['light', 'dark'].includes(savedTheme)) {
-        return savedTheme;
+  // Always start with defaultTheme to avoid hydration mismatch
+  // We'll read from localStorage in useEffect after hydration
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = useState(false);
+
+  // Load theme from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    startTransition(() => {
+      setMounted(true);
+    });
+
+    // Check for guest preferences in session storage first (for guests)
+    let savedTheme: Theme | null = null;
+
+    try {
+      // Try session storage for guest preferences
+      const guestPrefs = sessionStorage.getItem('guest_preferences');
+      if (guestPrefs) {
+        const prefs = JSON.parse(guestPrefs);
+        if (prefs.theme && ['light', 'dark'].includes(prefs.theme)) {
+          savedTheme = prefs.theme as Theme;
+        }
       }
-      // Remove invalid theme from localStorage
-      if (savedTheme && !['light', 'dark'].includes(savedTheme)) {
+    } catch (_error) {
+      // Ignore session storage errors, fall back to localStorage
+    }
+
+    // Fall back to localStorage if no guest preference found
+    if (!savedTheme) {
+      const storedTheme = localStorage.getItem('theme') as Theme;
+      if (storedTheme && ['light', 'dark'].includes(storedTheme)) {
+        savedTheme = storedTheme;
+      } else if (storedTheme && !['light', 'dark'].includes(storedTheme)) {
+        // Remove invalid theme from localStorage
         localStorage.removeItem('theme');
       }
     }
-    return defaultTheme;
-  };
 
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+    if (savedTheme) {
+      startTransition(() => {
+        setTheme(savedTheme);
+      });
+    }
+  }, []);
 
-  // Apply theme to document
+  // Apply theme to document immediately
+  // This runs on both server and client, but theme state is consistent (defaultTheme initially)
   useEffect(() => {
     const root = document.documentElement;
 
@@ -44,9 +79,19 @@ export function ThemeProvider({
     // Set data attribute for CSS custom properties
     root.setAttribute('data-theme', theme);
 
-    // Save to localStorage
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    // Save to localStorage (only if mounted and not a guest preference)
+    if (mounted) {
+      try {
+        const guestPrefs = sessionStorage.getItem('guest_preferences');
+        if (!guestPrefs) {
+          // Only save to localStorage if not using guest preferences
+          localStorage.setItem('theme', theme);
+        }
+      } catch (_error) {
+        // Ignore storage errors
+      }
+    }
+  }, [theme, mounted]);
 
   const value: ThemeContextType = {
     theme,
@@ -56,6 +101,7 @@ export function ThemeProvider({
     },
     isDark: theme === 'dark',
     isLight: theme === 'light',
+    mounted, // Expose mounted state to prevent hydration mismatches
   };
 
   return (

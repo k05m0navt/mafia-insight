@@ -1,0 +1,285 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>3</storyId>
+    <title>Email Authentication - User Login</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/1-3-email-authentication-user-login.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>registered user</asA>
+    <iWant>to log in securely using my email and password</iWant>
+    <soThat>I can access my personalized analytics dashboard</soThat>
+    <tasks>
+      <task id="1" title="Create login form component with ShadCN/UI">
+        <subtask>Use ShadCN/UI Form components with react-hook-form integration</subtask>
+        <subtask>Implement email and password fields with proper input types and autocomplete attributes</subtask>
+        <subtask>Add password visibility toggle button using Icon component</subtask>
+        <subtask>Add "Remember me" checkbox</subtask>
+        <subtask>Add "Forgot password?" link to password reset flow</subtask>
+        <subtask>Implement loading state (button disabled, spinner shown) during authentication</subtask>
+        <subtask>Ensure form follows design system (Competitive Data theme colors, responsive layout)</subtask>
+        <subtask>Test: Verify form accessibility (keyboard navigation, screen reader compatibility)</subtask>
+        <subtask>Test: Verify form works on all responsive breakpoints (320px, 768px, 1024px, 1440px)</subtask>
+      </task>
+      <task id="2" title="Implement login API endpoint">
+        <subtask>Create POST /api/auth/login endpoint</subtask>
+        <subtask>Validate request body using Zod schema (email, password)</subtask>
+        <subtask>Authenticate credentials against Supabase Auth or database</subtask>
+        <subtask>Create secure session with JWT token (expires 7 days) and refresh token (expires 30 days) via NextAuth.js</subtask>
+        <subtask>Implement rate limiting: maximum 5 login attempts per hour per IP address (Redis-based)</subtask>
+        <subtask>Log failed login attempts to security_events table (or audit log)</subtask>
+        <subtask>Prevent account enumeration (same error message for invalid email vs invalid password)</subtask>
+        <subtask>Test: Verify password authentication works correctly</subtask>
+        <subtask>Test: Verify rate limiting prevents brute force attacks</subtask>
+        <subtask>Test: Verify failed login attempts are logged</subtask>
+        <subtask>Test: Verify account enumeration prevention</subtask>
+      </task>
+      <task id="3" title="Implement session management">
+        <subtask>Configure NextAuth.js session strategy: JWT with refresh token rotation</subtask>
+        <subtask>Set session expiration: 7 days for JWT, 30 days for refresh token</subtask>
+        <subtask>Ensure session persists across browser tabs and devices</subtask>
+        <subtask>Implement "Remember me" functionality (extends session duration)</subtask>
+        <subtask>Test: Verify session persists across browser tabs</subtask>
+        <subtask>Test: Verify session persists across devices</subtask>
+        <subtask>Test: Verify "Remember me" extends session duration</subtask>
+      </task>
+      <task id="4" title="Implement error handling and user feedback">
+        <subtask>Create error mapping service for user-friendly error messages</subtask>
+        <subtask>Display error message below form: "Invalid email or password" (red, 14px font size)</subtask>
+        <subtask>Ensure error messages are clear and actionable</subtask>
+        <subtask>Handle network errors gracefully</subtask>
+        <subtask>Test: Verify all error scenarios display appropriate messages</subtask>
+        <subtask>Test: Verify error messages meet WCAG 2.1 AA contrast requirements</subtask>
+      </task>
+      <task id="5" title="Implement redirect and success feedback">
+        <subtask>Redirect to dashboard after successful login</subtask>
+        <subtask>Implement smooth fade transition animation using PageTransition component</subtask>
+        <subtask>Display success feedback (brief toast notification or visual confirmation)</subtask>
+        <subtask>Test: Verify redirect works correctly</subtask>
+        <subtask>Test: Verify transition animation is smooth</subtask>
+        <subtask>Test: Verify success feedback is displayed</subtask>
+      </task>
+      <task id="6" title="Integrate with NextAuth.js authentication system">
+        <subtask>Configure NextAuth.js CredentialsProvider for email/password authentication</subtask>
+        <subtask>Integrate login flow with NextAuth.js session management</subtask>
+        <subtask>Ensure compatibility with existing authentication infrastructure</subtask>
+        <subtask>Test: Verify login creates valid session</subtask>
+        <subtask>Test: Verify session persists across browser tabs and devices</subtask>
+      </task>
+      <task id="7" title="Accessibility and responsive design compliance">
+        <subtask>Ensure form meets WCAG 2.1 Level AA compliance</subtask>
+        <subtask>Add proper ARIA labels to all form fields</subtask>
+        <subtask>Verify keyboard navigation works correctly</subtask>
+        <subtask>Test screen reader compatibility</subtask>
+        <subtask>Ensure responsive design works at all breakpoints (320px, 768px, 1024px, 1440px)</subtask>
+        <subtask>Test: Verify accessibility compliance using @axe-core/playwright</subtask>
+        <subtask>Test: Verify responsive design on real devices</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am on the login page</given>
+      <when>I enter valid credentials and submit</when>
+      <then>
+        <item>Authenticates credentials against stored user data</item>
+        <item>Creates secure session with JWT token (expires 7 days) and refresh token (expires 30 days)</item>
+        <item>Maintains session across browser tabs and devices</item>
+        <item>Redirects to dashboard with smooth fade transition animation</item>
+        <item>Displays success feedback (brief toast notification or visual confirmation)</item>
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I am on the login page</given>
+      <when>I enter invalid credentials</when>
+      <then>
+        <item>Displays error message below the form: "Invalid email or password" (red, 14px)</item>
+        <item>Prevents account enumeration (same error message for invalid email vs invalid password)</item>
+        <item>Implements rate limiting: maximum 5 login attempts per hour per IP address</item>
+        <item>Logs failed login attempts to security_events table for monitoring</item>
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>I am on the login page</given>
+      <when>I view the login form</when>
+      <then>
+        <item>Email field with email input type and autocomplete="email"</item>
+        <item>Password field with password input type, visibility toggle button, and autocomplete="current-password"</item>
+        <item>"Remember me" checkbox (extends session duration)</item>
+        <item>"Forgot password?" link to password reset flow</item>
+        <item>Loading state during authentication (button disabled, spinner shown)</item>
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document">
+        <section>User Account & Access - FR2</section>
+        <snippet>FR2: Users can log in securely and maintain sessions across devices. Authentication requirements include secure password storage, session management with secure tokens, and role-based access control.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document">
+        <section>Authentication</section>
+        <snippet>NextAuth.js 4.24.12 for authentication handling and session management. Session strategy: JWT with refresh token rotation. Session expires 7 days, refresh token expires 30 days. Authentication flow uses NextAuth.js with secure HTTP-only cookies.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document">
+        <section>Security Architecture - Rate Limiting</section>
+        <snippet>Redis-based rate limiting, configurable per endpoint. Import endpoints have stricter limits. Auth endpoints have standard limits. Rate limiting prevents brute force attacks and abuse.</snippet>
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown">
+        <section>Story 1.3: Email Authentication - User Login</section>
+        <snippet>Story acceptance criteria and technical notes. NextAuth.js session management with secure cookie storage. Session strategy: JWT with refresh token rotation. Rate limiting via Redis or middleware (5 attempts/hour/IP). Security logging for audit trail.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-2-email-authentication-user-registration.md" title="Story 1.2 - User Registration">
+        <section>Dev Agent Record</section>
+        <snippet>Auth infrastructure available: NextAuth.js configured with CredentialsProvider using Supabase Auth. Session management helpers at src/lib/auth/nextauth-helpers.ts. Validation utilities at src/lib/auth/validation.ts. Form components: ShadCN/UI Form with react-hook-form integration. Error handling: Error mapping service available. Icon system: Icon wrapper component at src/components/ui/icon.tsx. Animation system: Animation utilities at src/lib/animations.ts. PageTransition component at src/components/layout/PageTransition.tsx.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/1-1-visual-design-system-foundation.md" title="Story 1.1 - Visual Design System">
+        <section>Dev Agent Record</section>
+        <snippet>Design system foundation with ShadCN/UI components, Tailwind CSS theme (Competitive Data theme colors), responsive breakpoints (320px, 768px, 1024px, 1440px), WCAG 2.1 Level AA compliance, and PageTransition component for smooth page transitions.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/components/auth/LoginForm.tsx" kind="component" symbol="LoginForm" lines="1-218" reason="Existing login form component that needs enhancement. Currently implements basic email/password form with ShadCN/UI, react-hook-form, password visibility toggle, and error handling. Needs "Remember me" checkbox, "Forgot password?" link, and integration with NextAuth.js session management." />
+      <artifact path="src/app/(auth)/login/page.tsx" kind="page" symbol="LoginPage" lines="1-59" reason="Login page component that renders LoginForm. Needs to integrate PageTransition component for smooth fade animation on redirect." />
+      <artifact path="src/lib/auth/validation.ts" kind="utility" symbol="emailSchema, passwordSchema" lines="1-148" reason="Email and password validation schemas using Zod. Email validation uses RFC 5322 standard. Password validation enforces requirements: minimum 8 characters, uppercase, number, special character. Reusable for login form validation." />
+      <artifact path="src/lib/auth/nextauth-helpers.ts" kind="utility" symbol="getSession, createSessionAfterVerification, hasValidSession" lines="1-58" reason="NextAuth.js session management helpers. Provides functions to get server session, create session after verification, and check if user has valid session. Use for session management in login flow." />
+      <artifact path="src/lib/auth.ts" kind="service" symbol="AuthService.login" lines="85-104" reason="AuthService class with login method. Currently makes request to /login endpoint. Needs to be updated to use NextAuth.js CredentialsProvider instead of direct API call." />
+      <artifact path="src/components/layout/PageTransition.tsx" kind="component" symbol="PageTransition" lines="1-39" reason="Page transition wrapper component that provides smooth fade transitions. Uses animationClass('fadeIn') from animations.ts. Respects prefers-reduced-motion. Use for smooth redirect animation after login." />
+      <artifact path="src/lib/animations.ts" kind="utility" symbol="animationClass" reason="Animation utilities with transition presets. Provides animationClass function for fade transitions. Use with PageTransition component for smooth page transitions." />
+      <artifact path="src/components/ui/icon.tsx" kind="component" symbol="Icon" reason="Icon wrapper component for consistent Lucide React usage with built-in accessibility support. Use for password visibility toggle button (Eye/EyeOff icons)." />
+      <artifact path="src/components/ui/form.tsx" kind="component" symbol="Form, FormField, FormItem, FormLabel, FormControl, FormMessage" reason="ShadCN/UI form components with react-hook-form integration. Automatically uses CSS variables for theming. Use for login form fields." />
+      <artifact path="src/app/api/auth/[...nextauth]/route.ts" kind="api-route" symbol="handler" lines="1-6" reason="NextAuth.js API route handler. Configured with authOptions from src/lib/auth.ts. Needs CredentialsProvider configuration for email/password authentication." />
+      <artifact path="src/lib/auth/error-mapping.ts" kind="service" symbol="ErrorMappingService" reason="Error mapping service for user-friendly error messages. Maps technical errors to user-friendly messages. Use for displaying error messages in login form." />
+      <artifact path="src/services/AuthService.ts" kind="service" symbol="AuthService" reason="AuthService that handles authentication API calls. Currently used by LoginForm. May need updates to work with NextAuth.js session management." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0" />
+        <package name="next-auth" version="^4.24.12" />
+        <package name="react" version="^19.2.0" />
+        <package name="react-dom" version="^19.2.0" />
+        <package name="react-hook-form" version="^7.65.0" />
+        <package name="@hookform/resolvers" version="^5.2.2" />
+        <package name="zod" version="^4.1.12" />
+        <package name="lucide-react" version="^0.548.0" />
+        <package name="redis" version="^4.6.0" />
+        <package name="@supabase/supabase-js" version="^2.38.0" />
+        <package name="@supabase/ssr" version="^0.1.0" />
+        <package name="@next-auth/supabase-adapter" version="^0.2.1" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="architecture">
+      <rule>Use NextAuth.js for authentication handling and session management</rule>
+      <source>bmad/docs/architecture.md#Authentication</source>
+    </constraint>
+    <constraint category="session">
+      <rule>NextAuth.js session strategy: JWT with refresh token rotation, session expires 7 days, refresh token expires 30 days</rule>
+      <source>bmad/docs/epics.md#Story-1.3-Technical-Notes</source>
+    </constraint>
+    <constraint category="security">
+      <rule>Implement rate limiting via Redis or middleware (5 attempts/hour/IP)</rule>
+      <source>bmad/docs/epics.md#Story-1.3-Technical-Notes</source>
+    </constraint>
+    <constraint category="security">
+      <rule>Log failed login attempts to security_events table for audit trail</rule>
+      <source>bmad/docs/epics.md#Story-1.3-Technical-Notes</source>
+    </constraint>
+    <constraint category="validation">
+      <rule>Use Zod schema validation for email and password (reuse validation from src/lib/auth/validation.ts)</rule>
+      <source>bmad/docs/architecture.md#Decision-Summary</source>
+    </constraint>
+    <constraint category="ui">
+      <rule>Use ShadCN/UI Form components with react-hook-form integration</rule>
+      <source>bmad/docs/epics.md#Story-1.2-Technical-Notes</source>
+    </constraint>
+    <constraint category="error-handling">
+      <rule>Implement custom error mapping service for user-friendly error messages</rule>
+      <source>specs/005-auth-ux/research.md</source>
+    </constraint>
+    <constraint category="responsive">
+      <rule>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px</rule>
+      <source>bmad/docs/prd.md#Responsive-Design</source>
+    </constraint>
+    <constraint category="accessibility">
+      <rule>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text</rule>
+      <source>bmad/docs/prd.md#Accessibility-Level</source>
+    </constraint>
+    <constraint category="animation">
+      <rule>Use PageTransition component for smooth page transitions</rule>
+      <source>bmad/docs/sprint-artifacts/1-1-visual-design-system-foundation.md#Dev-Agent-Record</source>
+    </constraint>
+    <constraint category="testing">
+      <rule>Maintain 80%+ test coverage with unit, integration, and E2E tests. Follow TDD approach (Red-Green-Refactor cycle)</rule>
+      <source>bmad/docs/sprint-artifacts/1-2-email-authentication-user-registration.md#Dev-Agent-Record</source>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/auth/login" kind="REST endpoint" signature="POST /api/auth/login
+Request Body: { email: string, password: string }
+Response: { success: boolean, user?: User, token?: string, error?: string }" path="src/app/api/auth/login/route.ts" />
+    <interface name="NextAuth CredentialsProvider" kind="NextAuth provider" signature="CredentialsProvider({
+  name: 'credentials',
+  credentials: { email: { label: 'Email', type: 'email' }, password: { label: 'Password', type: 'password' } },
+  authorize: async (credentials) => { /* authenticate and return user */ }
+})" path="src/lib/auth.ts" />
+    <interface name="LoginFormProps" kind="TypeScript interface" signature="interface LoginFormProps {
+  onSuccess?: () => void;
+  className?: string;
+}" path="src/components/auth/LoginForm.tsx" />
+    <interface name="LoginCredentials" kind="TypeScript interface" signature="interface LoginCredentials {
+  email: string;
+  password: string;
+}" path="src/lib/types/auth.ts" />
+    <interface name="AuthService.login" kind="method" signature="async login(credentials: LoginCredentials): Promise&lt;AuthResponse&gt;" path="src/lib/auth.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test Coverage: Maintain minimum 80% test coverage for all new code. Test Types: Unit tests for components and utilities, integration tests for API endpoints, E2E tests for complete login flow, accessibility tests using axe-core. TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle. Accessibility Testing: Use @axe-core/playwright for E2E accessibility testing, verify WCAG 2.1 AA compliance. Form Testing: Test all validation scenarios, error states, loading states, and success flows. Security Testing: Test rate limiting, account enumeration prevention, failed login attempt logging.
+    </standards>
+    <locations>
+      <location>tests/unit/components/auth/</location>
+      <location>tests/integration/api/auth/</location>
+      <location>tests/e2e/auth/</location>
+      <location>tests/components/auth/</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">
+        <test>E2E test: User can log in with valid credentials and is redirected to dashboard with smooth animation</test>
+        <test>Integration test: POST /api/auth/login returns valid session token and user data</test>
+        <test>Unit test: LoginForm validates email and password before submission</test>
+        <test>Unit test: LoginForm shows loading state during authentication</test>
+        <test>E2E test: Session persists across browser tabs</test>
+        <test>E2E test: Session persists across devices</test>
+      </idea>
+      <idea criterionId="2">
+        <test>E2E test: Invalid credentials display error message "Invalid email or password"</test>
+        <test>E2E test: Same error message shown for invalid email vs invalid password (account enumeration prevention)</test>
+        <test>Integration test: Rate limiting prevents more than 5 login attempts per hour per IP</test>
+        <test>Integration test: Failed login attempts are logged to security_events table</test>
+        <test>Unit test: ErrorMappingService maps technical errors to user-friendly messages</test>
+      </idea>
+      <idea criterionId="3">
+        <test>E2E test: Login form has email field with autocomplete="email"</test>
+        <test>E2E test: Login form has password field with visibility toggle and autocomplete="current-password"</test>
+        <test>E2E test: "Remember me" checkbox extends session duration</test>
+        <test>E2E test: "Forgot password?" link navigates to password reset flow</test>
+        <test>E2E test: Loading state shows spinner and disables button during authentication</test>
+        <test>E2E accessibility test: Form meets WCAG 2.1 AA compliance using @axe-core/playwright</test>
+        <test>E2E test: Form works on all responsive breakpoints (320px, 768px, 1024px, 1440px)</test>
+        <test>Unit test: Password visibility toggle works correctly</test>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>
+
