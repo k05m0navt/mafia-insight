@@ -57,6 +57,9 @@ describe('ImportOrchestrator - Error Handling', () => {
       playerTournament: {
         findMany: vi.fn().mockResolvedValue([]),
       },
+      club: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     (PrismaClient as any).mockImplementation(() => mockDb);

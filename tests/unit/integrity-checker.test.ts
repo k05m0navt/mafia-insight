@@ -33,6 +33,9 @@ describe('IntegrityChecker', () => {
       playerTournament: {
         findMany: vi.fn(),
       },
+      club: {
+        findMany: vi.fn(),
+      },
     };
 
     executeMock.mockImplementation(async (operation) => operation(dbMock));
@@ -54,6 +57,7 @@ describe('IntegrityChecker', () => {
         { id: 'player-1' },
         { id: 'player-2' },
       ]);
+      dbMock.game.findMany.mockResolvedValue([{ id: 'game-1' }]);
 
       const result = await checker.checkGameParticipationLinks();
 
@@ -68,6 +72,7 @@ describe('IntegrityChecker', () => {
         { id: '2', playerId: 'player-999', gameId: 'game-1' },
       ]);
       dbMock.player.findMany.mockResolvedValue([{ id: 'player-1' }]);
+      dbMock.game.findMany.mockResolvedValue([{ id: 'game-1' }]);
 
       const result = await checker.checkGameParticipationLinks();
 
@@ -176,39 +181,16 @@ describe('IntegrityChecker', () => {
     });
   });
 
-  describe('checkTournamentClubLinks (Task 3)', () => {
-    it('should pass when all tournaments link to valid clubs', async () => {
-      dbMock.tournament.findMany.mockResolvedValue([
-        { id: 'tournament-1', clubId: 'club-1' },
-        { id: 'tournament-2', clubId: 'club-2' },
-      ]);
-      dbMock.club = {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([{ id: 'club-1' }, { id: 'club-2' }]),
-      };
-
+  describe('checkTournamentClubLinks (Task 3) - Disabled', () => {
+    it('should return disabled state as Tournament model does not have clubId field', async () => {
+      // Note: Tournament model does not have clubId field, so this check is disabled
+      // If clubId is added to Tournament in the future, this check should be re-enabled
       const result = await checker.checkTournamentClubLinks();
 
       expect(result.passed).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.totalChecked).toBe(2);
-    });
-
-    it('should fail when tournaments link to non-existent clubs', async () => {
-      dbMock.tournament.findMany.mockResolvedValue([
-        { id: 'tournament-1', clubId: 'club-1' },
-        { id: 'tournament-2', clubId: 'club-999' },
-      ]);
-      dbMock.club = {
-        findMany: vi.fn().mockResolvedValue([{ id: 'club-1' }]),
-      };
-
-      const result = await checker.checkTournamentClubLinks();
-
-      expect(result.passed).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('club-999');
+      expect(result.totalChecked).toBe(0);
+      expect(result.checkName).toBe('Tournament-Club Links');
     });
   });
 
@@ -302,39 +284,16 @@ describe('IntegrityChecker', () => {
     });
   });
 
-  describe('checkTournamentClubLinks (Task 3)', () => {
-    it('should pass when all tournaments link to valid clubs', async () => {
-      dbMock.tournament.findMany.mockResolvedValue([
-        { id: 'tournament-1', clubId: 'club-1' },
-        { id: 'tournament-2', clubId: 'club-2' },
-      ]);
-      dbMock.club = {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([{ id: 'club-1' }, { id: 'club-2' }]),
-      };
-
+  describe('checkTournamentClubLinks (Task 3) - Disabled', () => {
+    it('should return disabled state as Tournament model does not have clubId field', async () => {
+      // Note: Tournament model does not have clubId field, so this check is disabled
+      // If clubId is added to Tournament in the future, this check should be re-enabled
       const result = await checker.checkTournamentClubLinks();
 
       expect(result.passed).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.totalChecked).toBe(2);
-    });
-
-    it('should fail when tournaments link to non-existent clubs', async () => {
-      dbMock.tournament.findMany.mockResolvedValue([
-        { id: 'tournament-1', clubId: 'club-1' },
-        { id: 'tournament-2', clubId: 'club-999' },
-      ]);
-      dbMock.club = {
-        findMany: vi.fn().mockResolvedValue([{ id: 'club-1' }]),
-      };
-
-      const result = await checker.checkTournamentClubLinks();
-
-      expect(result.passed).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('club-999');
+      expect(result.totalChecked).toBe(0);
+      expect(result.checkName).toBe('Tournament-Club Links');
     });
   });
 
