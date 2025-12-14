@@ -25,6 +25,8 @@ import { SyncLogsTable } from '@/components/data-display/SyncLogsTable';
 import { ValidationQualityReport } from '@/components/import/ValidationQualityReport';
 import { ImportErrorSummary } from '@/components/import/ImportErrorSummary';
 import { useImportErrorSummary } from '@/hooks/useImportErrorSummary';
+import { useImportProgress } from '@/hooks/useImportProgress';
+import { ImportProgressCard } from '@/components/import/ImportProgressCard';
 
 /**
  * Manual Sync Page
@@ -51,6 +53,10 @@ export default function SyncPage() {
   // Fetch error summary with polling when import is running
   const { data: errorSummary, isLoading: isLoadingErrorSummary } =
     useImportErrorSummary(isRunning);
+
+  // Fetch detailed import progress with real-time updates
+  const { data: importProgress, isLoading: _isLoadingProgress } =
+    useImportProgress(false); // Use polling (can be changed to true for SSE)
 
   const formatLastSyncTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never';
@@ -113,6 +119,20 @@ export default function SyncPage() {
         </CardContent>
       </Card>
 
+      {/* Real-Time Import Progress Card (Story 2.6) */}
+      {(isRunning || importProgress) && (
+        <ImportProgressCard
+          progress={importProgress || null}
+          className={isRunning ? 'border-blue-200' : 'border-green-200'}
+          error={lastError}
+          isCompleted={
+            !isRunning &&
+            !lastError &&
+            syncStatus?.syncLogStatus === 'COMPLETED'
+          }
+        />
+      )}
+
       {/* Sync Status Card */}
       <Card>
         <CardHeader>
@@ -164,8 +184,8 @@ export default function SyncPage() {
                   </div>
                 </div>
 
-                {/* Progress Bar (only when running) */}
-                {isRunning && (
+                {/* Basic Progress Bar (only when running and detailed progress not available) */}
+                {isRunning && !importProgress && (
                   <div className="space-y-1 pt-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">

@@ -2,336 +2,311 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Import Progress Tracking', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin/import');
-    await expect(page.locator('[data-testid="import-page"]')).toBeVisible();
+    // Navigate to sync page
+    await page.goto('/sync');
+    await expect(
+      page.getByRole('heading', { name: /Data Synchronization/i })
+    ).toBeVisible();
   });
 
-  test('should display real-time progress updates', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Wait for progress to start
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      'Importing'
-    );
-
-    // Check progress bar updates
-    const progressBar = page.locator('[data-testid="progress-bar"]');
-    await expect(progressBar).toBeVisible();
-
-    // Check percentage updates
-    const percentage = page.locator('[data-testid="progress-percentage"]');
-    await expect(percentage).toBeVisible();
-
-    // Check count updates
-    await expect(page.locator('[data-testid="imported-count"]')).toBeVisible();
-    await expect(page.locator('[data-testid="total-count"]')).toBeVisible();
-  });
-
-  test('should show detailed progress breakdown by data type', async ({
+  test('should display progress card when import is running', async ({
     page,
   }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check progress breakdown
-    await expect(
-      page.locator('[data-testid="progress-breakdown"]')
-    ).toBeVisible();
-
-    // Check individual data type progress
-    await expect(
-      page.locator('[data-testid="players-progress"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="clubs-progress"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="tournaments-progress"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="games-progress"]')).toBeVisible();
-
-    // Check progress details for each type
-    const playersProgress = page.locator('[data-testid="players-progress"]');
-    await expect(
-      playersProgress.locator('[data-testid="progress-bar"]')
-    ).toBeVisible();
-    await expect(
-      playersProgress.locator('[data-testid="progress-text"]')
-    ).toBeVisible();
-    await expect(
-      playersProgress.locator('[data-testid="progress-count"]')
-    ).toBeVisible();
-  });
-
-  test('should display import speed and throughput metrics', async ({
-    page,
-  }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check speed metrics
-    await expect(page.locator('[data-testid="import-speed"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="records-per-second"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="average-speed"]')).toBeVisible();
-    await expect(page.locator('[data-testid="peak-speed"]')).toBeVisible();
-
-    // Check throughput metrics
-    await expect(
-      page.locator('[data-testid="throughput-chart"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="throughput-trend"]')
-    ).toBeVisible();
-  });
-
-  test('should show time estimates and elapsed time', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check time displays
-    await expect(page.locator('[data-testid="elapsed-time"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="estimated-time-remaining"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="estimated-completion-time"]')
-    ).toBeVisible();
-
-    // Check time format
-    const elapsedTime = page.locator('[data-testid="elapsed-time"]');
-    await expect(elapsedTime).toContainText('0:00');
-  });
-
-  test('should handle progress updates during pause and resume', async ({
-    page,
-  }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      'Importing'
-    );
-
-    // Wait for some progress
-    await page.waitForTimeout(1000);
-
-    // Pause import
-    await page.click('[data-testid="pause-import-button"]');
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      'Paused'
-    );
-
-    // Check that progress is preserved
-    const progressBar = page.locator('[data-testid="progress-bar"]');
-    await expect(progressBar).toBeVisible();
-
-    // Resume import
-    await page.click('[data-testid="resume-import-button"]');
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      'Importing'
-    );
-
-    // Check that progress continues
-    await expect(progressBar).toBeVisible();
-  });
-
-  test('should display progress history and trends', async ({ page }) => {
-    // Check progress history
-    await expect(
-      page.locator('[data-testid="progress-history"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="progress-chart"]')).toBeVisible();
-
-    // Check trend indicators
-    await expect(page.locator('[data-testid="speed-trend"]')).toBeVisible();
-    await expect(page.locator('[data-testid="error-trend"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="efficiency-trend"]')
-    ).toBeVisible();
-  });
-
-  test('should show progress milestones and checkpoints', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check milestone display
-    await expect(page.locator('[data-testid="milestones"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="current-milestone"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="next-milestone"]')).toBeVisible();
-
-    // Check checkpoint status
-    await expect(page.locator('[data-testid="checkpoints"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="checkpoint-status"]')
-    ).toBeVisible();
-  });
-
-  test('should handle progress updates with errors', async ({ page }) => {
-    // Mock import with errors
-    await page.route('**/api/import/status', async (route) => {
+    // Mock progress API to return running import
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          status: 'importing',
-          progress: 75,
-          imported: 750,
-          total: 1000,
-          errors: 25,
-          duration: 120000,
-          errorRate: 3.2,
-        }),
-      });
-    });
-
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check error display in progress
-    await expect(page.locator('[data-testid="error-count"]')).toContainText(
-      '25'
-    );
-    await expect(page.locator('[data-testid="error-rate"]')).toContainText(
-      '3.2%'
-    );
-    await expect(page.locator('[data-testid="error-indicator"]')).toBeVisible();
-  });
-
-  test('should show progress for different import phases', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check phase indicators
-    await expect(page.locator('[data-testid="import-phases"]')).toBeVisible();
-
-    // Check individual phases
-    await expect(
-      page.locator('[data-testid="validation-phase"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="import-phase"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="processing-phase"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="finalization-phase"]')
-    ).toBeVisible();
-
-    // Check phase progress
-    await expect(page.locator('[data-testid="phase-progress"]')).toBeVisible();
-  });
-
-  test('should display progress for concurrent imports', async ({ page }) => {
-    // Check concurrent import support
-    await expect(
-      page.locator('[data-testid="concurrent-imports"]')
-    ).toBeVisible();
-
-    // Check multiple import progress
-    await expect(
-      page.locator('[data-testid="import-1-progress"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="import-2-progress"]')
-    ).toBeVisible();
-
-    // Check overall progress
-    await expect(
-      page.locator('[data-testid="overall-progress"]')
-    ).toBeVisible();
-  });
-
-  test('should show progress with resource utilization', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Check resource utilization
-    await expect(
-      page.locator('[data-testid="resource-utilization"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="cpu-usage"]')).toBeVisible();
-    await expect(page.locator('[data-testid="memory-usage"]')).toBeVisible();
-    await expect(page.locator('[data-testid="disk-usage"]')).toBeVisible();
-    await expect(page.locator('[data-testid="network-usage"]')).toBeVisible();
-
-    // Check resource charts
-    await expect(page.locator('[data-testid="resource-chart"]')).toBeVisible();
-  });
-
-  test('should handle progress updates with network interruptions', async ({
-    page,
-  }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
-
-    // Simulate network interruption
-    await page.route('**/api/import/status', async (route) => {
-      await route.abort('failed');
-    });
-
-    // Check reconnection handling
-    await expect(
-      page.locator('[data-testid="connection-status"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="reconnecting-indicator"]')
-    ).toBeVisible();
-
-    // Restore connection
-    await page.unroute('**/api/import/status');
-    await page.route('**/api/import/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          status: 'importing',
+          currentPhase: 'GAMES',
           progress: 50,
-          imported: 500,
-          total: 1000,
-          errors: 0,
-          duration: 60000,
+          currentEntity: { id: 'game-123', name: 'Game 123' },
+          processedCount: 500,
+          totalCount: 1000,
+          elapsedSeconds: 300,
+          estimatedSecondsRemaining: 300,
+          processingRate: 1.67,
+          isRunning: true,
+          startTime: new Date(Date.now() - 300000).toISOString(),
+          lastUpdated: new Date().toISOString(),
         }),
       });
     });
 
-    // Check progress restoration
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      'Importing'
-    );
+    // Mock sync status to show running
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: true,
+          progress: 50,
+          currentOperation: 'Importing games',
+        }),
+      });
+    });
+
+    // Wait for progress card to appear
+    await expect(page.getByText('Import Progress')).toBeVisible();
+
+    // Check progress bar is visible
+    const progressBar = page.locator('[role="progressbar"]');
+    await expect(progressBar).toBeVisible();
+
+    // Check progress percentage is displayed
+    await expect(page.getByText(/50%/)).toBeVisible();
+
+    // Check processed/total counts are displayed
+    await expect(page.getByText(/500.*1,000/)).toBeVisible();
+
+    // Check current phase is displayed
+    await expect(page.getByText(/Games/i)).toBeVisible();
+
+    // Check elapsed time is displayed
+    await expect(page.getByText(/Elapsed Time/i)).toBeVisible();
+
+    // Check estimated time remaining is displayed
+    await expect(page.getByText(/Estimated Remaining/i)).toBeVisible();
+
+    // Check processing rate is displayed
+    await expect(page.getByText(/Processing Rate/i)).toBeVisible();
   });
 
-  test('should display progress with quality metrics', async ({ page }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
+  test('should update progress in real-time', async ({ page }) => {
+    let progressValue = 25;
 
-    // Check quality metrics
-    await expect(page.locator('[data-testid="quality-metrics"]')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="data-quality-score"]')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="validation-errors"]')
-    ).toBeVisible();
-    await expect(page.locator('[data-testid="duplicate-count"]')).toBeVisible();
-    await expect(page.locator('[data-testid="skipped-count"]')).toBeVisible();
+    // Mock progress API with changing values
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
+      progressValue += 25; // Simulate progress increase
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          currentPhase: 'GAMES',
+          progress: Math.min(progressValue, 100),
+          currentEntity: {
+            id: `game-${progressValue}`,
+            name: `Game ${progressValue}`,
+          },
+          processedCount: progressValue * 10,
+          totalCount: 1000,
+          elapsedSeconds: 300 + progressValue,
+          estimatedSecondsRemaining: Math.max(300 - progressValue, 0),
+          processingRate: 1.67,
+          isRunning: progressValue < 100,
+          startTime: new Date(Date.now() - 300000).toISOString(),
+          lastUpdated: new Date().toISOString(),
+        }),
+      });
+    });
+
+    // Mock sync status
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: true,
+          progress: progressValue,
+          currentOperation: 'Importing games',
+        }),
+      });
+    });
+
+    // Wait for initial progress
+    await expect(page.getByText('Import Progress')).toBeVisible();
+
+    // Wait for progress to update (polling happens every 2 seconds)
+    await page.waitForTimeout(2500);
+
+    // Verify progress has updated
+    await expect(page.getByText(/50%/)).toBeVisible();
   });
 
-  test('should show progress with performance optimization suggestions', async ({
-    page,
-  }) => {
-    // Start import
-    await page.click('[data-testid="start-import-button"]');
+  test('should persist progress across page refreshes', async ({ page }) => {
+    const progressData = {
+      currentPhase: 'GAMES',
+      progress: 75,
+      currentEntity: { id: 'game-750', name: 'Game 750' },
+      processedCount: 750,
+      totalCount: 1000,
+      elapsedSeconds: 450,
+      estimatedSecondsRemaining: 150,
+      processingRate: 1.67,
+      isRunning: true,
+      startTime: new Date(Date.now() - 450000).toISOString(),
+      lastUpdated: new Date().toISOString(),
+    };
 
-    // Check optimization suggestions
+    // Mock progress API
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(progressData),
+      });
+    });
+
+    // Mock sync status
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: true,
+          progress: 75,
+          currentOperation: 'Importing games',
+        }),
+      });
+    });
+
+    // Wait for progress to load
+    await expect(page.getByText('Import Progress')).toBeVisible();
+    await expect(page.getByText(/75%/)).toBeVisible();
+    await expect(page.getByText(/750.*1,000/)).toBeVisible();
+
+    // Refresh page
+    await page.reload();
     await expect(
-      page.locator('[data-testid="optimization-suggestions"]')
+      page.getByRole('heading', { name: /Data Synchronization/i })
     ).toBeVisible();
+
+    // Verify progress persists after refresh
+    await expect(page.getByText('Import Progress')).toBeVisible();
+    await expect(page.getByText(/75%/)).toBeVisible();
+    await expect(page.getByText(/750.*1,000/)).toBeVisible();
+  });
+
+  test('should show phase transitions', async ({ page }) => {
+    const phases = ['CLUBS', 'PLAYERS', 'GAMES', 'STATISTICS'];
+    let phaseIndex = 0;
+
+    // Mock progress API with phase transitions
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
+      const currentPhase = phases[phaseIndex];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          currentPhase,
+          progress: (phaseIndex + 1) * 25,
+          currentEntity: { id: `${currentPhase.toLowerCase()}-${phaseIndex}` },
+          processedCount: (phaseIndex + 1) * 250,
+          totalCount: 1000,
+          elapsedSeconds: 300 + phaseIndex * 60,
+          estimatedSecondsRemaining: 300 - phaseIndex * 60,
+          processingRate: 1.67,
+          isRunning: phaseIndex < phases.length - 1,
+          startTime: new Date(Date.now() - 300000).toISOString(),
+          lastUpdated: new Date().toISOString(),
+        }),
+      });
+      phaseIndex = Math.min(phaseIndex + 1, phases.length - 1);
+    });
+
+    // Mock sync status
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: true,
+          progress: phaseIndex * 25,
+          currentOperation: `Importing ${phases[phaseIndex]}`,
+        }),
+      });
+    });
+
+    // Wait for initial progress
+    await expect(page.getByText('Import Progress')).toBeVisible();
+
+    // Wait for phase transitions
+    await page.waitForTimeout(3000);
+
+    // Verify phase is displayed
     await expect(
-      page.locator('[data-testid="performance-tips"]')
+      page.getByText(/Clubs|Players|Games|Statistics/i)
     ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="bottleneck-indicators"]')
-    ).toBeVisible();
+  });
+
+  test('should handle missing progress data gracefully', async ({ page }) => {
+    // Mock progress API to return no running import
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          currentPhase: null,
+          progress: 0,
+          currentEntity: null,
+          processedCount: 0,
+          totalCount: 0,
+          elapsedSeconds: 0,
+          estimatedSecondsRemaining: 0,
+          processingRate: 0,
+          isRunning: false,
+          startTime: null,
+          lastUpdated: null,
+        }),
+      });
+    });
+
+    // Mock sync status to show not running
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: false,
+          progress: 0,
+          currentOperation: null,
+        }),
+      });
+    });
+
+    // Progress card should not be visible when not running
+    await expect(page.getByText('Import Progress')).not.toBeVisible();
+  });
+
+  test('should display current entity being processed', async ({ page }) => {
+    // Mock progress API with entity information
+    await page.route('**/api/gomafia-sync/import/progress', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          currentPhase: 'GAMES',
+          progress: 50,
+          currentEntity: { id: 'game-500', name: 'Game 500' },
+          processedCount: 500,
+          totalCount: 1000,
+          elapsedSeconds: 300,
+          estimatedSecondsRemaining: 300,
+          processingRate: 1.67,
+          isRunning: true,
+          startTime: new Date(Date.now() - 300000).toISOString(),
+          lastUpdated: new Date().toISOString(),
+        }),
+      });
+    });
+
+    // Mock sync status
+    await page.route('**/api/gomafia-sync/sync/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          isRunning: true,
+          progress: 50,
+          currentOperation: 'Importing games',
+        }),
+      });
+    });
+
+    // Wait for progress card
+    await expect(page.getByText('Import Progress')).toBeVisible();
+
+    // Verify current entity is displayed
+    await expect(page.getByText(/Game 500/i)).toBeVisible();
   });
 });

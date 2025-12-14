@@ -19,6 +19,11 @@ import {
 import { GameRawData } from '../validators/game-schema';
 import { RetryManager, ErrorCategory } from './retry-manager';
 import { ErrorSummaryTracker } from './error-summary-tracker';
+import {
+  calculateProcessingRate,
+  calculateEstimatedTimeRemaining,
+  calculateProgressPercentage,
+} from './progress-calculator';
 
 export type ImportPhase =
   | 'CLUBS'
@@ -95,6 +100,16 @@ export class ImportOrchestrator {
   private pausedSignal: AbortController | null = null; // For pause/resume functionality
   private skippedPagesByPhase: Map<ImportPhase, number[]> = new Map(); // Track skipped pages by phase
   private currentOrder: 'oldest-first' | 'newest-first' = 'newest-first'; // Chronological ordering preference
+  private importStartTime: Date | null = null; // Start time for elapsed time calculation
+  private phaseProgress: Map<
+    ImportPhase,
+    { processed: number; total: number }
+  > = new Map(); // Track progress per phase
+  private currentEntity: {
+    id?: string;
+    name?: string;
+    pageNumber?: number;
+  } | null = null; // Current entity being processed
 
   private readonly phases: ImportPhase[] = [
     'CLUBS',
@@ -149,6 +164,8 @@ export class ImportOrchestrator {
     );
 
     this.currentSyncLogId = syncLog.id;
+    this.importStartTime = new Date();
+    this.phaseProgress.clear();
 
     // Start timeout timer
     this.timeoutManager.start();
@@ -252,6 +269,11 @@ export class ImportOrchestrator {
 
   /**
    * Calculate overall progress based on current phase.
+   * @deprecated This method is kept for backward compatibility with tests only.
+   * Production code uses calculateOverallProgress() instead.
+   * @param currentPhaseIndex Current phase index (0-based)
+   * @param totalPhases Total number of phases
+   * @returns Progress percentage (0-100)
    */
   calculateProgress(currentPhaseIndex: number, totalPhases: number): number {
     return (currentPhaseIndex / totalPhases) * 100;
@@ -965,7 +987,193 @@ export class ImportOrchestrator {
    */
   setPhase(phase: ImportPhase): void {
     this.currentPhase = phase;
+    // Initialize phase progress if not exists
+    if (!this.phaseProgress.has(phase)) {
+      this.phaseProgress.set(phase, { processed: 0, total: 0 });
+    }
     console.log(`Starting phase: ${phase}`);
+    // Update sync status with phase change
+    this.updateProgressState().catch((error) => {
+      console.error(
+        '[ImportOrchestrator] Failed to update progress state:',
+        error
+      );
+    });
+  }
+
+  /**
+   * Update progress tracking for current phase.
+   * @param processedCount Number of entities processed in current phase
+   * @param totalCount Total number of entities in current phase
+   * @param currentEntity Current entity being processed (optional)
+   */
+  updatePhaseProgress(
+    processedCount: number,
+    totalCount: number,
+    currentEntity?: { id?: string; name?: string; pageNumber?: number }
+  ): void {
+    if (this.currentPhase) {
+      this.phaseProgress.set(this.currentPhase, {
+        processed: processedCount,
+        total: totalCount,
+      });
+      this.currentEntity = currentEntity || null;
+      // Update progress state in database
+      this.updateProgressState().catch((error) => {
+        console.error(
+          '[ImportOrchestrator] Failed to update progress state:',
+          error
+        );
+      });
+    }
+  }
+
+  /**
+   * Update progress state in SyncStatus table with detailed metrics.
+   * Calculates processing rate, estimated time remaining, and overall progress.
+   * Also stores detailed progress metrics in SyncLog.errors JSON field.
+   */
+  private async updateProgressState(): Promise<void> {
+    if (!this.currentSyncLogId || !this.currentPhase || !this.importStartTime) {
+      return;
+    }
+
+    const phaseProgress = this.phaseProgress.get(this.currentPhase) || {
+      processed: 0,
+      total: 0,
+    };
+
+    // Calculate elapsed time
+    const elapsedSeconds =
+      (new Date().getTime() - this.importStartTime.getTime()) / 1000;
+
+    // Calculate processing rate
+    const processingRate = calculateProcessingRate(
+      phaseProgress.processed,
+      elapsedSeconds
+    );
+
+    // Calculate estimated time remaining for current phase
+    const remainingCount = Math.max(
+      0,
+      phaseProgress.total - phaseProgress.processed
+    );
+    const estimatedSecondsRemaining = calculateEstimatedTimeRemaining(
+      remainingCount,
+      processingRate
+    );
+
+    // Calculate overall progress percentage
+    const overallProgress = this.calculateOverallProgress();
+
+    // Build current operation message
+    let currentOperation = `Processing ${this.currentPhase}`;
+    if (this.currentEntity) {
+      if (this.currentEntity.name) {
+        currentOperation += `: ${this.currentEntity.name}`;
+      } else if (this.currentEntity.id) {
+        currentOperation += `: ${this.currentEntity.id}`;
+      } else if (this.currentEntity.pageNumber !== undefined) {
+        currentOperation += `: page ${this.currentEntity.pageNumber}`;
+      }
+    }
+    if (phaseProgress.total > 0) {
+      currentOperation += ` (${phaseProgress.processed} of ${phaseProgress.total})`;
+    }
+
+    // Get existing errors from SyncLog to preserve other data
+    const existingSyncLog = await resilientDB.execute((db) =>
+      db.syncLog.findUnique({
+        where: { id: this.currentSyncLogId! },
+        select: { errors: true, startTime: true },
+      })
+    );
+
+    let existingErrors: Record<string, unknown> = {};
+    if (existingSyncLog?.errors && typeof existingSyncLog.errors === 'object') {
+      existingErrors = existingSyncLog.errors as Record<string, unknown>;
+    }
+
+    // Build detailed progress metrics
+    const progressMetrics = {
+      currentPhase: this.currentPhase,
+      phaseProgress: {
+        processed: phaseProgress.processed,
+        total: phaseProgress.total,
+      },
+      currentEntity: this.currentEntity || null,
+      processingRate,
+      elapsedSeconds,
+      estimatedSecondsRemaining,
+      overallProgress,
+      startTime: this.importStartTime.toISOString(),
+      lastUpdated: new Date().toISOString(),
+    };
+
+    // Update SyncLog with detailed progress metrics
+    await resilientDB.execute((db) =>
+      db.syncLog.update({
+        where: { id: this.currentSyncLogId! },
+        data: {
+          errors: {
+            ...existingErrors,
+            progressMetrics,
+          } as Prisma.InputJsonValue,
+        },
+      })
+    );
+
+    // Update SyncStatus with basic progress (for quick access)
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          progress: overallProgress,
+          currentOperation,
+          totalRecordsProcessed: phaseProgress.processed,
+          updatedAt: new Date(),
+        },
+      })
+    );
+  }
+
+  /**
+   * Calculate overall progress across all phases.
+   * @returns Progress percentage (0-100)
+   */
+  private calculateOverallProgress(): number {
+    if (this.phases.length === 0) {
+      return 0;
+    }
+
+    const currentPhaseIndex = this.currentPhase
+      ? this.phases.indexOf(this.currentPhase)
+      : 0;
+
+    // Base progress from completed phases
+    const completedPhasesProgress =
+      (currentPhaseIndex / this.phases.length) * 100;
+
+    // Current phase progress
+    const phaseProgress = this.phaseProgress.get(
+      this.currentPhase || this.phases[0]
+    ) || {
+      processed: 0,
+      total: 0,
+    };
+    const currentPhaseProgress = calculateProgressPercentage(
+      phaseProgress.processed,
+      phaseProgress.total
+    );
+
+    // Weight current phase progress by phase weight (1/number of phases)
+    const phaseWeight = 100 / this.phases.length;
+    const weightedPhaseProgress = (currentPhaseProgress / 100) * phaseWeight;
+
+    return Math.min(
+      100,
+      Math.round(completedPhasesProgress + weightedPhaseProgress)
+    );
   }
 
   /**
