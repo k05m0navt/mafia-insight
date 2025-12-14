@@ -236,7 +236,7 @@ function getConsecutiveFailures(logs: unknown[]): number {
 
 /**
  * Send sync completion notification
- * Enhanced to include validation metrics (Task 9: AC #1, #3).
+ * Enhanced to include validation metrics and error summary (Task 9: AC #1, #2).
  */
 export async function notifySyncCompletion(
   syncLogId: string,
@@ -250,10 +250,25 @@ export async function notifySyncCompletion(
     validRecords: number;
     invalidRecords: number;
   },
+  errorSummary?: {
+    totalErrors: number;
+    errorsByCategory: {
+      transient: number;
+      permanent: number;
+    };
+    skippedEntitiesByPhase: Record<string, number>;
+  },
   config: NotificationConfig = DEFAULT_CONFIG
 ): Promise<void> {
-  // Build message with validation metrics if available
+  // Build message with validation metrics and error summary if available
   let message = '';
+  const totalSkipped = errorSummary
+    ? Object.values(errorSummary.skippedEntitiesByPhase).reduce(
+        (sum, count) => sum + count,
+        0
+      )
+    : 0;
+
   if (success) {
     message = `Sync completed successfully. Processed ${recordsProcessed} records.`;
     if (validationMetrics) {
@@ -266,16 +281,40 @@ export async function notifySyncCompletion(
         message += `, ${validationMetrics.invalidRecords} invalid`;
       }
     }
+    // Add error summary if errors occurred
+    if (errorSummary && errorSummary.totalErrors > 0) {
+      message += ` ${errorSummary.totalErrors} error${
+        errorSummary.totalErrors !== 1 ? 's' : ''
+      } occurred.`;
+      if (totalSkipped > 0) {
+        message += ` ${totalSkipped} entit${totalSkipped !== 1 ? 'ies' : 'y'} skipped.`;
+      }
+    }
   } else {
     message = `Sync failed. Processed ${recordsProcessed} records with ${errors.length} errors.`;
     if (validationMetrics) {
       message += ` Validation rate: ${validationMetrics.validationRate.toFixed(2)}%.`;
     }
+    if (errorSummary && errorSummary.totalErrors > 0) {
+      message += ` Total errors: ${errorSummary.totalErrors} (${errorSummary.errorsByCategory.transient} transient, ${errorSummary.errorsByCategory.permanent} permanent).`;
+    }
+  }
+
+  // Determine notification variant based on error count
+  let notificationType: 'INFO' | 'ERROR' | 'WARNING' = success
+    ? 'INFO'
+    : 'ERROR';
+  if (success && errorSummary && errorSummary.totalErrors > 0) {
+    notificationType = 'WARNING';
   }
 
   const notification = {
-    type: (success ? 'INFO' : 'ERROR') as 'INFO' | 'ERROR',
-    title: success ? 'Sync Completed Successfully' : 'Sync Failed',
+    type: notificationType,
+    title: success
+      ? errorSummary && errorSummary.totalErrors > 0
+        ? 'Sync Completed with Errors'
+        : 'Sync Completed Successfully'
+      : 'Sync Failed',
     message,
     resolved: false,
     metadata: {
@@ -293,6 +332,19 @@ export async function notifySyncCompletion(
             invalidRecords: validationMetrics.invalidRecords,
           }
         : undefined,
+      errorSummary: errorSummary
+        ? {
+            totalErrors: errorSummary.totalErrors,
+            errorsByCategory: errorSummary.errorsByCategory,
+            skippedEntitiesByPhase: errorSummary.skippedEntitiesByPhase,
+            totalSkipped,
+          }
+        : undefined,
+      // Add link to view errors if errors present
+      viewErrorsLink:
+        errorSummary && errorSummary.totalErrors > 0
+          ? `/sync?viewErrors=true`
+          : undefined,
     },
   };
 

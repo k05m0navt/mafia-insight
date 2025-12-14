@@ -23,6 +23,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SyncLogsTable } from '@/components/data-display/SyncLogsTable';
 import { ValidationQualityReport } from '@/components/import/ValidationQualityReport';
+import { ImportErrorSummary } from '@/components/import/ImportErrorSummary';
+import { useImportErrorSummary } from '@/hooks/useImportErrorSummary';
 
 /**
  * Manual Sync Page
@@ -45,6 +47,10 @@ export default function SyncPage() {
     isLoading: isLoadingValidation,
     error: validationError,
   } = useValidationSummary();
+
+  // Fetch error summary with polling when import is running
+  const { data: errorSummary, isLoading: isLoadingErrorSummary } =
+    useImportErrorSummary(isRunning);
 
   const formatLastSyncTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never';
@@ -254,6 +260,17 @@ export default function SyncPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Error Summary Card - Show when import completes or has errors */}
+      {(errorSummary?.errorSummary.totalErrors ?? 0) > 0 ||
+      (!isRunning &&
+        (syncStatus?.syncLogStatus === 'COMPLETED' ||
+          syncStatus?.syncLogStatus === 'FAILED')) ? (
+        <ImportErrorSummary
+          errorSummary={errorSummary ?? null}
+          isLoading={isLoadingErrorSummary}
+        />
+      ) : null}
 
       {/* Warning Alert if Validation Threshold Not Met (Task 7: AC #3) */}
       {validationSummary &&
