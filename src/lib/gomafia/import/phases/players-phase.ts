@@ -187,6 +187,9 @@ export class PlayersPhase {
       const isValid = await this.validateData(player);
       if (!isValid) {
         invalidCount++;
+        this.orchestrator.recordInvalidRecord('Player', 'Validation failed', {
+          gomafiaId: player.gomafiaId,
+        });
         continue;
       }
 
@@ -254,6 +257,22 @@ export class PlayersPhase {
             })
           );
 
+          // Record valid records for this batch
+          playersToInsert.forEach(() => {
+            this.orchestrator.recordValidRecord('Player');
+          });
+
+          // Check validation threshold after batch (Task 2: AC #1)
+          const thresholdMet = await this.orchestrator.checkValidationThreshold(
+            'PLAYERS',
+            batchIndex
+          );
+          if (!thresholdMet) {
+            throw new Error(
+              'Import paused: Validation threshold not met (< 98%). Please review errors.'
+            );
+          }
+
           // Save checkpoint
           const checkpoint = this.createCheckpoint(
             batchIndex,
@@ -294,6 +313,9 @@ export class PlayersPhase {
       // Validate
       const isValid = await this.validateData(player);
       if (!isValid) {
+        this.orchestrator.recordInvalidRecord('Player', 'Validation failed', {
+          gomafiaId: player.gomafiaId,
+        });
         continue;
       }
 
@@ -345,6 +367,11 @@ export class PlayersPhase {
           skipDuplicates: true,
         })
       );
+
+      // Record valid records for this batch
+      validPlayers.forEach(() => {
+        this.orchestrator.recordValidRecord('Player');
+      });
 
       // Mark as saved
       validPlayers.forEach((player) => savedPlayerIds.add(player.gomafiaId));

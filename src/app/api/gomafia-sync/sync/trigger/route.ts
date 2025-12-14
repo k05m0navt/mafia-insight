@@ -7,6 +7,7 @@ import {
 } from '@/lib/notifications/syncNotifications';
 import { runDataVerification } from '@/services/sync/verificationService';
 import { sendAdminAlerts } from '@/services/sync/notificationService';
+import { getValidationThreshold } from '@/services/validation-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,12 +106,84 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Send completion notification
+        // Fetch validation metrics from sync log for notification (Task 9: AC #1, #3)
+        const completedSyncLog = await db.syncLog.findUnique({
+          where: { id: syncLog.id },
+          select: { errors: true },
+        });
+
+        let validationMetrics:
+          | {
+              validationRate: number;
+              meetsThreshold: boolean;
+              totalRecords: number;
+              validRecords: number;
+              invalidRecords: number;
+            }
+          | undefined = undefined;
+
+        if (
+          completedSyncLog?.errors &&
+          typeof completedSyncLog.errors === 'object'
+        ) {
+          const errors = completedSyncLog.errors as Record<string, unknown>;
+          const metrics = errors.validationMetrics as
+            | {
+                overall?: {
+                  validationRate: number;
+                  meetsThreshold: boolean;
+                  totalRecords: number;
+                  validRecords: number;
+                  invalidRecords: number;
+                };
+              }
+            | undefined;
+
+          if (metrics?.overall) {
+            validationMetrics = {
+              validationRate: metrics.overall.validationRate,
+              meetsThreshold: metrics.overall.meetsThreshold,
+              totalRecords: metrics.overall.totalRecords,
+              validRecords: metrics.overall.validRecords,
+              invalidRecords: metrics.overall.invalidRecords,
+            };
+          }
+        }
+
+        // Also check syncStatus for validation metrics
+        if (!validationMetrics) {
+          const syncStatus = await db.syncStatus.findUnique({
+            where: { id: 'current' },
+            select: {
+              validationRate: true,
+              totalRecordsProcessed: true,
+              validRecords: true,
+              invalidRecords: true,
+            },
+          });
+
+          if (
+            syncStatus?.validationRate !== null &&
+            syncStatus?.totalRecordsProcessed !== null
+          ) {
+            const threshold = getValidationThreshold();
+            validationMetrics = {
+              validationRate: syncStatus.validationRate,
+              meetsThreshold: syncStatus.validationRate >= threshold,
+              totalRecords: syncStatus.totalRecordsProcessed,
+              validRecords: syncStatus.validRecords ?? 0,
+              invalidRecords: syncStatus.invalidRecords ?? 0,
+            };
+          }
+        }
+
+        // Send completion notification with validation metrics (Task 9: AC #1, #3)
         await notifySyncCompletion(
           syncLog.id,
           result.success,
           result.recordsProcessed,
-          result.errors
+          result.errors,
+          validationMetrics
         );
 
         // Run automatic data verification after successful syncs

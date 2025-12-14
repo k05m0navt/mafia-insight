@@ -2,7 +2,7 @@
  * Validation Service
  *
  * Provides comprehensive validation tracking and metrics for the import process.
- * Tracks validation rates, errors by entity type, and ensures ≥98% validation threshold.
+ * Tracks validation rates, errors by entity type, and ensures configurable validation threshold.
  */
 
 export interface ValidationError {
@@ -22,7 +22,7 @@ export interface ValidationMetrics {
 
 export interface ValidationSummary {
   validationRate: number;
-  meetsThreshold: boolean; // ≥98%
+  meetsThreshold: boolean; // Based on configured threshold
   totalRecords: number;
   validRecords: number;
   invalidRecords: number;
@@ -30,8 +30,58 @@ export interface ValidationSummary {
 }
 
 /**
+ * Default validation threshold percentage.
+ * Can be overridden via VALIDATION_THRESHOLD environment variable.
+ *
+ * @example
+ * // Set in .env file:
+ * VALIDATION_THRESHOLD=98
+ *
+ * @default 98
+ */
+export const DEFAULT_VALIDATION_THRESHOLD = 98;
+
+/**
+ * Get the configured validation threshold from environment variable or default.
+ *
+ * @returns Validation threshold as a percentage (0-100)
+ *
+ * @example
+ * ```typescript
+ * const threshold = getValidationThreshold();
+ * console.log(`Current threshold: ${threshold}%`);
+ * ```
+ */
+export function getValidationThreshold(): number {
+  const envThreshold = process.env.VALIDATION_THRESHOLD;
+  if (envThreshold) {
+    const parsed = parseFloat(envThreshold);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+      return parsed;
+    }
+    console.warn(
+      `Invalid VALIDATION_THRESHOLD environment variable: ${envThreshold}. Using default: ${DEFAULT_VALIDATION_THRESHOLD}`
+    );
+  }
+  return DEFAULT_VALIDATION_THRESHOLD;
+}
+
+/**
  * Tracks validation metrics during import operations.
  * Provides detailed error tracking and validation rate calculations.
+ *
+ * The validation threshold is configurable via the VALIDATION_THRESHOLD environment variable.
+ * Default threshold is 98% (meaning 98% of records must pass validation).
+ *
+ * @example
+ * ```typescript
+ * const tracker = new ValidationMetricsTracker();
+ * tracker.recordValid('player');
+ * tracker.recordInvalid('player', 'Invalid email format');
+ * const summary = tracker.getSummary();
+ * console.log(`Validation rate: ${summary.validationRate}%`);
+ * console.log(`Meets threshold: ${summary.meetsThreshold}`);
+ * ```
  */
 export class ValidationMetricsTracker {
   private validRecords: number = 0;
@@ -40,7 +90,13 @@ export class ValidationMetricsTracker {
   private validByEntity: Map<string, number> = new Map();
   private errors: ValidationError[] = [];
   private readonly maxStoredErrors = 100; // Limit to prevent memory issues
-  private readonly validationThreshold = 98; // 98% threshold
+  private readonly validationThreshold: number;
+
+  constructor(threshold?: number) {
+    // Allow threshold to be overridden via constructor for testing,
+    // otherwise use environment variable or default
+    this.validationThreshold = threshold ?? getValidationThreshold();
+  }
 
   /**
    * Record a successfully validated record.
@@ -113,6 +169,8 @@ export class ValidationMetricsTracker {
 
   /**
    * Get summary with threshold check.
+   *
+   * @returns Validation summary with threshold check result
    */
   getSummary(): ValidationSummary {
     const metrics = this.getMetrics();
@@ -125,6 +183,15 @@ export class ValidationMetricsTracker {
       invalidRecords: metrics.invalidRecords,
       errorsByEntity: metrics.errorsByEntity,
     };
+  }
+
+  /**
+   * Get the configured validation threshold.
+   *
+   * @returns The validation threshold percentage (0-100)
+   */
+  getThreshold(): number {
+    return this.validationThreshold;
   }
 
   /**

@@ -148,6 +148,9 @@ export class ClubsPhase {
       const isValid = await this.validateData(club);
       if (!isValid) {
         invalidCount++;
+        this.orchestrator.recordInvalidRecord('Club', 'Validation failed', {
+          gomafiaId: club.gomafiaId,
+        });
         continue;
       }
 
@@ -202,6 +205,22 @@ export class ClubsPhase {
             })
           );
 
+          // Record valid records for this batch
+          clubsToInsert.forEach(() => {
+            this.orchestrator.recordValidRecord('Club');
+          });
+
+          // Check validation threshold after batch (Task 2: AC #1)
+          const thresholdMet = await this.orchestrator.checkValidationThreshold(
+            'CLUBS',
+            batchIndex
+          );
+          if (!thresholdMet) {
+            throw new Error(
+              'Import paused: Validation threshold not met (< 98%). Please review errors.'
+            );
+          }
+
           // Save checkpoint
           const checkpoint = this.createCheckpoint(
             batchIndex,
@@ -240,6 +259,9 @@ export class ClubsPhase {
       // Validate
       const isValid = await this.validateData(club);
       if (!isValid) {
+        this.orchestrator.recordInvalidRecord('Club', 'Validation failed', {
+          gomafiaId: club.gomafiaId,
+        });
         continue;
       }
 
@@ -275,6 +297,11 @@ export class ClubsPhase {
           skipDuplicates: true,
         })
       );
+
+      // Record valid records for this batch
+      validClubs.forEach(() => {
+        this.orchestrator.recordValidRecord('Club');
+      });
 
       // Mark as saved
       validClubs.forEach((club) => savedClubIds.add(club.gomafiaId));

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useManualSync } from '@/hooks/useManualSync';
+import { useValidationSummary } from '@/hooks/useValidationSummary';
 import { formatDistanceToNow } from 'date-fns';
 import {
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SyncLogsTable } from '@/components/data-display/SyncLogsTable';
+import { ValidationQualityReport } from '@/components/import/ValidationQualityReport';
 
 /**
  * Manual Sync Page
@@ -36,6 +38,13 @@ export default function SyncPage() {
     currentOperation,
     lastError,
   } = useManualSync();
+
+  // Fetch validation summary (Task 7: AC #3)
+  const {
+    data: validationSummary,
+    isLoading: isLoadingValidation,
+    error: validationError,
+  } = useValidationSummary();
 
   const formatLastSyncTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never';
@@ -200,6 +209,67 @@ export default function SyncPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Validation Quality Report Card (Task 7: AC #3) */}
+      {(validationSummary ||
+        (!isRunning &&
+          (syncStatus?.syncLogStatus === 'COMPLETED' ||
+            syncStatus?.syncLogStatus === 'FAILED'))) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Validation Quality Report
+            </CardTitle>
+            <CardDescription>
+              Data quality validation metrics and error details
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingValidation ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading validation data...
+                </span>
+              </div>
+            ) : validationError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load validation data: {validationError.message}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <ValidationQualityReport
+                summary={validationSummary}
+                onContinue={() => {
+                  // Handle continue action if needed
+                  console.log(
+                    'User chose to continue despite low validation rate'
+                  );
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Warning Alert if Validation Threshold Not Met (Task 7: AC #3) */}
+      {validationSummary &&
+        !validationSummary.meetsThreshold &&
+        !isRunning &&
+        (syncStatus?.syncLogStatus === 'COMPLETED' ||
+          syncStatus?.syncLogStatus === 'FAILED') && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Data quality below threshold (
+              {validationSummary.validationRate?.toFixed(2) ?? 'N/A'}%). Please
+              review errors in the validation report above.
+            </AlertDescription>
+          </Alert>
+        )}
 
       {/* Sync History Card */}
       <Card>
