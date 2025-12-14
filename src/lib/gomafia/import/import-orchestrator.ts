@@ -17,6 +17,8 @@ import {
   SkippedEntityData,
 } from './skipped-entities-manager';
 import { GameRawData } from '../validators/game-schema';
+import { RetryManager, ErrorCategory } from './retry-manager';
+import { ErrorSummaryTracker } from './error-summary-tracker';
 
 export type ImportPhase =
   | 'CLUBS'
@@ -83,6 +85,8 @@ export class ImportOrchestrator {
   private validationMetrics: ValidationMetrics;
   private validationTracker: ValidationMetricsTracker;
   private skippedEntitiesManager: SkippedEntitiesManager;
+  private retryManager: RetryManager;
+  private errorSummaryTracker: ErrorSummaryTracker;
   private currentSyncLogId: string | null = null;
   private errorLogs: ImportErrorLog[] = [];
   private currentPhase: ImportPhase | null = null;
@@ -117,6 +121,8 @@ export class ImportOrchestrator {
     this.timeoutManager = new TimeoutManager(maxDurationMs);
     this.validationTracker = new ValidationMetricsTracker();
     this.skippedEntitiesManager = new SkippedEntitiesManager(db);
+    this.retryManager = new RetryManager(3); // Max 3 retries with exponential backoff
+    this.errorSummaryTracker = new ErrorSummaryTracker();
     this.validationMetrics = {
       totalFetched: 0,
       validRecords: 0,
@@ -636,6 +642,8 @@ export class ImportOrchestrator {
     const metrics = this.getValidationMetrics();
     const validationSummary = this.validationTracker.getSummary();
     const errorSummary = this.getErrorSummary();
+    const errorSummaryData = this.errorSummaryTracker.getSummary();
+    const errorSummaryMessage = this.errorSummaryTracker.getSummaryMessage();
 
     // Run integrity checks if import was successful
     let integrityResults = null;
@@ -652,6 +660,7 @@ export class ImportOrchestrator {
       console.log(`  Critical errors: ${errorSummary.criticalErrors}`);
       console.log(`  Retried errors: ${errorSummary.retriedErrors}`);
       console.log(`  Errors by phase:`, errorSummary.errorsByPhase);
+      console.log(`  Error summary message: ${errorSummaryMessage}`);
     }
 
     // Prepare error object for database
@@ -661,21 +670,39 @@ export class ImportOrchestrator {
     const skippedPages = this.getSkippedPagesForStorage();
     const hasSkippedPages = Object.keys(skippedPages).length > 0;
 
+    // Get existing errors from SyncLog to preserve validation metrics
+    const existingSyncLog = await resilientDB.execute((db) =>
+      db.syncLog.findUnique({
+        where: { id: this.currentSyncLogId! },
+        select: { errors: true },
+      })
+    );
+
+    let existingErrors: Record<string, unknown> = {};
+    if (existingSyncLog?.errors && typeof existingSyncLog.errors === 'object') {
+      existingErrors = existingSyncLog.errors as Record<string, unknown>;
+    }
+
+    // Build error data structure with both errorSummary and validationMetrics
     let errorData: unknown = undefined;
-    if (!success) {
+    if (!success || hasErrors || hasIntegrityIssues || hasSkippedPages) {
       errorData = {
-        message: 'Import failed',
-        errorSummary,
-        skippedPages: hasSkippedPages ? skippedPages : undefined,
-      };
-    } else if (hasErrors || hasIntegrityIssues || hasSkippedPages) {
-      errorData = {
-        message: hasIntegrityIssues
-          ? 'Import completed with integrity issues'
-          : 'Import completed with non-critical errors',
-        errorSummary: hasErrors ? errorSummary : undefined,
+        ...existingErrors,
+        errorSummary:
+          errorSummaryData.totalErrors > 0 ? errorSummaryData : undefined,
+        validationMetrics: existingErrors.validationMetrics || undefined,
+        message: !success
+          ? 'Import failed'
+          : hasIntegrityIssues
+            ? 'Import completed with integrity issues'
+            : errorSummaryMessage,
         integrity: hasIntegrityIssues ? integrityResults : undefined,
         skippedPages: hasSkippedPages ? skippedPages : undefined,
+      };
+    } else if (existingErrors.validationMetrics) {
+      // Preserve validation metrics even if no errors
+      errorData = {
+        validationMetrics: existingErrors.validationMetrics,
       };
     }
 
@@ -939,6 +966,116 @@ export class ImportOrchestrator {
       return await operation();
     } catch (error: unknown) {
       this.logError(error as Error, errorCode, context, false);
+      return null;
+    }
+  }
+
+  /**
+   * Execute an operation with error handling, retry logic, and permanent error recording.
+   * For transient errors: retries with exponential backoff.
+   * For permanent errors: logs, records in SkippedEntity, and continues processing.
+   *
+   * @param operation The operation to execute
+   * @param context Context for error logging and SkippedEntity recording
+   * @returns Result of operation, or null if it failed permanently
+   */
+  async executeWithErrorHandling<T>(
+    operation: () => Promise<T>,
+    context: {
+      entityId?: string;
+      entityType: string;
+      phase: ImportPhase;
+      pageNumber?: number;
+    }
+  ): Promise<T | null> {
+    try {
+      // Execute with retry for transient errors
+      return await this.retryManager.execute(operation, {
+        signal: this.cancellationSignal || undefined,
+        onRetryAttempt: (attempt, error, _delay) => {
+          const classification = this.retryManager.categorizeError(error);
+          this.errorSummaryTracker.recordError(
+            error,
+            context.phase,
+            classification.category,
+            classification.code,
+            classification.type,
+            {
+              entityId: context.entityId,
+              entityType: context.entityType,
+            }
+          );
+          this.logError(
+            error,
+            classification.code,
+            {
+              entityId: context.entityId,
+              entityType: context.entityType,
+              operation: 'retry',
+            },
+            true
+          );
+        },
+      });
+    } catch (error: unknown) {
+      const err = error as Error;
+      const classification = this.retryManager.categorizeError(err);
+
+      // Record error in summary tracker
+      this.errorSummaryTracker.recordError(
+        err,
+        context.phase,
+        classification.category,
+        classification.code,
+        classification.type,
+        {
+          entityId: context.entityId,
+          entityType: context.entityType,
+        }
+      );
+
+      // Log error with full context
+      this.logError(
+        err,
+        classification.code,
+        {
+          entityId: context.entityId,
+          entityType: context.entityType,
+        },
+        classification.category === ErrorCategory.TRANSIENT
+      );
+
+      // For permanent errors, record in SkippedEntity and continue
+      if (classification.category === ErrorCategory.PERMANENT) {
+        try {
+          await this.skippedEntitiesManager.recordSkippedEntity({
+            phase: context.phase,
+            entityType: context.entityType,
+            entityId: context.entityId,
+            pageNumber: context.pageNumber,
+            errorCode: classification.code,
+            errorMessage: err.message,
+            errorDetails: {
+              stackTrace: err.stack,
+              type: classification.type,
+            },
+            syncLogId: this.currentSyncLogId || undefined,
+          });
+
+          this.errorSummaryTracker.recordSkippedEntity(context.phase);
+
+          console.log(
+            `[ImportOrchestrator] Recorded permanent error for ${context.entityType} ${context.entityId || 'unknown'}: ${err.message}`
+          );
+        } catch (recordError) {
+          console.error(
+            '[ImportOrchestrator] Failed to record skipped entity:',
+            recordError
+          );
+        }
+      }
+
+      // Continue processing (return null to indicate failure)
       return null;
     }
   }

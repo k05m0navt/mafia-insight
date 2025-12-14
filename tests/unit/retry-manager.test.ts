@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RetryManager } from '@/lib/gomafia/import/retry-manager';
+import {
+  RetryManager,
+  ErrorCategory,
+} from '@/lib/gomafia/import/retry-manager';
 
 describe('RetryManager', () => {
   beforeEach(() => {
@@ -193,6 +196,186 @@ describe('RetryManager', () => {
       );
 
       expect(operation).toHaveBeenCalledTimes(1); // No retries for permanent errors
+    });
+  });
+
+  describe('error categorization', () => {
+    it('should correctly categorize transient errors', () => {
+      const retryManager = new RetryManager(3);
+
+      // Network errors
+      let classification = retryManager.categorizeError(
+        new Error('Network timeout')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('TIMEOUT');
+      expect(classification.type).toBe('timeout');
+
+      // Connection errors
+      classification = retryManager.categorizeError(
+        new Error('Connection refused')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('NETWORK_ERROR');
+      expect(classification.type).toBe('network');
+
+      // Rate limit errors
+      classification = retryManager.categorizeError(
+        new Error('Rate limit exceeded')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('RATE_LIMIT');
+      expect(classification.type).toBe('rate_limit');
+
+      // HTTP 5xx errors
+      classification = retryManager.categorizeError(
+        new Error('Server error 503')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('HTTP_503');
+      expect(classification.type).toBe('network');
+
+      // HTTP 502
+      classification = retryManager.categorizeError(
+        new Error('Bad gateway 502')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('HTTP_502');
+      expect(classification.type).toBe('network');
+
+      // HTTP 504
+      classification = retryManager.categorizeError(
+        new Error('Gateway timeout 504')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('HTTP_504');
+      expect(classification.type).toBe('network');
+
+      // HTTP 429
+      classification = retryManager.categorizeError(
+        new Error('Too many requests 429')
+      );
+      expect(classification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(classification.code).toBe('HTTP_429');
+      expect(classification.type).toBe('rate_limit');
+    });
+
+    it('should correctly categorize permanent errors', () => {
+      const retryManager = new RetryManager(3);
+
+      // Validation errors
+      let classification = retryManager.categorizeError(
+        new Error('Validation error: missing required field')
+      );
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('MISSING_REQUIRED_FIELD');
+      expect(classification.type).toBe('validation');
+
+      // Parse errors
+      classification = retryManager.categorizeError(
+        new Error('Parsing error: invalid JSON')
+      );
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('PARSE_ERROR');
+      expect(classification.type).toBe('parsing');
+
+      // HTTP 4xx errors (except 429)
+      classification = retryManager.categorizeError(new Error('Not found 404'));
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('HTTP_404');
+      expect(classification.type).toBe('not_found');
+
+      classification = retryManager.categorizeError(
+        new Error('Bad request 400')
+      );
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('HTTP_400');
+      expect(classification.type).toBe('client_error');
+
+      // Data format errors
+      classification = retryManager.categorizeError(
+        new Error('Invalid data format')
+      );
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('DATA_ERROR');
+      expect(classification.type).toBe('data_format');
+    });
+
+    it('should handle edge cases in error categorization', () => {
+      const retryManager = new RetryManager(3);
+
+      // Unknown errors default to permanent
+      const classification = retryManager.categorizeError(
+        new Error('Some unknown error')
+      );
+      expect(classification.category).toBe(ErrorCategory.PERMANENT);
+      expect(classification.code).toBe('UNKNOWN_ERROR');
+      expect(classification.type).toBe('unknown');
+
+      // Error with Timeout in name
+      const timeoutError = new Error('Custom timeout error');
+      timeoutError.name = 'TimeoutError';
+      const timeoutClassification = retryManager.categorizeError(timeoutError);
+      expect(timeoutClassification.category).toBe(ErrorCategory.TRANSIENT);
+      expect(timeoutClassification.code).toBe('NETWORK_ERROR');
+      expect(timeoutClassification.type).toBe('network');
+
+      // Error with Validation in name
+      const validationError = new Error('Custom validation error');
+      validationError.name = 'ValidationError';
+      const validationClassification =
+        retryManager.categorizeError(validationError);
+      expect(validationClassification.category).toBe(ErrorCategory.PERMANENT);
+      expect(validationClassification.code).toBe('VALIDATION_ERROR');
+      expect(validationClassification.type).toBe('validation');
+    });
+
+    it('should log retry attempts with timestamps', async () => {
+      const retryManager = new RetryManager(3);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const operation = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValue('success');
+
+      const promise = retryManager.execute(operation);
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[RetryManager] Retry attempt'),
+        expect.objectContaining({
+          error: 'Network timeout',
+          category: ErrorCategory.TRANSIENT,
+          delayMs: expect.any(Number),
+        })
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should call onRetryAttempt callback when provided', async () => {
+      const retryManager = new RetryManager(3);
+      const onRetryAttempt = vi.fn();
+
+      const operation = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValue('success');
+
+      const promise = retryManager.execute(operation, {
+        onRetryAttempt,
+      });
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(onRetryAttempt).toHaveBeenCalledTimes(1);
+      expect(onRetryAttempt).toHaveBeenCalledWith(
+        1,
+        expect.any(Error),
+        expect.any(Number)
+      );
     });
   });
 
