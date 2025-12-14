@@ -30,6 +30,7 @@ describe('ImportOrchestrator - Error Handling', () => {
     mockDb = {
       syncLog: {
         create: vi.fn().mockResolvedValue({ id: 'log-1' }),
+        findUnique: vi.fn().mockResolvedValue({ errors: {} }),
         update: vi.fn().mockResolvedValue({}),
       },
       syncStatus: {

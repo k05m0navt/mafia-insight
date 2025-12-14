@@ -686,16 +686,36 @@ export class ImportOrchestrator {
     // Build error data structure with both errorSummary and validationMetrics
     let errorData: unknown = undefined;
     if (!success || hasErrors || hasIntegrityIssues || hasSkippedPages) {
+      // Use errorSummary (from errorLogs) if errorSummaryData is empty but errors exist
+      const summaryToUse =
+        errorSummaryData.totalErrors > 0
+          ? errorSummaryData
+          : errorSummary.totalErrors > 0
+            ? errorSummary
+            : undefined;
+
+      // Determine appropriate error message
+      let errorMessage: string;
+      if (!success) {
+        errorMessage = 'Import failed';
+      } else if (hasIntegrityIssues) {
+        errorMessage = 'Import completed with integrity issues';
+      } else if (hasErrors && summaryToUse) {
+        // Check if all errors are retried (non-critical)
+        const allErrorsRetried =
+          summaryToUse.totalErrors > 0 && summaryToUse.criticalErrors === 0;
+        errorMessage = allErrorsRetried
+          ? 'Import completed with non-critical errors'
+          : errorSummaryMessage || 'Import completed with errors';
+      } else {
+        errorMessage = errorSummaryMessage || 'Import completed successfully';
+      }
+
       errorData = {
         ...existingErrors,
-        errorSummary:
-          errorSummaryData.totalErrors > 0 ? errorSummaryData : undefined,
+        errorSummary: summaryToUse,
         validationMetrics: existingErrors.validationMetrics || undefined,
-        message: !success
-          ? 'Import failed'
-          : hasIntegrityIssues
-            ? 'Import completed with integrity issues'
-            : errorSummaryMessage,
+        message: errorMessage,
         integrity: hasIntegrityIssues ? integrityResults : undefined,
         skippedPages: hasSkippedPages ? skippedPages : undefined,
       };
