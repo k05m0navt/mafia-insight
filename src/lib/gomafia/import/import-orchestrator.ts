@@ -702,8 +702,13 @@ export class ImportOrchestrator {
         errorMessage = 'Import completed with integrity issues';
       } else if (hasErrors && summaryToUse) {
         // Check if all errors are retried (non-critical)
+        // Only errorSummary has criticalErrors, errorSummaryData (ErrorSummary) does not
+        const hasCriticalErrors =
+          'criticalErrors' in summaryToUse
+            ? summaryToUse.criticalErrors > 0
+            : true; // If criticalErrors doesn't exist, assume there are critical errors
         const allErrorsRetried =
-          summaryToUse.totalErrors > 0 && summaryToUse.criticalErrors === 0;
+          summaryToUse.totalErrors > 0 && !hasCriticalErrors;
         errorMessage = allErrorsRetried
           ? 'Import completed with non-critical errors'
           : errorSummaryMessage || 'Import completed with errors';
