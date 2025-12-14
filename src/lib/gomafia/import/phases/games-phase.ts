@@ -236,6 +236,9 @@ export class GamesPhase {
               `[GamesPhase] Invalid game data for ${gameData.gomafiaId}`
             );
             errorCount++;
+            this.orchestrator.recordInvalidRecord('Game', 'Validation failed', {
+              gomafiaId: gameData.gomafiaId,
+            });
             continue;
           }
 
@@ -344,6 +347,19 @@ export class GamesPhase {
             'Game',
             `Failed to insert: ${error instanceof Error ? error.message : 'Unknown error'}`,
             { gomafiaId: gameData.gomafiaId }
+          );
+        }
+      }
+
+      // Check validation threshold after processing buffer (Task 2: AC #1)
+      // Check every 100 games or at the end of buffer
+      const gamesProcessed = gamesToSave.length;
+      if (gamesProcessed > 0) {
+        const thresholdMet =
+          await this.orchestrator.checkValidationThreshold('GAMES');
+        if (!thresholdMet) {
+          throw new Error(
+            'Import paused: Validation threshold not met (< 98%). Please review errors.'
           );
         }
       }

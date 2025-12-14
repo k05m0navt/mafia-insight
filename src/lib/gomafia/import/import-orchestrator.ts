@@ -18,7 +18,7 @@ import {
 } from './skipped-entities-manager';
 import { GameRawData } from '../validators/game-schema';
 
-type ImportPhase =
+export type ImportPhase =
   | 'CLUBS'
   | 'PLAYERS'
   | 'CLUB_MEMBERS'
@@ -400,6 +400,109 @@ export class ImportOrchestrator {
   }
 
   /**
+   * Check if validation threshold is met after a batch.
+   * If threshold not met (below configured threshold, default 98%), pauses import and logs detailed errors.
+   *
+   * The threshold is configurable via VALIDATION_THRESHOLD environment variable.
+   *
+   * @param phase The current import phase
+   * @param batchIndex The batch index (for logging)
+   * @returns True if threshold is met, false if import should pause
+   */
+  async checkValidationThreshold(
+    phase: ImportPhase,
+    batchIndex?: number
+  ): Promise<boolean> {
+    const summary = this.validationTracker.getSummary();
+
+    if (summary.meetsThreshold) {
+      return true;
+    }
+
+    // Threshold not met - pause import and log detailed errors
+    const errors = this.validationTracker.getErrors();
+    const errorSummary = this.getErrorSummary();
+    const threshold = this.validationTracker.getThreshold();
+
+    console.error(
+      `[ImportOrchestrator] Validation threshold not met: ${summary.validationRate}% < ${threshold}%`
+    );
+    console.error(
+      `[ImportOrchestrator] Total records: ${summary.totalRecords}, Valid: ${summary.validRecords}, Invalid: ${summary.invalidRecords}`
+    );
+    console.error(
+      `[ImportOrchestrator] Errors by entity: ${JSON.stringify(summary.errorsByEntity)}`
+    );
+
+    // Store batch-level validation results in SyncLog.errors
+    if (this.currentSyncLogId) {
+      const existingSyncLog = await resilientDB.execute((db) =>
+        db.syncLog.findUnique({
+          where: { id: this.currentSyncLogId! },
+          select: { errors: true },
+        })
+      );
+
+      let existingErrors: Record<string, unknown> = {};
+      if (
+        existingSyncLog?.errors &&
+        typeof existingSyncLog.errors === 'object'
+      ) {
+        existingErrors = existingSyncLog.errors as Record<string, unknown>;
+      }
+
+      const updatedErrors: Record<string, unknown> = {
+        ...existingErrors,
+        validationMetrics: {
+          ...((existingErrors.validationMetrics as Record<string, unknown>) ||
+            {}),
+          thresholdFailure: {
+            phase,
+            batchIndex: batchIndex ?? null,
+            validationRate: summary.validationRate,
+            meetsThreshold: false,
+            totalRecords: summary.totalRecords,
+            validRecords: summary.validRecords,
+            invalidRecords: summary.invalidRecords,
+            errorsByEntity: summary.errorsByEntity,
+            recentErrors: errors.slice(-50),
+            errorSummary,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      };
+
+      await resilientDB.execute((db) =>
+        db.syncLog.update({
+          where: { id: this.currentSyncLogId! },
+          data: {
+            errors: updatedErrors as Prisma.InputJsonValue,
+          },
+        })
+      );
+    }
+
+    // Update sync status to indicate validation failure
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: false,
+          currentOperation: `Validation threshold not met: ${summary.validationRate}% < ${threshold}%`,
+          lastError: `Data quality below threshold (${summary.validationRate}% < ${threshold}%). Please review errors.`,
+          validationRate: summary.validationRate,
+          totalRecordsProcessed: summary.totalRecords,
+          validRecords: summary.validRecords,
+          invalidRecords: summary.invalidRecords,
+          updatedAt: new Date(),
+        },
+      })
+    );
+
+    return false;
+  }
+
+  /**
    * Record skipped pages for a phase.
    * @param phase The import phase
    * @param pages Array of skipped page numbers
@@ -444,6 +547,82 @@ export class ImportOrchestrator {
       validationRate: 0,
     };
     this.validationTracker.reset();
+  }
+
+  /**
+   * Store validation metrics in SyncLog.errors JSON field after a phase completes.
+   * This allows tracking validation metrics per phase and checking threshold compliance.
+   *
+   * @param phase The import phase that just completed
+   */
+  async storeValidationMetricsForPhase(phase: ImportPhase): Promise<void> {
+    if (!this.currentSyncLogId) {
+      console.warn(
+        '[ImportOrchestrator] No sync log ID available, skipping validation metrics storage'
+      );
+      return;
+    }
+
+    const validationSummary = this.validationTracker.getSummary();
+    const validationErrors = this.validationTracker.getErrors();
+
+    // Get existing errors from SyncLog
+    const existingSyncLog = await resilientDB.execute((db) =>
+      db.syncLog.findUnique({
+        where: { id: this.currentSyncLogId! },
+        select: { errors: true },
+      })
+    );
+
+    // Parse existing errors or initialize empty structure
+    let existingErrors: Record<string, unknown> = {};
+    if (existingSyncLog?.errors && typeof existingSyncLog.errors === 'object') {
+      existingErrors = existingSyncLog.errors as Record<string, unknown>;
+    }
+
+    // Update validation metrics for this phase
+    const phaseMetrics = {
+      validationRate: validationSummary.validationRate,
+      meetsThreshold: validationSummary.meetsThreshold,
+      totalRecords: validationSummary.totalRecords,
+      validRecords: validationSummary.validRecords,
+      invalidRecords: validationSummary.invalidRecords,
+      errorsByEntity: validationSummary.errorsByEntity,
+      recentErrors: validationErrors.slice(-50), // Last 50 errors
+    };
+
+    // Store in validationMetrics structure
+    const updatedErrors: Record<string, unknown> = {
+      ...existingErrors,
+      validationMetrics: {
+        ...((existingErrors.validationMetrics as Record<string, unknown>) ||
+          {}),
+        [phase]: phaseMetrics,
+        // Also store overall summary
+        overall: {
+          validationRate: validationSummary.validationRate,
+          meetsThreshold: validationSummary.meetsThreshold,
+          totalRecords: validationSummary.totalRecords,
+          validRecords: validationSummary.validRecords,
+          invalidRecords: validationSummary.invalidRecords,
+          errorsByEntity: validationSummary.errorsByEntity,
+        },
+      },
+    };
+
+    // Update SyncLog with validation metrics
+    await resilientDB.execute((db) =>
+      db.syncLog.update({
+        where: { id: this.currentSyncLogId! },
+        data: {
+          errors: updatedErrors as Prisma.InputJsonValue,
+        },
+      })
+    );
+
+    console.log(
+      `[ImportOrchestrator] Stored validation metrics for phase ${phase}: ${validationSummary.validationRate}% (${validationSummary.validRecords}/${validationSummary.totalRecords} valid)`
+    );
   }
 
   /**

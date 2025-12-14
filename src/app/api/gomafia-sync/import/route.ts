@@ -4,6 +4,7 @@ import { prisma as db } from '@/lib/db';
 import { resilientDB } from '@/lib/db-resilient';
 import { Prisma } from '@prisma/client';
 import { ImportOrchestrator } from '@/lib/gomafia/import/import-orchestrator';
+import type { ImportPhase } from '@/lib/gomafia/import/import-orchestrator';
 import {
   historicalImportRequestSchema,
   extractPlayerIdFromUrl,
@@ -706,6 +707,9 @@ async function startImportInBackground(
       try {
         await phase.execute();
         console.log(`[Import] Completed phase: ${name}`);
+
+        // Store validation metrics for this phase (Task 1: AC #1)
+        await orchestrator.storeValidationMetricsForPhase(name as ImportPhase);
       } catch (error: unknown) {
         // Check if it's a cancellation error
         const isCancellationError =

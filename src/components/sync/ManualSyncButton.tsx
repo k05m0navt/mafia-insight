@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useManualSync, type ManualSyncStatus } from '@/hooks/useManualSync';
+import { useValidationSummary } from '@/hooks/useValidationSummary';
 import { useToast } from '@/components/hooks/use-toast';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -41,6 +42,7 @@ export function ManualSyncButton({
     syncData,
   } = useManualSync();
   const { toast } = useToast();
+  const { data: validationSummary } = useValidationSummary(); // Task 9: AC #1, #3
   const previousSyncStatusRef = useRef(syncStatus);
   const hasShownCompletionToastRef = useRef(false);
 
@@ -57,12 +59,22 @@ export function ManualSyncButton({
       !hasShownCompletionToastRef.current
     ) {
       // Get sync summary from mutation response if available, otherwise use status
-      const summary = getSyncSummary(syncData, currentStatus);
+      const summary = getSyncSummary(
+        syncData,
+        currentStatus,
+        validationSummary
+      );
+
+      // Determine toast variant based on validation threshold (Task 9: AC #1, #3)
+      const validationRate = validationSummary?.validationRate ?? null;
+      const meetsThreshold = validationSummary?.meetsThreshold ?? true;
+      const toastVariant =
+        validationRate !== null && !meetsThreshold ? 'destructive' : 'default';
 
       toast({
         title: 'Sync Completed',
         description: summary,
-        variant: 'default',
+        variant: toastVariant,
       });
 
       hasShownCompletionToastRef.current = true;
@@ -83,7 +95,7 @@ export function ManualSyncButton({
     }
 
     previousSyncStatusRef.current = currentStatus;
-  }, [syncStatus, syncData, toast]);
+  }, [syncStatus, syncData, validationSummary, toast]);
 
   // Show error toast when sync mutation fails
   useEffect(() => {
@@ -153,7 +165,8 @@ export function ManualSyncButton({
 }
 
 /**
- * Helper function to generate sync summary message from sync data and status
+ * Helper function to generate sync summary message from sync data, status, and validation metrics
+ * Enhanced to include validation metrics (Task 9: AC #1, #3).
  */
 function getSyncSummary(
   syncData:
@@ -165,8 +178,20 @@ function getSyncSummary(
         };
       }
     | undefined,
-  status: ManualSyncStatus | undefined
+  status: ManualSyncStatus | undefined,
+  validationSummary:
+    | {
+        validationRate: number | null;
+        meetsThreshold: boolean;
+        totalRecords: number | null;
+        validRecords: number | null;
+        invalidRecords: number | null;
+      }
+    | null
+    | undefined
 ): string {
+  const parts: string[] = [];
+
   // Use summary from mutation response if available
   if (syncData?.summary) {
     const {
@@ -174,7 +199,6 @@ function getSyncSummary(
       gamesUpdated = 0,
       errors = 0,
     } = syncData.summary;
-    const parts: string[] = [];
 
     if (gamesImported > 0) {
       parts.push(
@@ -187,15 +211,34 @@ function getSyncSummary(
       );
     }
 
-    if (parts.length > 0) {
-      return `Successfully synced data: ${parts.join(', ')}.`;
-    }
-
     if (errors > 0) {
-      return `Sync completed with ${errors} error${errors !== 1 ? 's' : ''}.`;
+      parts.push(`${errors} error${errors !== 1 ? 's' : ''}`);
     }
+  }
 
-    return 'Sync completed successfully.';
+  // Add validation metrics if available (Task 9: AC #1, #3)
+  if (validationSummary) {
+    const validationRate = validationSummary.validationRate;
+    const meetsThreshold = validationSummary.meetsThreshold;
+    const totalRecords = validationSummary.totalRecords;
+    const validRecords = validationSummary.validRecords;
+    const invalidRecords = validationSummary.invalidRecords;
+
+    if (validationRate !== null && totalRecords !== null && totalRecords > 0) {
+      const validationStatus = meetsThreshold ? 'Excellent' : 'Warning';
+      parts.push(
+        `Validation: ${validationRate.toFixed(2)}% (${validationStatus})`
+      );
+      if (totalRecords > 0) {
+        parts.push(
+          `${validRecords}/${totalRecords} valid${invalidRecords && invalidRecords > 0 ? `, ${invalidRecords} invalid` : ''}`
+        );
+      }
+    }
+  }
+
+  if (parts.length > 0) {
+    return `Sync completed: ${parts.join(', ')}.`;
   }
 
   // Fallback to generic message

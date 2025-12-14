@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>4</storyId>
+    <title>Data Quality Validation (≥98% Threshold)</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-4-data-quality-validation-98-threshold.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to validate imported data quality meets the ≥98% accuracy threshold</iWant>
+    <soThat>users receive reliable and accurate analytics</soThat>
+    <tasks>
+      <task id="1">Enhance validation tracking in ImportOrchestrator - Integrate ValidationMetricsTracker for all phases, call recordValid()/recordInvalid(), store metrics in SyncLog.errors</task>
+      <task id="2">Implement batch-level validation threshold check - Check meetsThreshold after each batch, pause import if &lt;98%, log errors, update sync status</task>
+      <task id="3">Enhance IntegrityChecker with comprehensive referential integrity validation - Verify GameParticipation links, Game-Tournament links, Player/Tournament-Club links</task>
+      <task id="4">Implement Zod schema validation for entity fields - Enhance schemas to validate required fields, data types, formats, business rules</task>
+      <task id="5">Create validation error reporting API endpoint - GET /api/gomafia-sync/import/validation returning validation summary with threshold status and error details</task>
+      <task id="6">Create validation quality report UI component - ValidationQualityReport.tsx displaying validation rate, counts, errors by entity type, integrity results</task>
+      <task id="7">Integrate validation report into import status page - Add ValidationQualityReport to sync page, fetch with TanStack Query, show warnings for &lt;98% threshold</task>
+      <task id="8">Create TanStack Query hook for validation summary - useValidationSummary.ts with polling (2s interval) when import running</task>
+      <task id="9">Add validation metrics to sync completion notifications - Include validation rate in completion summary, show status badge</task>
+      <task id="10">Integration and E2E testing - Test complete validation flow, threshold enforcement, error logging, referential integrity, validation report display</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given data is imported from gomafia.pro, When each entity (game, player, tournament) is processed, Then the system validates required fields, data types, business rules, referential integrity; calculates quality score: (valid records / total records) × 100; logs validation results; rejects batches with quality score &lt; 98%</criterion>
+    <criterion id="2">Validation includes required field validation (name, date, ID, etc.), data format validation (date format, number ranges, string lengths), business logic validation (game outcome matches scores, role assignments valid), cross-reference validation (players exist, tournaments exist, clubs exist)</criterion>
+    <criterion id="3">If quality threshold not met: import pauses and logs detailed validation errors, shows quality report to user with message "Data quality below threshold (X%). Please review errors.", provides option to continue anyway (user acknowledges risk) or fix errors</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown - Epic 2: Data Import &amp; Synchronization</title>
+        <section>Story 2.4: Data Quality Validation (≥98% Threshold)</section>
+        <snippet>System validates imported data quality meets the ≥98% accuracy threshold. Validates required fields, data types, business rules, referential integrity. Calculates quality score and rejects batches with quality score &lt; 98%. Validation layer in import pipeline with Zod schemas, quality metrics tracking in sync_log table.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture - Data Import &amp; Synchronization</title>
+        <section>FR Category to Architecture Mapping, Testing, ADR-007: Zod for Validation</section>
+        <snippet>Data Import &amp; Synchronization (FR7-FR15) located in src/lib/gomafia/, src/app/api/gomafia-sync/, src/components/sync/. Vitest for unit/integration tests, Playwright for E2E tests. Zod 4.1.12 for schema validation. Test coverage minimum 80%.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>Data Import &amp; Synchronization - FR10</section>
+        <snippet>FR10: System validates imported data quality with ≥98% accuracy threshold. Essential for reliable analytics foundation.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/2-3-manual-data-synchronization-trigger.md</path>
+        <title>Story 2.3: Manual Data Synchronization Trigger</title>
+        <section>Dev Notes - Learnings</section>
+        <snippet>ValidationMetricsTracker class exists at src/services/validation-service.ts with methods: recordValid(), recordInvalid(), getMetrics(), getSummary(). Validation endpoint exists at src/app/api/gomafia-sync/import/validation/route.ts. IntegrityChecker class exists at src/lib/gomafia/import/integrity-checker.ts. SyncLog model includes errors JSON field for storing error details.</snippet>
+      </doc>
+      <doc>
+        <path>.specify/memory/constitution.md</path>
+        <title>Mafia Insight Constitution</title>
+        <section>Testing Requirements</section>
+        <snippet>TDD is MANDATORY for all development. Tests MUST be written before implementation. Follow Red-Green-Refactor cycle strictly. Test coverage MUST be maintained above 80%. Integration tests MUST be written for all user journeys and API contracts.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/services/validation-service.ts</path>
+        <kind>service</kind>
+        <symbol>ValidationMetricsTracker</symbol>
+        <lines>36-140</lines>
+        <reason>Core validation tracking class with recordValid(), recordInvalid(), getMetrics(), getSummary() methods. Tracks valid/invalid records, calculates validation rate, stores errors by entity type, provides meetsThreshold check (98% threshold).</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/import-orchestrator.ts</path>
+        <kind>service</kind>
+        <symbol>ImportOrchestrator</symbol>
+        <lines>77-1616</lines>
+        <reason>Import orchestration class that processes entities in phases (Clubs, Players, Games, Tournaments). Needs integration with ValidationMetricsTracker to track validation metrics during entity processing. Stores errors in SyncLog.errors JSON field.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/integrity-checker.ts</path>
+        <kind>service</kind>
+        <symbol>IntegrityChecker</symbol>
+        <lines>43-269</lines>
+        <reason>Referential integrity validation class. Checks GameParticipation links, Player-Tournament links, orphaned records. Needs enhancement with comprehensive checks: GameParticipation → Player/Game, Game → Tournament, Player/Tournament → Club.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/validations/playerSchemas.ts</path>
+        <kind>validation</kind>
+        <symbol>PlayerSyncSchema</symbol>
+        <lines>4-29</lines>
+        <reason>Zod schema for player validation. Validates gomafiaId, name, eloRating, totalGames, wins, losses with business rules (wins + losses ≤ totalGames). Needs enhancement for required field validation, format validation, additional business rules.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/validations/gameSchemas.ts</path>
+        <kind>validation</kind>
+        <symbol>GameSyncDataSchema</symbol>
+        <lines>26-46</lines>
+        <reason>Zod schema for game validation. Validates gomafiaId, date, durationMinutes, winnerTeam, status. Needs enhancement for required fields, date format validation, business rules (positive scores, valid date ranges, valid role assignments).</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/validations/syncSchemas.ts</path>
+        <kind>validation</kind>
+        <symbol>SyncLogSchema</symbol>
+        <lines>24-39</lines>
+        <reason>Zod schema for SyncLog with errors array field. Errors field can store validation metrics and error details in JSON format. Structure: { validationMetrics: { validationRate, meetsThreshold, totalRecords, validRecords, invalidRecords, errorsByEntity }, integrity: { ... }, errors: [...] }.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/gomafia-sync/import/validation/route.ts</path>
+        <kind>api-endpoint</kind>
+        <symbol>GET /api/gomafia-sync/import/validation</symbol>
+        <lines>2-72</lines>
+        <reason>Existing validation endpoint that loads metrics from latest SyncLog. Needs enhancement to return complete validation summary with threshold status (meetsThreshold boolean), error details, integrity check results, validation rate percentage.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/db/syncLog.ts</path>
+        <kind>persistence</kind>
+        <symbol>SyncLogCreateSchema, SyncLogUpdateSchema</symbol>
+        <lines>5-19</lines>
+        <reason>SyncLog database schema with errors field (z.array(z.any()).optional()). Used to store validation metrics and error details after each phase. Structure matches ValidationMetricsTracker output.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>SyncLog model</symbol>
+        <lines>175-240</lines>
+        <reason>Prisma schema for SyncLog model. Includes errors JSON field for storing structured error data including validation metrics. Referential integrity relationships: GameParticipation → Player/Game, Game → Tournament, Player/Tournament → Club.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/unit/validation-service.test.ts</path>
+        <kind>test</kind>
+        <symbol>ValidationMetricsTracker tests</symbol>
+        <lines>2-162</lines>
+        <reason>Existing unit tests for ValidationMetricsTracker. Tests initialization, valid/invalid record tracking, validation rate calculation, errors by entity type, meetsThreshold check. May need updates for new validation features.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/unit/integrity-checker.test.ts</path>
+        <kind>test</kind>
+        <symbol>IntegrityChecker tests</symbol>
+        <lines>14-203</lines>
+        <reason>Existing unit tests for IntegrityChecker. Tests checkGameParticipationLinks, checkPlayerTournamentLinks, checkOrphanedRecords. Needs updates for new comprehensive referential integrity checks.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/import-metrics.test.ts</path>
+        <kind>test</kind>
+        <symbol>Import metrics integration tests</symbol>
+        <lines>10-173</lines>
+        <reason>Integration tests for import metrics tracking. May need updates for validation threshold checks, batch-level validation, and validation metrics persistence.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/sync/DataIntegrityPanel.tsx</path>
+        <kind>component</kind>
+        <symbol>DataIntegrityPanel</symbol>
+        <lines>15-140</lines>
+        <reason>Existing component for displaying data integrity results. Pattern reference for creating ValidationQualityReport component. Uses ShadCN/UI components (Card, Badge, Alert, Table).</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/</path>
+        <kind>component-library</kind>
+        <symbol>ShadCN/UI components</symbol>
+        <lines>N/A</lines>
+        <reason>ShadCN/UI component library. Use Card, Badge, Alert, Table, Button, Progress components for ValidationQualityReport. Components are accessible, responsive, and follow design system patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/</path>
+        <kind>hook</kind>
+        <symbol>Custom React hooks</symbol>
+        <lines>N/A</lines>
+        <reason>Directory for custom React hooks. Create useValidationSummary.ts here. Pattern: useQuery with polling (2s interval when import running), handle loading/success/error states, provide validation metrics and error details.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/queryClient.ts</path>
+        <kind>config</kind>
+        <symbol>TanStack Query client configuration</symbol>
+        <lines>N/A</lines>
+        <reason>TanStack Query client configuration. Used for server state management, caching, background refetching. Configuration for polling intervals, cache times, retry logic.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/sync/page.tsx</path>
+        <kind>page</kind>
+        <symbol>Sync/Import status page</symbol>
+        <lines>N/A</lines>
+        <reason>Dashboard page for sync/import status. Needs integration of ValidationQualityReport component. Display validation report when import completes or validation fails, show warning alert if validation rate &lt; 98%, allow user to acknowledge and continue.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="zod" version="^4.1.12">Schema validation for entity fields, validation metrics, SyncLog errors</package>
+        <package name="@tanstack/react-query" version="^5.0.0">Server state management for validation summary polling, caching validation metrics</package>
+        <package name="@prisma/client" version="^5.0.0">Database access for SyncLog, Player, Game, Tournament, GameParticipation models</package>
+        <package name="react" version="^19.2.0">React components for ValidationQualityReport UI</package>
+        <package name="next" version="^16.0.0">Next.js App Router for API routes and pages</package>
+        <package name="@radix-ui/react-alert-dialog" version="^1.1.15">Alert dialog for validation warnings and continue confirmation</package>
+        <package name="@radix-ui/react-progress" version="^1.1.7">Progress indicator for validation status</package>
+      </ecosystem>
+      <ecosystem name="dev">
+        <package name="vitest" version="^1.0.0">Unit and integration testing framework</package>
+        <package name="@playwright/test" version="^1.56.1">E2E testing for validation report display</package>
+        <package name="@axe-core/playwright" version="^4.11.0">Accessibility testing for validation report component</package>
+        <package name="@testing-library/react" version="^16.0.0">Component testing for ValidationQualityReport</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture: Validation logic in domain/infrastructure layers, ImportOrchestrator in infrastructure layer, validation tracking in services layer</constraint>
+    <constraint>TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle, maintain 80% test coverage minimum</constraint>
+    <constraint>Validation Threshold: Hard-coded 98% threshold in ValidationMetricsTracker.validationThreshold, use getSummary().meetsThreshold boolean for checks</constraint>
+    <constraint>Error Storage: Store validation metrics in SyncLog.errors JSON field. Structure: { validationMetrics: { validationRate, meetsThreshold, totalRecords, validRecords, invalidRecords, errorsByEntity }, integrity: { ... }, errors: [...] }</constraint>
+    <constraint>State Management: Use TanStack Query for server state (validation summary polling). Configuration in src/lib/queryClient.ts. Polling interval: 2 seconds when import running</constraint>
+    <constraint>UI Components: Use ShadCN/UI components from src/components/ui/: Card for report container, Badge for status indicators (green/red), Alert for warnings, Table for error list, Button for actions</constraint>
+    <constraint>Responsive Design: Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px</constraint>
+    <constraint>Accessibility: WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text</constraint>
+    <constraint>Testing Standards: Unit tests for ValidationMetricsTracker, IntegrityChecker, Zod schemas; integration tests for validation flow during import; E2E tests for validation report display; accessibility tests using @axe-core/playwright</constraint>
+    <constraint>Project Structure: Import/validation components in src/components/import/, API routes in src/app/api/gomafia-sync/import/, validation services in src/services/, custom hooks in src/hooks/</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ValidationMetricsTracker API</name>
+      <kind>class-interface</kind>
+      <signature>class ValidationMetricsTracker { recordValid(entity: string): void; recordInvalid(entity: string, message: string, context?: Record&lt;string, unknown&gt;): void; getMetrics(): ValidationMetrics; getSummary(): ValidationSummary; getErrors(): ValidationError[]; }</signature>
+      <path>src/services/validation-service.ts</path>
+    </interface>
+    <interface>
+      <name>IntegrityChecker API</name>
+      <kind>class-interface</kind>
+      <signature>class IntegrityChecker { checkGameParticipationLinks(): Promise&lt;IntegrityCheckResult&gt;; checkAllIntegrity(): Promise&lt;AllIntegrityResult&gt;; getIntegritySummary(): Promise&lt;IntegritySummary&gt;; }</signature>
+      <path>src/lib/gomafia/import/integrity-checker.ts</path>
+    </interface>
+    <interface>
+      <name>Validation Summary API Endpoint</name>
+      <kind>REST-endpoint</kind>
+      <signature>GET /api/gomafia-sync/import/validation - Returns: { validationRate: number; meetsThreshold: boolean; totalRecords: number; validRecords: number; invalidRecords: number; errorsByEntity: Record&lt;string, number&gt;; errors: ValidationError[]; integrity?: IntegritySummary; }</signature>
+      <path>src/app/api/gomafia-sync/import/validation/route.ts</path>
+    </interface>
+    <interface>
+      <name>useValidationSummary Hook</name>
+      <kind>react-hook</kind>
+      <signature>function useValidationSummary(): { data?: ValidationSummary; isLoading: boolean; error?: Error; } - Polls validation endpoint every 2 seconds when import is running</signature>
+      <path>src/hooks/useValidationSummary.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>ValidationQualityReport Component</name>
+      <kind>react-component</kind>
+      <signature>function ValidationQualityReport({ summary }: { summary: ValidationSummary }): JSX.Element - Displays validation rate, counts, errors by entity type, integrity results, continue button if threshold not met</signature>
+      <path>src/components/import/ValidationQualityReport.tsx (to be created)</path>
+    </interface>
+    <interface>
+      <name>ImportOrchestrator Integration Points</name>
+      <kind>class-interface</kind>
+      <signature>ImportOrchestrator.syncIncremental() - Process entities in phases, integrate ValidationMetricsTracker, call recordValid()/recordInvalid(), check threshold after batches, store metrics in SyncLog.errors</signature>
+      <path>src/lib/gomafia/import/import-orchestrator.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Test-Driven Development (TDD) is MANDATORY. Write tests before implementation, follow Red-Green-Refactor cycle. Maintain minimum 80% test coverage for all new code. Use Vitest for unit/integration tests, Playwright for E2E tests, React Testing Library for component tests. Test types: unit tests for validation logic (ValidationMetricsTracker, IntegrityChecker, Zod schemas); integration tests for validation flow during import; E2E tests for validation report display; accessibility tests using @axe-core/playwright for WCAG 2.1 AA compliance verification.</standards>
+    <locations>
+      <location>tests/unit/ - Unit tests for services, validators, schemas</location>
+      <location>tests/integration/ - Integration tests for import flow, validation metrics tracking</location>
+      <location>tests/components/ - Component tests for ValidationQualityReport</location>
+      <location>tests/e2e/ - E2E tests for validation report display, threshold enforcement</location>
+    </locations>
+    <ideas>
+      <idea criterion="1">Test: ValidationMetricsTracker integration in ImportOrchestrator - Verify recordValid()/recordInvalid() called for all entity types (Clubs, Players, Games, Tournaments), verify validation metrics stored in SyncLog.errors after each phase, verify validation rate calculation matches formula: (validRecords / totalRecords) × 100</idea>
+      <idea criterion="1">Test: Batch-level threshold check - Verify import pauses when validationRate &lt; 98%, verify detailed errors logged when threshold not met, verify sync status updated to indicate validation failure, verify batch-level validation results stored in SyncLog.errors</idea>
+      <idea criterion="2">Test: Enhanced IntegrityChecker - Verify GameParticipation.playerId references existing Player, verify GameParticipation.gameId references existing Game, verify Game.tournamentId references existing Tournament (if present), verify Player.clubId references existing Club (if present), verify Tournament.clubId references existing Club (if present), verify integrity failures reported correctly</idea>
+      <idea criterion="2">Test: Zod schema validation - Verify required field validation (non-null, non-empty), verify data type validation (dates, numbers, strings), verify format validation (date format, number ranges, string lengths), verify business rule validation (positive scores, valid date ranges, valid role assignments), verify validation failures recorded in ValidationMetricsTracker</idea>
+      <idea criterion="3">Test: Validation API endpoint - Verify GET /api/gomafia-sync/import/validation returns correct validation summary with validationRate, meetsThreshold, totalRecords, validRecords, invalidRecords, errorsByEntity, recent errors (last 50), integrity check results if available, verify endpoint handles missing sync log gracefully</idea>
+      <idea criterion="3">Test: ValidationQualityReport component - Verify displays validation rate with visual indicator (green if ≥98%, red if &lt;98%), verify shows total/valid/invalid record counts, verify displays errors grouped by entity type, verify shows detailed error list with entity, message, context, verify shows integrity check results if available, verify "Continue Anyway" button appears if threshold not met with confirmation dialog, verify component handles missing data gracefully, verify component is accessible (WCAG 2.1 AA)</idea>
+      <idea criterion="3">Test: Integration with sync status page - Verify ValidationQualityReport displays on import status page, verify warning displays when threshold not met, verify continue action works correctly, verify validation report fetched using TanStack Query hook, verify polling updates every 2 seconds when import running</idea>
+      <idea criterion="1,3">Test: Complete validation flow E2E - Import with high-quality data (≥98%) → Verify import succeeds, validation rate displayed, validation report shows success. Import with low-quality data (&lt;98%) → Verify import pauses, validation errors logged, report displayed with errors, user can acknowledge and continue. Referential integrity validation → Verify broken references detected and reported. Zod schema validation → Verify invalid fields caught and logged.</idea>
+      <idea criterion="all">Test: Validation metrics in sync completion notifications - Verify validation rate included in sync completion summary, verify validation status badge displayed (Excellent if ≥98%, Warning if &lt;98%), verify validation metrics shown in toast notification or summary card</idea>
+    </ideas>
+  </tests>
+</story-context>

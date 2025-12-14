@@ -236,20 +236,47 @@ function getConsecutiveFailures(logs: unknown[]): number {
 
 /**
  * Send sync completion notification
+ * Enhanced to include validation metrics (Task 9: AC #1, #3).
  */
 export async function notifySyncCompletion(
   syncLogId: string,
   success: boolean,
   recordsProcessed: number,
   errors: string[],
+  validationMetrics?: {
+    validationRate: number;
+    meetsThreshold: boolean;
+    totalRecords: number;
+    validRecords: number;
+    invalidRecords: number;
+  },
   config: NotificationConfig = DEFAULT_CONFIG
 ): Promise<void> {
+  // Build message with validation metrics if available
+  let message = '';
+  if (success) {
+    message = `Sync completed successfully. Processed ${recordsProcessed} records.`;
+    if (validationMetrics) {
+      const statusBadge = validationMetrics.meetsThreshold
+        ? 'Excellent'
+        : 'Warning';
+      message += ` Validation: ${validationMetrics.validationRate.toFixed(2)}% (${statusBadge}).`;
+      message += ` ${validationMetrics.validRecords}/${validationMetrics.totalRecords} valid`;
+      if (validationMetrics.invalidRecords > 0) {
+        message += `, ${validationMetrics.invalidRecords} invalid`;
+      }
+    }
+  } else {
+    message = `Sync failed. Processed ${recordsProcessed} records with ${errors.length} errors.`;
+    if (validationMetrics) {
+      message += ` Validation rate: ${validationMetrics.validationRate.toFixed(2)}%.`;
+    }
+  }
+
   const notification = {
     type: (success ? 'INFO' : 'ERROR') as 'INFO' | 'ERROR',
     title: success ? 'Sync Completed Successfully' : 'Sync Failed',
-    message: success
-      ? `Sync completed successfully. Processed ${recordsProcessed} records.`
-      : `Sync failed. Processed ${recordsProcessed} records with ${errors.length} errors.`,
+    message,
     resolved: false,
     metadata: {
       syncLogId,
@@ -257,6 +284,15 @@ export async function notifySyncCompletion(
       recordsProcessed,
       errorCount: errors.length,
       errors: errors.slice(0, 5), // Limit to first 5 errors
+      validationMetrics: validationMetrics
+        ? {
+            validationRate: validationMetrics.validationRate,
+            meetsThreshold: validationMetrics.meetsThreshold,
+            totalRecords: validationMetrics.totalRecords,
+            validRecords: validationMetrics.validRecords,
+            invalidRecords: validationMetrics.invalidRecords,
+          }
+        : undefined,
     },
   };
 

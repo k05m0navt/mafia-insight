@@ -45,6 +45,7 @@ export class IntegrityChecker {
 
   /**
    * Check that all GameParticipation records link to valid Players and Games.
+   * Enhanced to verify both playerId and gameId references (Task 3: AC #1, #2).
    */
   async checkGameParticipationLinks(): Promise<IntegrityCheckResult> {
     const participations = await resilientDB.execute((db) =>
@@ -61,12 +62,25 @@ export class IntegrityChecker {
       ).map((p) => p.id)
     );
 
+    const gameIds = new Set(
+      (
+        await resilientDB.execute((db) =>
+          db.game.findMany({ select: { id: true } })
+        )
+      ).map((g) => g.id)
+    );
+
     const errors: string[] = [];
 
     for (const participation of participations) {
       if (!playerIds.has(participation.playerId)) {
         errors.push(
           `GameParticipation ${participation.id} references non-existent Player ${participation.playerId}`
+        );
+      }
+      if (!gameIds.has(participation.gameId)) {
+        errors.push(
+          `GameParticipation ${participation.id} references non-existent Game ${participation.gameId}`
         );
       }
     }
@@ -217,12 +231,109 @@ export class IntegrityChecker {
   }
 
   /**
+   * Check that all Game records with tournamentId reference existing Tournaments.
+   * Enhanced for comprehensive referential integrity (Task 3: AC #1, #2).
+   */
+  async checkGameTournamentLinks(): Promise<IntegrityCheckResult> {
+    const games = await resilientDB.execute((db) =>
+      db.game.findMany({
+        select: { id: true, tournamentId: true },
+        where: { tournamentId: { not: null } },
+      })
+    );
+
+    const tournamentIds = new Set(
+      (
+        await resilientDB.execute((db) =>
+          db.tournament.findMany({ select: { id: true } })
+        )
+      ).map((t) => t.id)
+    );
+
+    const errors: string[] = [];
+
+    for (const game of games) {
+      if (game.tournamentId && !tournamentIds.has(game.tournamentId)) {
+        errors.push(
+          `Game ${game.id} references non-existent Tournament ${game.tournamentId}`
+        );
+      }
+    }
+
+    return {
+      checkName: 'Game-Tournament Links',
+      passed: errors.length === 0,
+      totalChecked: games.length,
+      errors,
+    };
+  }
+
+  /**
+   * Check that all Player records with clubId reference existing Clubs.
+   * Enhanced for comprehensive referential integrity (Task 3: AC #1, #2).
+   */
+  async checkPlayerClubLinks(): Promise<IntegrityCheckResult> {
+    const players = await resilientDB.execute((db) =>
+      db.player.findMany({
+        select: { id: true, clubId: true },
+        where: { clubId: { not: null } },
+      })
+    );
+
+    const clubIds = new Set(
+      (
+        await resilientDB.execute((db) =>
+          db.club.findMany({ select: { id: true } })
+        )
+      ).map((c) => c.id)
+    );
+
+    const errors: string[] = [];
+
+    for (const player of players) {
+      if (player.clubId && !clubIds.has(player.clubId)) {
+        errors.push(
+          `Player ${player.id} references non-existent Club ${player.clubId}`
+        );
+      }
+    }
+
+    return {
+      checkName: 'Player-Club Links',
+      passed: errors.length === 0,
+      totalChecked: players.length,
+      errors,
+    };
+  }
+
+  /**
+   * Check that all Tournament records with clubId reference existing Clubs.
+   * Enhanced for comprehensive referential integrity (Task 3: AC #1, #2).
+   *
+   * NOTE: This check is currently disabled as Tournament model does not have a clubId field.
+   * If clubId is added to Tournament in the future, this check should be re-enabled.
+   */
+  async checkTournamentClubLinks(): Promise<IntegrityCheckResult> {
+    // Tournament model does not have clubId field, so this check is not applicable
+    return {
+      checkName: 'Tournament-Club Links',
+      passed: true,
+      totalChecked: 0,
+      errors: [],
+    };
+  }
+
+  /**
    * Run all integrity checks and return aggregated results.
+   * Enhanced with comprehensive referential integrity checks (Task 3: AC #1, #2).
    */
   async checkAllIntegrity(): Promise<AllIntegrityResult> {
     const checks = await Promise.all([
       this.checkGameParticipationLinks(),
       this.checkPlayerTournamentLinks(),
+      this.checkGameTournamentLinks(),
+      this.checkPlayerClubLinks(),
+      this.checkTournamentClubLinks(),
       this.checkOrphanedRecords(),
     ]);
 

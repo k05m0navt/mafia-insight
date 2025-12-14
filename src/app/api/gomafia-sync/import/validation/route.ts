@@ -1,8 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { IntegrityChecker } from '@/lib/gomafia/import/integrity-checker';
+import { checkApiRateLimit } from '@/lib/rateLimiter';
+import { getValidationThreshold } from '@/services/validation-service';
 
 const db = new PrismaClient();
+
+/**
+ * Get client IP address from request for rate limiting
+ */
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  const ip = forwarded?.split(',')[0] || realIp || 'unknown';
+  return ip;
+}
 
 /**
  * Parse and format errors from sync log
@@ -74,9 +86,36 @@ function parseSyncLogErrors(errors: unknown): {
 /**
  * GET /api/gomafia-sync/import/validation
  * Get validation metrics and data integrity status
+ * Enhanced to return complete validation summary (Task 5: AC #3).
+ *
+ * Rate limiting: 100 requests per minute per IP address
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (100 requests per minute per IP)
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await checkApiRateLimit(
+      `validation-api:${clientIp}`
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Please try again later.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
+            'X-RateLimit-Limit': '100',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      );
+    }
     const syncStatus = await db.syncStatus.findUnique({
       where: { id: 'current' },
     });
@@ -101,16 +140,123 @@ export async function GET() {
       ? parseSyncLogErrors(mostRecentSync.errors)
       : null;
 
+    // Extract validation metrics from sync log errors if available
+    let validationMetrics: {
+      validationRate: number;
+      meetsThreshold: boolean;
+      totalRecords: number;
+      validRecords: number;
+      invalidRecords: number;
+      errorsByEntity: Record<string, number>;
+      errors: Array<{
+        entity: string;
+        message: string;
+        context?: Record<string, unknown>;
+        timestamp: string;
+      }>;
+    } | null = null;
+
+    if (mostRecentSync?.errors && typeof mostRecentSync.errors === 'object') {
+      const errors = mostRecentSync.errors as Record<string, unknown>;
+      const metrics = errors.validationMetrics as
+        | {
+            overall?: {
+              validationRate: number;
+              meetsThreshold: boolean;
+              totalRecords: number;
+              validRecords: number;
+              invalidRecords: number;
+              errorsByEntity: Record<string, number>;
+            };
+          }
+        | undefined;
+
+      if (metrics?.overall) {
+        // Get recent errors from validation metrics
+        const recentErrors: Array<{
+          entity: string;
+          message: string;
+          context?: Record<string, unknown>;
+          timestamp: string;
+        }> = [];
+
+        // Extract errors from each phase
+        for (const [phase, phaseData] of Object.entries(
+          metrics as Record<string, unknown>
+        )) {
+          if (
+            phase !== 'overall' &&
+            phaseData &&
+            typeof phaseData === 'object'
+          ) {
+            const phaseMetrics = phaseData as {
+              recentErrors?: Array<{
+                entity: string;
+                message: string;
+                context?: Record<string, unknown>;
+                timestamp: Date | string;
+              }>;
+            };
+            if (phaseMetrics.recentErrors) {
+              recentErrors.push(
+                ...phaseMetrics.recentErrors.map((err) => ({
+                  entity: err.entity,
+                  message: err.message,
+                  context: err.context,
+                  timestamp:
+                    typeof err.timestamp === 'string'
+                      ? err.timestamp
+                      : err.timestamp instanceof Date
+                        ? err.timestamp.toISOString()
+                        : new Date().toISOString(),
+                }))
+              );
+            }
+          }
+        }
+
+        // Sort by timestamp (most recent first) and take last 50
+        recentErrors.sort((a, b) => {
+          const dateA = new Date(a.timestamp).getTime();
+          const dateB = new Date(b.timestamp).getTime();
+          return dateB - dateA;
+        });
+
+        validationMetrics = {
+          validationRate: metrics.overall.validationRate,
+          meetsThreshold: metrics.overall.meetsThreshold,
+          totalRecords: metrics.overall.totalRecords,
+          validRecords: metrics.overall.validRecords,
+          invalidRecords: metrics.overall.invalidRecords,
+          errorsByEntity: metrics.overall.errorsByEntity,
+          errors: recentErrors.slice(0, 50), // Last 50 errors
+        };
+      }
+    }
+
+    // Fallback to syncStatus if validation metrics not in sync log
+    if (!validationMetrics && syncStatus) {
+      const threshold = getValidationThreshold();
+      const validationRate = syncStatus.validationRate || 0;
+      validationMetrics = {
+        validationRate,
+        meetsThreshold: validationRate >= threshold,
+        totalRecords: syncStatus.totalRecordsProcessed || 0,
+        validRecords: syncStatus.validRecords || 0,
+        invalidRecords: syncStatus.invalidRecords || 0,
+        errorsByEntity: {},
+        errors: [],
+      };
+    }
+
     return NextResponse.json({
-      validation: {
-        validationRate: syncStatus?.validationRate || null,
-        totalRecordsProcessed: syncStatus?.totalRecordsProcessed || null,
-        validRecords: syncStatus?.validRecords || null,
-        invalidRecords: syncStatus?.invalidRecords || null,
-        meetsThreshold: syncStatus?.validationRate
-          ? syncStatus.validationRate >= 98
-          : false,
-      },
+      validationRate: validationMetrics?.validationRate ?? null,
+      meetsThreshold: validationMetrics?.meetsThreshold ?? false,
+      totalRecords: validationMetrics?.totalRecords ?? null,
+      validRecords: validationMetrics?.validRecords ?? null,
+      invalidRecords: validationMetrics?.invalidRecords ?? null,
+      errorsByEntity: validationMetrics?.errorsByEntity ?? {},
+      errors: validationMetrics?.errors ?? [],
       integrity: {
         status: integrityResults.status,
         totalChecks: integrityResults.totalChecks,
