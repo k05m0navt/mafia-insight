@@ -309,38 +309,17 @@ export class IntegrityChecker {
   /**
    * Check that all Tournament records with clubId reference existing Clubs.
    * Enhanced for comprehensive referential integrity (Task 3: AC #1, #2).
+   *
+   * NOTE: This check is currently disabled as Tournament model does not have a clubId field.
+   * If clubId is added to Tournament in the future, this check should be re-enabled.
    */
   async checkTournamentClubLinks(): Promise<IntegrityCheckResult> {
-    const tournaments = await resilientDB.execute((db) =>
-      db.tournament.findMany({
-        select: { id: true, clubId: true },
-        where: { clubId: { not: null } },
-      })
-    );
-
-    const clubIds = new Set(
-      (
-        await resilientDB.execute((db) =>
-          db.club.findMany({ select: { id: true } })
-        )
-      ).map((c) => c.id)
-    );
-
-    const errors: string[] = [];
-
-    for (const tournament of tournaments) {
-      if (tournament.clubId && !clubIds.has(tournament.clubId)) {
-        errors.push(
-          `Tournament ${tournament.id} references non-existent Club ${tournament.clubId}`
-        );
-      }
-    }
-
+    // Tournament model does not have clubId field, so this check is not applicable
     return {
       checkName: 'Tournament-Club Links',
-      passed: errors.length === 0,
-      totalChecked: tournaments.length,
-      errors,
+      passed: true,
+      totalChecked: 0,
+      errors: [],
     };
   }
 

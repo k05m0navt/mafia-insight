@@ -45,12 +45,7 @@ export const tournamentSchema = z
         },
         { message: 'End date must be a valid date string or null' }
       ),
-    status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], {
-      errorMap: () => ({
-        message:
-          'Status must be one of: SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED',
-      }),
-    }),
+    status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
     participants: z
       .number()
       .int()

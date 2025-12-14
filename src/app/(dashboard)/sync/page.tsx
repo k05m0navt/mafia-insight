@@ -242,7 +242,7 @@ export default function SyncPage() {
               </Alert>
             ) : (
               <ValidationQualityReport
-                summary={validationSummary}
+                summary={validationSummary ?? null}
                 onContinue={() => {
                   // Handle continue action if needed
                   console.log(

@@ -11,20 +11,8 @@ export const gameParticipationSchema = z
       .min(1, 'Player name is required')
       .max(50, 'Player name must be at most 50 characters')
       .trim(),
-    role: z
-      .enum(['DON', 'MAFIA', 'SHERIFF', 'CITIZEN'], {
-        errorMap: () => ({
-          message: 'Role must be one of: DON, MAFIA, SHERIFF, CITIZEN',
-        }),
-      })
-      .nullable(),
-    team: z
-      .enum(['BLACK', 'RED'], {
-        errorMap: () => ({
-          message: 'Team must be one of: BLACK, RED',
-        }),
-      })
-      .nullable(),
+    role: z.enum(['DON', 'MAFIA', 'SHERIFF', 'CITIZEN']).nullable(),
+    team: z.enum(['BLACK', 'RED']).nullable(),
     isWinner: z.boolean(),
     performanceScore: z
       .number()
@@ -38,12 +26,7 @@ export const gameParticipationSchema = z
       .nullable(),
     isFirstShoot: z.boolean(),
     firstShootType: z
-      .enum(['NONE', 'ZERO_MAFIA', 'ONE_TWO_MAFIA', 'THREE_MAFIA'], {
-        errorMap: () => ({
-          message:
-            'First shoot type must be one of: NONE, ZERO_MAFIA, ONE_TWO_MAFIA, THREE_MAFIA',
-        }),
-      })
+      .enum(['NONE', 'ZERO_MAFIA', 'ONE_TWO_MAFIA', 'THREE_MAFIA'])
       .nullable(),
   })
   .refine(
@@ -106,19 +89,8 @@ export const gameSchema = z
       .min(0, 'Duration cannot be negative')
       .max(1440, 'Duration cannot exceed 24 hours (1440 minutes)')
       .nullable(),
-    winnerTeam: z
-      .enum(['BLACK', 'RED', 'DRAW'], {
-        errorMap: () => ({
-          message: 'Winner team must be one of: BLACK, RED, DRAW',
-        }),
-      })
-      .nullable(),
-    status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], {
-      errorMap: () => ({
-        message:
-          'Status must be one of: SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED',
-      }),
-    }),
+    winnerTeam: z.enum(['BLACK', 'RED', 'DRAW']).nullable(),
+    status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
     participations: z
       .array(gameParticipationSchema)
       .max(20, 'Game cannot have more than 20 participants')

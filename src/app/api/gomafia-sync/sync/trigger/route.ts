@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
           });
 
           if (
-            syncStatus?.validationRate !== null &&
-            syncStatus?.totalRecordsProcessed !== null
+            syncStatus &&
+            syncStatus.validationRate !== null &&
+            syncStatus.totalRecordsProcessed !== null
           ) {
             const threshold = getValidationThreshold();
             validationMetrics = {

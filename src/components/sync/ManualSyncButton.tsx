@@ -231,7 +231,7 @@ function getSyncSummary(
       );
       if (totalRecords > 0) {
         parts.push(
-          `${validRecords}/${totalRecords} valid${invalidRecords > 0 ? `, ${invalidRecords} invalid` : ''}`
+          `${validRecords}/${totalRecords} valid${invalidRecords && invalidRecords > 0 ? `, ${invalidRecords} invalid` : ''}`
         );
       }
     }
