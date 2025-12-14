@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Manual Data Synchronization Trigger</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27T00:00:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-3-manual-data-synchronization-trigger.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to manually trigger a data synchronization</iWant>
+    <soThat>I can refresh my data on-demand without waiting for scheduled sync</soThat>
+    <tasks>
+      <task id="1">Create manual sync API endpoint (AC: #1)</task>
+      <task id="2">Implement real-time progress tracking for manual sync (AC: #1)</task>
+      <task id="3">Create manual sync UI component (AC: #1, #2)</task>
+      <task id="4">Create sync status page or integrate into dashboard (AC: #1, #2)</task>
+      <task id="5">Implement concurrent sync prevention check (AC: #2)</task>
+      <task id="6">Integrate manual sync with existing sync infrastructure (AC: #1)</task>
+      <task id="7">Create TanStack Query hook for manual sync (AC: #1)</task>
+      <task id="8">Implement sync completion notification (AC: #1)</task>
+      <task id="9">Integration and E2E testing (AC: #1, #2)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I am logged in and viewing my dashboard or sync page</given>
+      <when>I click "Sync Now" or "Refresh Data" button</when>
+      <then>
+        - Immediately starts synchronization process
+        - Shows loading state on button (disabled, spinner)
+        - Displays real-time sync progress
+        - Imports all new games since last sync
+        - Updates existing games with latest data from gomafia.pro
+        - Shows completion status with summary (X new games imported, Y games updated)
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>Manual sync is triggered</given>
+      <when>Sync is already running</when>
+      <then>
+        - Can be triggered even if scheduled sync is configured
+        - Respects concurrent import prevention (see Story 2.8)
+        - Shows clear feedback: "Sync started", "Sync in progress", "Sync completed"
+        - If sync already running, shows message: "Sync already in progress. Please wait."
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>Data Import & Synchronization (FR7-FR15)</section>
+        <snippet>FR9: Users can manually trigger data import/synchronization. System validates imported data quality with ≥98% accuracy threshold. System handles import errors gracefully with retry mechanisms. Users can view import progress in real-time.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>GoMafia.pro Integration</section>
+        <snippet>Rate limiting: Enforce 2-second delay between requests (30 requests per minute max) to respect gomafia.pro servers. Use existing RateLimiter class. Error handling: Use existing SkippedEntitiesManager for failed scraping operations. Advisory locks: Use AdvisoryLock class to prevent concurrent imports.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>State Management</section>
+        <snippet>Use TanStack Query for server state (sync status polling). Configuration in src/lib/queryClient.ts. Use useMutation for triggering sync, useQuery with polling for progress updates.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Component Library</section>
+        <snippet>Use ShadCN/UI components: Button with loading states, Progress for progress bar, Toast for notifications, Card for status display.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Component Library</section>
+        <snippet>From Design System (ShadCN/UI + Registries): Buttons, forms, inputs, modals, dialogs, Cards, tables, badges, avatars, Navigation components, Chart containers and wrappers, Loading states, skeletons, Toast notifications.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 2: Data Import & Synchronization</section>
+        <snippet>Goal: System can reliably import and synchronize game data from gomafia.pro with quality validation. Scope includes automatic and manual synchronization, real-time import progress tracking, checkpoint/resume capability, concurrent import prevention.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/2-2-automatic-scheduled-synchronization.md</path>
+        <title>Story 2.2: Automatic Scheduled Synchronization</title>
+        <section>Dev Notes - Learnings</section>
+        <snippet>Incremental Sync Infrastructure: ImportOrchestrator.syncIncremental() method exists and can be reused for manual sync. Concurrent Import Prevention: AdvisoryLock class exists with user-specific locks. Rate Limiting: Existing RateLimiter class enforces 2-second delays. Progress Tracking: CheckpointManager and sync_status table exist for tracking import progress.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/app/api/gomafia-sync/sync/trigger/route.ts</path>
+        <kind>API Route</kind>
+        <symbol>POST handler</symbol>
+        <lines>11-192</lines>
+        <reason>Existing manual sync trigger endpoint that checks for active syncs and prevents concurrent operations. Can be adapted for user-specific manual sync.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/import-orchestrator.ts</path>
+        <kind>Service Class</kind>
+        <symbol>ImportOrchestrator</symbol>
+        <lines>77-1616</lines>
+        <reason>Main import orchestration class. Contains syncIncremental() method that can be reused for manual sync. Manages checkpoints, validation, batch processing, progress tracking.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/advisory-lock.ts</path>
+        <kind>Service Class</kind>
+        <symbol>AdvisoryLockManager</symbol>
+        <lines>7-65</lines>
+        <reason>Advisory lock manager for preventing concurrent imports. Has acquireLock(userId?) method that supports user-specific locks, allowing different users to import simultaneously while preventing same-user concurrent imports.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/rate-limiter.ts</path>
+        <kind>Service Class</kind>
+        <symbol>RateLimiter</symbol>
+        <reason>Rate limiter class that enforces 2-second delays (2000ms) between requests to respect gomafia.pro servers. Manual sync must use same rate limiting.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/gomafia-sync/sync/status/route.ts</path>
+        <kind>API Route</kind>
+        <symbol>GET handler</symbol>
+        <reason>Existing sync status API endpoint that returns current sync progress. Can be reused for progress polling in manual sync UI.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/useSyncStatus.ts</path>
+        <kind>React Hook</kind>
+        <symbol>useSyncStatus</symbol>
+        <lines>34-109</lines>
+        <reason>Existing hook for sync status with triggerSync function. Can be adapted or extended for manual sync use case with user-specific sync triggering.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/jobs/syncJob.ts</path>
+        <kind>Service</kind>
+        <symbol>runIncrementalSync</symbol>
+        <lines>265-378</lines>
+        <reason>Incremental sync implementation that processes players needing sync. Can be adapted for user-specific manual sync.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/button.tsx</path>
+        <kind>UI Component</kind>
+        <symbol>Button</symbol>
+        <reason>ShadCN/UI Button component with loading states support. Use for manual sync button with spinner and disabled states.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/progress.tsx</path>
+        <kind>UI Component</kind>
+        <symbol>Progress</symbol>
+        <reason>ShadCN/UI Progress component for displaying sync progress bar with percentage.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/toast.tsx</path>
+        <kind>UI Component</kind>
+        <symbol>Toast</symbol>
+        <reason>ShadCN/UI Toast component for showing sync completion notifications with summary.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/auth.ts</path>
+        <kind>Utility</kind>
+        <symbol>authenticateRequest</symbol>
+        <reason>Authentication helper function for API routes. Use to authenticate manual sync requests and get userId.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0"/>
+        <package name="react" version="^19.2.0"/>
+        <package name="react-dom" version="^19.2.0"/>
+        <package name="@tanstack/react-query" version="^5.0.0"/>
+        <package name="zod" version="^4.1.12"/>
+        <package name="@prisma/client" version="^5.0.0"/>
+        <package name="playwright" version="^1.56.1"/>
+        <package name="zustand" version="^4.4.0"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <type>Architecture Pattern</type>
+      <description>Follow Clean Architecture + Hexagonal Architecture patterns. API routes in src/app/api/, domain logic in src/lib/gomafia/, components in src/components/</description>
+    </constraint>
+    <constraint>
+      <type>Rate Limiting</type>
+      <description>Enforce 2-second delay between requests (30 requests per minute max) to respect gomafia.pro servers. Use existing RateLimiter class.</description>
+    </constraint>
+    <constraint>
+      <type>Concurrent Import Prevention</type>
+      <description>Use existing AdvisoryLock class to prevent concurrent imports. Check lock before starting manual sync, return 409 Conflict if sync already in progress.</description>
+    </constraint>
+    <constraint>
+      <type>Error Handling</type>
+      <description>Use existing SkippedEntitiesManager for failed scraping operations. Log errors to sync_logs table. Handle sync failures gracefully with user-friendly error messages.</description>
+    </constraint>
+    <constraint>
+      <type>State Management</type>
+      <description>Use TanStack Query for server state (sync status polling). Use useMutation for triggering sync, useQuery with polling for progress updates.</description>
+    </constraint>
+    <constraint>
+      <type>UI Components</type>
+      <description>Use ShadCN/UI components: Button with loading states, Progress for progress bar, Toast for notifications, Card for status display.</description>
+    </constraint>
+    <constraint>
+      <type>Responsive Design</type>
+      <description>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</description>
+    </constraint>
+    <constraint>
+      <type>Accessibility</type>
+      <description>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</description>
+    </constraint>
+    <constraint>
+      <type>Testing</type>
+      <description>Maintain minimum 80% test coverage. TDD approach: Write tests before implementation. Test types: Unit tests for sync logic, integration tests for manual sync flow, E2E tests for user journey, accessibility tests using axe-core.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>POST /api/gomafia-sync/manual</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/gomafia-sync/manual
+Request: { userId: string }
+Response: { success: boolean, syncLogId: string, message: string }
+Error: 409 Conflict if sync already in progress</signature>
+      <path>src/app/api/gomafia-sync/manual/route.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/gomafia-sync/manual/progress</name>
+      <kind>REST endpoint (SSE optional)</kind>
+      <signature>GET /api/gomafia-sync/manual/progress
+Response: Server-Sent Events stream with progress updates
+Alternative: GET /api/gomafia-sync/sync/status (polling)</signature>
+      <path>src/app/api/gomafia-sync/manual/progress/route.ts or src/app/api/gomafia-sync/sync/status/route.ts</path>
+    </interface>
+    <interface>
+      <name>ImportOrchestrator.syncIncremental</name>
+      <kind>Method</kind>
+      <signature>async syncIncremental(userId: string, lastSyncAt: Date): Promise&lt;SyncResult&gt;</signature>
+      <path>src/lib/gomafia/import/import-orchestrator.ts</path>
+    </interface>
+    <interface>
+      <name>AdvisoryLockManager.acquireLock</name>
+      <kind>Method</kind>
+      <signature>async acquireLock(userId?: string): Promise&lt;boolean&gt;</signature>
+      <path>src/lib/gomafia/import/advisory-lock.ts</path>
+    </interface>
+    <interface>
+      <name>authenticateRequest</name>
+      <kind>Function</kind>
+      <signature>async authenticateRequest(request: NextRequest): Promise&lt;{ user: User }&gt;</signature>
+      <path>src/lib/auth.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test Coverage: Maintain minimum 80% test coverage for all new code. Test Types: Unit tests for sync logic, orchestrator methods; integration tests for manual sync flow; E2E tests for user journey (click sync button → sync starts → progress updates → sync completes → summary displayed); accessibility tests using axe-core. TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle. Accessibility Testing: Use @axe-core/playwright for E2E accessibility testing, verify WCAG 2.1 AA compliance.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterion="1">
+        Test: Verify API requires authentication - Unit test for manual sync endpoint authentication check
+      </idea>
+      <idea criterion="1">
+        Test: Verify API prevents concurrent syncs - Integration test for AdvisoryLock check returning 409 Conflict
+      </idea>
+      <idea criterion="1">
+        Test: Verify API triggers incremental sync correctly - Integration test calling ImportOrchestrator.syncIncremental()
+      </idea>
+      <idea criterion="1">
+        Test: Verify API returns correct sync summary - Unit test for response format with games imported/updated counts
+      </idea>
+      <idea criterion="1">
+        Test: Verify button triggers sync correctly - E2E test clicking sync button and verifying API call
+      </idea>
+      <idea criterion="1">
+        Test: Verify button shows loading state during sync - Component test for button disabled state and spinner
+      </idea>
+      <idea criterion="1">
+        Test: Verify progress updates display correctly - E2E test for progress bar updates during sync
+      </idea>
+      <idea criterion="2">
+        Test: Verify concurrent sync prevention works - Integration test attempting manual sync while scheduled sync running
+      </idea>
+      <idea criterion="2">
+        Test: Verify error message displays correctly - E2E test for "Sync already in progress" message display
+      </idea>
+      <idea criterion="1">
+        Test: Complete flow E2E test - User clicks sync button → Sync starts → Progress updates → Sync completes → Summary displayed
+      </idea>
+      <idea criterion="1">
+        Test: Accessibility test for sync page - E2E accessibility test using axe-core for WCAG 2.1 AA compliance
+      </idea>
+    </ideas>
+  </tests>
+</story-context>
+
