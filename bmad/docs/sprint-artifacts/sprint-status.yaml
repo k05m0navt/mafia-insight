@@ -48,8 +48,8 @@ development_status:
   epic-1-retrospective: completed
 
   epic-2: backlog
-  2-1-historical-data-import-from-gomafia-pro: backlog
-  2-2-automatic-scheduled-synchronization: backlog
+  2-1-historical-data-import-from-gomafia-pro: done
+  2-2-automatic-scheduled-synchronization: done
   2-3-manual-data-synchronization-trigger: backlog
   2-4-data-quality-validation-98-threshold: backlog
   2-5-import-error-handling-retry-mechanisms: backlog

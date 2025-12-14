@@ -387,4 +387,115 @@ export class PlayerStatsScraper {
   getRetryManager(): RetryManager {
     return this.retryManager;
   }
+
+  /**
+   * Discover total games count and date range from player profile page.
+   * Used for historical import initialization to estimate import scope.
+   *
+   * **Note**: Date range extraction is best-effort. The `earliestGameDate` and
+   * `latestGameDate` may be `null` if date elements are not found in the DOM.
+   * The `totalGames` value is the critical metric and is always extracted reliably.
+   *
+   * @param gomafiaId Player's gomafia ID
+   * @returns Discovery data with total games and date range (dates may be null)
+   */
+  async discoverProfileData(gomafiaId: string): Promise<{
+    totalGames: number;
+    earliestGameDate: Date | null;
+    latestGameDate: Date | null;
+    profileExists: boolean;
+  }> {
+    try {
+      // Navigate to player stats page
+      await this.retryManager.execute(async () => {
+        await this.page.goto(`https://gomafia.pro/stats/${gomafiaId}`, {
+          waitUntil: 'load',
+          timeout: 30000,
+        });
+      });
+
+      // Check if profile exists (not 404)
+      const pageTitle = await this.page.title();
+      const is404 =
+        pageTitle.includes('404') ||
+        (await this.page.$('.error, .not-found')) !== null;
+
+      if (is404) {
+        return {
+          totalGames: 0,
+          earliestGameDate: null,
+          latestGameDate: null,
+          profileExists: false,
+        };
+      }
+
+      // Extract total games from the main stats element
+      const totalGames = await this.page.evaluate(() => {
+        const totalGamesElement = document.querySelector(
+          '.stats_stats__stat-main-bottom-block-left-content-amount__DN0nz'
+        );
+        const text = totalGamesElement?.textContent?.trim() || '0';
+        const parsed = parseInt(text.replace(/\s/g, ''), 10);
+        return isNaN(parsed) ? 0 : parsed;
+      });
+
+      // Try to extract date range from tournament history or game list
+      // This is a best-effort extraction - dates may not always be available
+      const dateRange = await this.page.evaluate(() => {
+        // Look for date elements in the page
+        // Common patterns: tournament dates, game dates, etc.
+        const dateElements = Array.from(
+          document.querySelectorAll('[class*="date"], [class*="Date"]')
+        );
+
+        const dates: Date[] = [];
+        for (const el of dateElements) {
+          const text = el.textContent?.trim() || '';
+          // Try to parse common date formats
+          const dateMatch = text.match(
+            /(\d{1,2})[./](\d{1,2})[./](\d{4})|(\d{4})[./-](\d{1,2})[./-](\d{1,2})/
+          );
+          if (dateMatch) {
+            try {
+              const date = new Date(text);
+              if (!isNaN(date.getTime())) {
+                dates.push(date);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+
+        if (dates.length === 0) {
+          return { earliest: null, latest: null };
+        }
+
+        dates.sort((a, b) => a.getTime() - b.getTime());
+        return {
+          earliest: dates[0],
+          latest: dates[dates.length - 1],
+        };
+      });
+
+      return {
+        totalGames,
+        earliestGameDate: dateRange.earliest,
+        latestGameDate: dateRange.latest,
+        profileExists: true,
+      };
+    } catch (error) {
+      console.error(
+        `Failed to discover profile data for player ${gomafiaId}:`,
+        error
+      );
+      // Return default values on error
+      return {
+        totalGames: 0,
+        earliestGameDate: null,
+        latestGameDate: null,
+        profileExists: false,
+      };
+    }
+  }
 }

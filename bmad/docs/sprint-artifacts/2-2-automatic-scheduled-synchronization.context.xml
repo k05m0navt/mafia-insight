@@ -1,0 +1,168 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2</storyId>
+    <title>Automatic Scheduled Synchronization</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-2-automatic-scheduled-synchronization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>the system to automatically sync new game data on a schedule</iWant>
+    <soThat>my analytics stay up-to-date without manual intervention</soThat>
+    <tasks>
+      - Task 1: Create scheduled sync API endpoint (AC: #1)
+      - Task 2: Implement incremental sync logic (AC: #1)
+      - Task 3: Implement Vercel Cron job configuration (AC: #1)
+      - Task 4: Add sync preferences to User model (AC: #2)
+      - Task 5: Create sync preferences UI (AC: #2)
+      - Task 6: Implement sync notification system (AC: #1)
+      - Task 7: Implement sync logging and error handling (AC: #1, #2)
+      - Task 8: Implement rate limiting for scheduled sync (AC: #2)
+      - Task 9: Implement background processing for scheduled sync (AC: #2)
+      - Task 10: Create sync status API endpoint (AC: #1)
+      - Task 11: Integration and E2E testing (AC: #1, #2)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. **Given** I have completed an initial import  
+       **When** new games are played on gomafia.pro  
+       **Then** the system:
+       - Automatically detects new games (checks last sync timestamp)
+       - Runs scheduled sync job (configurable: daily, hourly, or every N hours)
+       - Imports only new games since last sync (incremental import)
+       - Updates existing games if data changed on gomafia.pro
+       - Sends notification (optional) when sync completes
+       - Logs sync results (games imported, errors encountered)
+
+    2. **And** scheduled sync:
+       - Runs in background without blocking user requests
+       - Respects rate limits on gomafia.pro
+       - Handles scheduled sync failures gracefully (retry on next schedule)
+       - Can be enabled/disabled per user in preferences
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="Data Import & Synchronization">
+        System can synchronize data automatically on a scheduled basis (FR8). Users can manually trigger data import/synchronization (FR9). System validates imported data quality with ≥98% accuracy threshold (FR10).
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="GoMafia.pro Integration">
+        Playwright for web scraping, Zod for data validation, Rate limiting: 2-second delays (30 req/min), Batch processing: 100 records per batch, Checkpoint system: Resume capability, Advisory locks: Prevent concurrent imports, Failed Scraping Points Storage: SkippedEntity model stores failed scraping operations.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="State Management">
+        TanStack Query for server state (sync status polling). Configuration in src/lib/queryClient.ts. Stale time: 5 minutes, GC time: 10 minutes, Retry: 3 attempts, Background refetching enabled.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Responsive Design">
+        Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Accessibility">
+        WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 2: Data Import & Synchronization">
+        Goal: System can reliably import and synchronize game data from gomafia.pro with quality validation. User Value: Users' game data is available in the platform. Essential foundation for all analytics features. FRs Covered: FR7-FR15.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Story 2.2: Automatic Scheduled Synchronization">
+        Cron job or scheduled task (Vercel Cron, or external scheduler). Incremental sync logic: compare last_sync_at timestamp with game dates. Sync job API endpoint: POST /api/gomafia-sync/scheduled. Configuration: store sync preferences in user preferences table.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md" title="Story 2.1: Historical Data Import" section="Dev Notes">
+        Import Infrastructure Available: ImportOrchestrator class exists with importHistoricalData() method. Can extend with syncIncremental() method for scheduled syncs. Use existing phase-based import pattern (Clubs → Players → Tournaments → Games → Statistics → Judges).
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md" title="Story 2.1: Historical Data Import" section="Dev Notes">
+        Rate Limiting: Existing RateLimiter class enforces 2-second delays (2000ms) between requests. Must use same rate limiting for scheduled syncs to respect gomafia.pro servers.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md" title="Story 2.1: Historical Data Import" section="Dev Notes">
+        Progress Tracking: CheckpointManager and sync_status table exist for tracking import progress. Can reuse for scheduled sync status tracking.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md" title="Story 2.1: Historical Data Import" section="Dev Notes">
+        Error Handling: SkippedEntitiesManager exists for handling failed scraping operations. Use same error handling patterns for scheduled syncs.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-1-historical-data-import-from-gomafia-pro.md" title="Story 2.1: Historical Data Import" section="Dev Notes">
+        Concurrent Import Prevention: AdvisoryLock exists with user-specific locks. Scheduled sync should check for active imports before starting to prevent conflicts.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="service" symbol="ImportOrchestrator" lines="76-1243" reason="Main import orchestration class. Needs syncIncremental() method added for scheduled syncs. Contains phase-based import pattern, checkpoint management, rate limiting, and error handling." />
+      <artifact path="src/lib/gomafia/import/rate-limiter.ts" kind="service" symbol="RateLimiter" reason="Enforces 2-second delays between requests (30 req/min max). Must be used for scheduled syncs to respect gomafia.pro servers." />
+      <artifact path="src/lib/gomafia/import/advisory-lock.ts" kind="service" symbol="AdvisoryLockManager" reason="Prevents concurrent imports using PostgreSQL advisory locks. Scheduled sync should check for active imports before starting." />
+      <artifact path="src/lib/gomafia/import/checkpoint-manager.ts" kind="service" symbol="CheckpointManager" reason="Manages import checkpoints for resume capability. Can be reused for scheduled sync status tracking." />
+      <artifact path="src/lib/gomafia/import/skipped-entities-manager.ts" kind="service" symbol="SkippedEntitiesManager" reason="Handles failed scraping operations with retry capability. Use same error handling patterns for scheduled syncs." />
+      <artifact path="src/app/api/gomafia-sync/import/route.ts" kind="controller" symbol="POST handler" lines="140-474" reason="Existing import API endpoint pattern. Scheduled sync endpoint should follow similar structure in src/app/api/gomafia-sync/scheduled/route.ts." />
+      <artifact path="src/lib/jobs/cronScheduler.ts" kind="service" symbol="initializeCronScheduler" lines="1-71" reason="Existing cron scheduler implementation using cron package. Can be extended or replaced with Vercel Cron for scheduled syncs." />
+      <artifact path="src/lib/jobs/syncJob.ts" kind="service" symbol="runIncrementalSync" lines="265-378" reason="Existing incremental sync implementation. Can be adapted for scheduled sync use case." />
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="User model" reason="User model needs syncEnabled, syncSchedule, and lastSyncAt fields added for sync preferences." />
+      <artifact path="src/components/ui/switch.tsx" kind="component" symbol="Switch" reason="ShadCN/UI Switch component for sync enable/disable toggle in preferences UI." />
+      <artifact path="src/components/ui/select.tsx" kind="component" symbol="Select" reason="ShadCN/UI Select component for schedule selector dropdown in sync preferences UI." />
+      <artifact path="src/hooks/useSyncStatus.ts" kind="hook" symbol="useSyncStatus" reason="TanStack Query hook for sync status polling. May need extension for scheduled sync status." />
+      <artifact path="src/lib/notifications/sync-notifications.ts" kind="service" reason="Notification service for sync completion. Needs to be created for optional email notifications when sync completes." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.0" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="prisma" version="^5.0.0" />
+        <package name="playwright" version="^1.56.1" />
+        <package name="zod" version="^4.1.12" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="cron" version="^3.1.0" />
+        <package name="next-auth" version="^4.24.12" />
+        <package name="redis" version="^4.6.0" />
+        <package name="resend" version="^6.5.2" />
+        <package name="@radix-ui/react-switch" version="^1.2.6" />
+        <package name="@radix-ui/react-select" version="^2.2.6" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Architecture Pattern: Clean Architecture + Hexagonal Architecture. Domain layer must remain framework-independent.</constraint>
+    <constraint>Rate Limiting: Must enforce 2-second delays between requests (30 req/min max) to respect gomafia.pro servers. Use existing RateLimiter class.</constraint>
+    <constraint>Concurrent Import Prevention: Must check for active imports using AdvisoryLock before starting scheduled sync to prevent conflicts.</constraint>
+    <constraint>Error Handling: Use existing SkippedEntitiesManager patterns for failed scraping operations. Log errors to sync_logs table.</constraint>
+    <constraint>Background Processing: Scheduled sync must run in background without blocking user requests. Use Next.js API route with async processing.</constraint>
+    <constraint>State Management: Use TanStack Query for server state (sync status polling). Configuration in src/lib/queryClient.ts.</constraint>
+    <constraint>Responsive Design: Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</constraint>
+    <constraint>Accessibility: WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</constraint>
+    <constraint>Component Library: Use ShadCN/UI components (Switch, Select, Card, Toast) from src/components/ui/.</constraint>
+    <constraint>Testing: Maintain minimum 80% test coverage. TDD approach. Unit tests for sync logic, integration tests for scheduled sync flow, E2E tests for complete sync journey.</constraint>
+    <constraint>API Endpoint Pattern: Follow pattern in src/app/api/gomafia-sync/ directory. Scheduled sync endpoint should be in src/app/api/gomafia-sync/scheduled/ directory.</constraint>
+    <constraint>Database: Use Prisma ORM with PostgreSQL. Add sync preferences fields to User model: syncEnabled (boolean, default: false), syncSchedule (string), lastSyncAt (DateTime, nullable).</constraint>
+    <constraint>Cron Configuration: Use Vercel Cron for scheduled tasks. Configure via vercel.json or Vercel Cron API. Default schedule: daily at midnight UTC, configurable via environment variable.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/gomafia-sync/scheduled" kind="REST endpoint" signature="POST /api/gomafia-sync/scheduled - Processes scheduled sync for all users with sync enabled. Returns sync summary (users processed, games imported, errors)." path="src/app/api/gomafia-sync/scheduled/route.ts" />
+    <interface name="GET /api/gomafia-sync/status" kind="REST endpoint" signature="GET /api/gomafia-sync/status - Returns sync status for authenticated user (last sync timestamp, sync enabled status, sync schedule, sync logs)." path="src/app/api/gomafia-sync/status/route.ts" />
+    <interface name="ImportOrchestrator.syncIncremental()" kind="method" signature="syncIncremental(userId: string, lastSyncAt: Date): Promise&lt;SyncResult&gt; - Incremental sync method to be added to ImportOrchestrator class. Compares lastSyncAt with game dates, imports only new games, updates existing games if data changed." path="src/lib/gomafia/import/import-orchestrator.ts" />
+    <interface name="User.syncEnabled" kind="database field" signature="syncEnabled: boolean (default: false) - User preference to enable/disable automatic sync." path="prisma/schema.prisma" />
+    <interface name="User.syncSchedule" kind="database field" signature="syncSchedule: string - User preference for sync schedule (e.g., 'daily', 'hourly', '0 0 * * *' cron expression)." path="prisma/schema.prisma" />
+    <interface name="User.lastSyncAt" kind="database field" signature="lastSyncAt: DateTime | null - Tracks last successful sync timestamp for incremental sync logic." path="prisma/schema.prisma" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing standards require 80% coverage minimum, TDD approach. Unit tests for sync logic, orchestrator methods; integration tests for scheduled sync flow; E2E tests for user journey (enable sync → scheduled sync runs → status updates); accessibility tests using @axe-core/playwright for WCAG 2.1 AA compliance. Test location: tests/unit/, tests/integration/, tests/e2e/. Use Vitest for unit/integration tests, Playwright for E2E tests.
+    </standards>
+    <locations>
+      tests/unit/ - Unit tests for sync logic and orchestrator methods
+      tests/integration/ - Integration tests for scheduled sync flow
+      tests/e2e/ - E2E tests for complete sync journey
+      tests/components/ - Component tests for sync preferences UI
+    </locations>
+    <ideas>
+      <test ac="1" type="integration">Test complete scheduled sync flow: cron triggers → scheduled sync endpoint → incremental import → status update → logging. Verify games imported, errors handled, status updated correctly.</test>
+      <test ac="1" type="integration">Test scheduled sync with multiple users: some with sync enabled, some disabled. Verify only enabled users are processed.</test>
+      <test ac="2" type="integration">Test scheduled sync failure handling and retry: simulate failure, verify retry on next schedule, verify graceful error handling.</test>
+      <test ac="1" type="unit">Test syncIncremental() method: verify incremental import logic compares lastSyncAt with game dates, imports only new games, updates existing games if data changed.</test>
+      <test ac="2" type="unit">Test rate limiting for scheduled sync: verify 2-second delays enforced, verify rate limiting works across multiple users.</test>
+      <test ac="2" type="unit">Test background processing: verify scheduled sync doesn't block user requests, verify sync completes in background.</test>
+      <test ac="2" type="e2e">Test sync preferences UI: user enables sync → saves preferences → scheduled sync runs → status updates. Verify UI reflects saved preferences, verify page is accessible.</test>
+      <test ac="1" type="e2e">Test sync notification system: verify notifications sent when sync completes, verify notifications respect user preferences, verify notification content is accurate.</test>
+      <test ac="2" type="accessibility">Test sync preferences page accessibility: verify WCAG 2.1 AA compliance using @axe-core/playwright, verify keyboard navigation, verify screen reader compatibility.</test>
+    </ideas>
+  </tests>
+</story-context>
