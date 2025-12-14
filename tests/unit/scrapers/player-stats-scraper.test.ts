@@ -195,21 +195,56 @@ describe('PlayerStatsScraper', () => {
   });
 
   describe('discoverProfileData', () => {
+    let gotoSpy: ReturnType<typeof vi.spyOn> | null = null;
+    let titleSpy: ReturnType<typeof vi.spyOn> | null = null;
+
+    afterEach(() => {
+      // Restore any mocks after each test
+      if (gotoSpy) {
+        gotoSpy.mockRestore();
+        gotoSpy = null;
+      }
+      if (titleSpy) {
+        titleSpy.mockRestore();
+        titleSpy = null;
+      }
+    });
+
     // Helper to set up page content for testing
-    // We intercept navigation and set content directly
-    const setupPageContent = async (content: string) => {
-      // Set up route to intercept navigation and return our content
-      await page.route('**/*', async (route) => {
-        if (route.request().resourceType() === 'document') {
-          await route.fulfill({
-            status: 200,
-            body: content,
-            contentType: 'text/html',
+    // We mock page.goto() and page.title() to set content instead of navigating
+    const setupPageContent = async (content: string, title?: string) => {
+      // Extract title from content if not provided
+      const titleMatch = content.match(/<title>(.*?)<\/title>/i);
+      const extractedTitle =
+        title || (titleMatch ? titleMatch[1] : 'Player Stats');
+
+      // Inject title if provided and not already in content
+      const htmlContent =
+        title && !titleMatch
+          ? content.replace(/<head>/, `<head><title>${title}</title>`)
+          : content;
+
+      // Mock page.goto() to set content instead of navigating
+      gotoSpy = vi
+        .spyOn(page, 'goto')
+        .mockImplementation(async (url: string, options?: any) => {
+          await page.setContent(htmlContent);
+          // Wait a bit to ensure DOM is ready
+          await page.waitForLoadState('domcontentloaded').catch(() => {
+            // Ignore if already loaded
           });
-        } else {
-          await route.continue();
-        }
-      });
+          // Return null as page.goto() returns Response | null
+          return null;
+        });
+
+      // Mock page.title() to return the extracted title
+      // Note: page.title() is a method, so we need to mock it as a function
+      (page as any).title = vi.fn().mockResolvedValue(extractedTitle);
+      titleSpy = {
+        mockRestore: () => {
+          delete (page as any).title;
+        },
+      } as any;
     };
 
     it('should discover profile data with total games and date range', async () => {
@@ -275,8 +310,7 @@ describe('PlayerStatsScraper', () => {
             <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">100</div>
           </body>
         </html>
-      `,
-        'Player Stats - gomafia.pro'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
@@ -299,8 +333,7 @@ describe('PlayerStatsScraper', () => {
             <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">500</div>
           </body>
         </html>
-      `,
-        'Player Stats'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
@@ -320,8 +353,7 @@ describe('PlayerStatsScraper', () => {
             <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">invalid</div>
           </body>
         </html>
-      `,
-        'Player Stats'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
@@ -334,10 +366,10 @@ describe('PlayerStatsScraper', () => {
     it('should handle network errors during navigation', async () => {
       const gomafiaId = 'test-player-network-error';
 
-      // Set up route to fail
-      await page.route('**/*', async (route) => {
-        await route.abort('failed');
-      });
+      // Mock page.goto() to throw an error
+      gotoSpy = vi
+        .spyOn(page, 'goto')
+        .mockRejectedValue(new Error('Network error'));
 
       const result = await scraper.discoverProfileData(gomafiaId);
 
@@ -359,8 +391,7 @@ describe('PlayerStatsScraper', () => {
           <head><title>404 Error</title></head>
           <body></body>
         </html>
-      `,
-        '404 Error'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
@@ -381,8 +412,7 @@ describe('PlayerStatsScraper', () => {
             <div class="Date">25.11.2024</div>
           </body>
         </html>
-      `,
-        'Player Stats'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
@@ -409,8 +439,7 @@ describe('PlayerStatsScraper', () => {
             <div class="stats_stats__stat-main-bottom-block-left-content-amount__DN0nz">0</div>
           </body>
         </html>
-      `,
-        'Player Stats'
+      `
       );
 
       const result = await scraper.discoverProfileData(gomafiaId);
