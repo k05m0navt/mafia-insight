@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { resilientDB } from '@/lib/db-resilient';
 
 /**
@@ -84,11 +84,11 @@ export class CheckpointManager {
             isPaused: checkpoint.isPaused ?? false,
             importStartTimestamp,
             phaseProgress: checkpoint.phaseProgress
-              ? (checkpoint.phaseProgress as unknown)
-              : null,
+              ? (checkpoint.phaseProgress as Prisma.InputJsonValue)
+              : undefined,
             lastProcessedIdByPhase: checkpoint.lastProcessedIdByPhase
-              ? (checkpoint.lastProcessedIdByPhase as unknown)
-              : null,
+              ? (checkpoint.lastProcessedIdByPhase as Prisma.InputJsonValue)
+              : undefined,
           },
           update: {
             currentPhase: checkpoint.currentPhase,
@@ -99,11 +99,11 @@ export class CheckpointManager {
             isPaused: checkpoint.isPaused ?? false,
             importStartTimestamp,
             phaseProgress: checkpoint.phaseProgress
-              ? (checkpoint.phaseProgress as unknown)
-              : null,
+              ? (checkpoint.phaseProgress as Prisma.InputJsonValue)
+              : undefined,
             lastProcessedIdByPhase: checkpoint.lastProcessedIdByPhase
-              ? (checkpoint.lastProcessedIdByPhase as unknown)
-              : null,
+              ? (checkpoint.lastProcessedIdByPhase as Prisma.InputJsonValue)
+              : undefined,
             lastUpdated: new Date(),
           },
         });

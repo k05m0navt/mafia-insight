@@ -106,7 +106,7 @@ export function ResumeImportDialog({
         <div className="space-y-4">
           {/* Stale Checkpoint Warning */}
           {isStale && (
-            <Alert variant="warning">
+            <Alert variant="default">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 This checkpoint is {ageHours} hours old. Consider starting fresh
