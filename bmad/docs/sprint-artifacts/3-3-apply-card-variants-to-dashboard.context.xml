@@ -1,0 +1,181 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3</storyId>
+    <title>Apply Card Variants to Dashboard</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/3-3-apply-card-variants-to-dashboard.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to apply the enhanced Card component variants to dashboard pages</iWant>
+    <soThat>dashboard pages use appropriate Card variants (metric, chart, info, role) for better visual consistency and improved UX</soThat>
+    <tasks>
+      - Task 1: Audit dashboard pages for Card usage (AC: #1, #2)
+        - Identify all dashboard pages using Card components
+        - Document current Card usage patterns
+        - Identify which cards should use which variants
+        - Create mapping of pages to variant requirements
+      - Task 2: Update dashboard home page (`src/app/page.tsx`) (AC: #1, #2, #3)
+        - Review feature cards (Player Analytics, Team Analytics, Tournament Analytics)
+        - Apply appropriate variants (elevated or interactive for feature cards)
+        - Update role cards to use `variant="role"` with `roleType` prop
+        - Verify visual consistency and design guide alignment
+        - Test: Verify cards render correctly with new variants
+        - Test: Verify no visual regressions
+      - Task 3: Update player details page (`src/app/(dashboard)/players/[id]/page.tsx`) (AC: #1, #2, #3)
+        - Identify statistics/metric cards
+        - Apply `variant="metric"` to cards displaying large numbers (ELO, win rate, etc.)
+        - Apply `variant="info"` to informational cards
+        - Apply `variant="chart"` if chart cards are present
+        - Test: Verify cards render correctly
+        - Test: Verify statistics display correctly
+      - Task 4: Update player statistics page (`src/app/(dashboard)/players/[id]/statistics/page.tsx`) (AC: #1, #2, #3)
+        - Review analytics cards
+        - Apply `variant="metric"` to metric display cards
+        - Apply `variant="chart"` to chart containers
+        - Apply `variant="info"` to informational cards
+        - Test: Verify analytics cards render correctly
+        - Test: Verify chart cards work properly
+      - Task 5: Update other dashboard pages (AC: #2, #3)
+        - Review clubs page (`src/app/(dashboard)/clubs/page.tsx`)
+        - Review tournaments page (`src/app/(dashboard)/tournaments/page.tsx`)
+        - Review games page (`src/app/(dashboard)/games/page.tsx`)
+        - Apply appropriate Card variants to each page
+        - Test: Verify all pages render correctly
+      - Task 6: Verify design guide compliance (AC: #3)
+        - Verify metric cards use 8px radius, 20px padding, subtle shadow
+        - Verify role cards use 12px radius, 24px padding, 2px border, role-based colors
+        - Verify chart cards have proper spacing for chart title and controls
+        - Verify info cards have proper layout for icon + text content
+        - Test: Visual inspection of all updated pages
+      - Task 7: Component testing (AC: #4)
+        - Test: Run existing component tests to verify no regressions
+        - Test: Verify Card component variants work correctly in all contexts
+        - Test: Verify TypeScript types are correct for all variant usages
+        - Test: Verify accessibility is maintained
+      - Task 8: Visual consistency check (AC: #3, #4)
+        - Review all updated pages for visual consistency
+        - Verify variant usage is appropriate (not over-applied)
+        - Verify spacing and padding are consistent
+        - Test: Manual visual testing across all dashboard pages
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Given the Card component has enhanced variants (metric, chart, info, role) from Story 3.2
+       When I review dashboard pages that use Card components
+       Then appropriate Card variants are applied based on content type:
+       - Metric cards use `variant="metric"` for displaying large numbers/statistics
+       - Chart cards use `variant="chart"` for chart displays
+       - Info cards use `variant="info"` for text content with icons
+       - Role cards use `variant="role"` with appropriate `roleType` prop for role-based content
+       - Feature cards use appropriate variants (elevated, interactive) based on interaction needs
+
+    2. And the following dashboard pages are updated:
+       - Dashboard home page (`src/app/page.tsx`) - Feature cards and role cards
+       - Player details page (`src/app/(dashboard)/players/[id]/page.tsx`) - Statistics cards
+       - Player statistics page (`src/app/(dashboard)/players/[id]/statistics/page.tsx`) - Analytics cards
+       - Other dashboard pages with Card components (clubs, tournaments, games)
+
+    3. And the Card variant usage:
+       - Matches design guide specifications for each variant type
+       - Maintains visual consistency across all dashboard pages
+       - Uses appropriate padding variants (none, sm, default, lg) where needed
+       - Preserves existing functionality and accessibility
+
+    4. And after applying variants:
+       - All existing tests pass without modification
+       - Visual appearance is improved and consistent
+       - No breaking changes to component behavior
+       - Card variants are used appropriately (not over-applied)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/sprint-artifacts/3-2-enhance-card-component-variants.md" title="Story 3.2: Enhance Card Component Variants" section="Completion Notes">
+        Enhanced Card component with metric, chart, info, and role variants. Metric Card: 8px radius (rounded-lg), 20px padding (p-5), subtle shadow. Role Card: 12px radius, 24px padding, 2px border, role-based colors.
+      </doc>
+      <doc path="docs/design/design-guide.md" title="Design Guide" section="Cards">
+        Card variant specifications: Metric Card for large numbers with trend indicators, Chart Card for full chart display, Info Card for text content with icon, Role Card for role-based color theming.
+      </doc>
+      <doc path="docs/style/style-guide.md" title="Style Guide" section="Cards">
+        Detailed card styling: Metric Card (8px radius, 20px padding, subtle shadow), Role Card (12px radius, 24px padding, 2px border, role-based colors), Base Card specifications.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Component Library">
+        ShadCN/UI copy-paste model - components in `src/components/ui/` directory. Tailwind CSS 3.3.0 with utility-first approach. TypeScript 5.0.0 with strict mode.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epics" section="Epic 3: Player Analytics Dashboard">
+        Epic 3 goal: Players can view comprehensive role-based performance analytics. Scope includes role-based performance metrics, ELO rating, win rate analysis, and navigation/data display components.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/3-3-apply-card-variants-to-dashboard.md" title="Story 3.3" section="Dev Notes">
+        Learnings from Story 3.2: Enhanced Card component with variants. Component location: `src/components/ui/card.tsx`. Testing patterns established. Design guide alignment verified.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/components/ui/card.tsx" kind="component" symbol="Card" lines="1-207" reason="Enhanced Card component with metric, chart, info, and role variants. Reference for variant API and usage patterns." />
+      <artifact path="src/app/page.tsx" kind="page" symbol="Home" lines="1-182" reason="Dashboard home page with feature cards (Player Analytics, Team Analytics, Tournament Analytics) and role cards. Needs variant application." />
+      <artifact path="src/app/(dashboard)/players/[id]/page.tsx" kind="page" symbol="PlayerDetailsPage" lines="1-520" reason="Player details page with statistics cards (ELO Rating, Total Games, Win Rate, Sync Status). Cards at lines 233-283 use variant='elevated' - should use variant='metric' for statistics." />
+      <artifact path="src/app/(dashboard)/players/[id]/statistics/page.tsx" kind="page" symbol="PlayerStatisticsPage" lines="1-96" reason="Player statistics page with analytics cards. Uses Card components for tabs and content containers. Needs variant application for chart/info cards." />
+      <artifact path="src/app/(dashboard)/clubs/page.tsx" kind="page" symbol="ClubsPageContent" lines="1-670" reason="Clubs dashboard page. Uses Card components for filters and content. Needs variant review and application." />
+      <artifact path="src/app/(dashboard)/tournaments/page.tsx" kind="page" symbol="TournamentsPageContent" lines="1-737" reason="Tournaments dashboard page. Uses Card components. Needs variant review and application." />
+      <artifact path="src/app/(dashboard)/games/page.tsx" kind="page" symbol="GamesPageContent" lines="1-1106" reason="Games dashboard page. Uses Card components. Needs variant review and application." />
+      <artifact path="tests/components/ui-components.test.tsx" kind="test" symbol="Card component tests" lines="87-220" reason="Comprehensive test suite for Card variants (32 tests). Reference for testing patterns and variant validation." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="react" version="^19.2.0" />
+        <package name="next" version="^16.0.0" />
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="tailwindcss" version="^3.3.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="@radix-ui/react-slot" version="^1.2.3" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Component Library: ShadCN/UI copy-paste model - components are in `src/components/ui/` directory</constraint>
+    <constraint>Styling: Tailwind CSS 3.3.0 with utility-first approach</constraint>
+    <constraint>Type Safety: TypeScript 5.0.0 with strict mode - maintain type safety when using Card variants</constraint>
+    <constraint>Variant System: Uses `tailwind-variants` with `tv()` function for variant composition</constraint>
+    <constraint>Design System: Follow design guide specifications for Card variant usage</constraint>
+    <constraint>Backward Compatibility: Verify existing functionality works after variant application</constraint>
+    <constraint>Testing: Maintain minimum 80% test coverage for all new code</constraint>
+    <constraint>Accessibility: Preserve existing accessibility features when applying variants</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Card Component API" kind="React component" signature="Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter" path="src/components/ui/card.tsx">
+      <props>
+        variant: 'default' | 'elevated' | 'outlined' | 'ghost' | 'interactive' | 'metric' | 'chart' | 'info' | 'role'
+        padding: 'none' | 'sm' | 'default' | 'lg'
+        roleType: 'don' | 'mafia' | 'sheriff' | 'citizen' (required when variant='role')
+      </props>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Maintain minimum 80% test coverage for all new code. Use React Testing Library for component tests. Test variant combinations, backward compatibility, and accessibility. Visual testing for design consistency. All existing tests must pass without modification.
+    </standards>
+    <locations>
+      tests/components/ - Component tests
+      tests/unit/ - Unit tests
+      tests/integration/ - Integration tests
+    </locations>
+    <ideas>
+      <test ac="1">Test metric variant applied to statistics cards on player details page</test>
+      <test ac="1">Test role variant with roleType prop on dashboard home page role cards</test>
+      <test ac="2">Test all dashboard pages render correctly with applied variants</test>
+      <test ac="3">Test design guide compliance (metric: 8px radius, 20px padding; role: 12px radius, 24px padding, 2px border)</test>
+      <test ac="4">Test existing component tests pass without modification</test>
+      <test ac="4">Test no breaking changes to component behavior</test>
+      <test ac="4">Test accessibility maintained (keyboard navigation, screen readers)</test>
+      <test ac="3">Visual regression tests for all updated dashboard pages</test>
+    </ideas>
+  </tests>
+</story-context>

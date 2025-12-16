@@ -35,7 +35,7 @@ export default function PlayerStatisticsPage() {
       </div>
 
       {/* Year Filter */}
-      <Card>
+      <Card variant="info">
         <CardContent className="pt-6">
           <YearFilter
             selectedYear={selectedYear}
@@ -61,7 +61,7 @@ export default function PlayerStatisticsPage() {
         </TabsContent>
 
         <TabsContent value="tournaments">
-          <Card>
+          <Card variant="chart">
             <CardHeader>
               <CardTitle>Tournament History</CardTitle>
             </CardHeader>
@@ -75,7 +75,7 @@ export default function PlayerStatisticsPage() {
         </TabsContent>
 
         <TabsContent value="games">
-          <Card>
+          <Card variant="info">
             <CardHeader>
               <CardTitle>Recent Games</CardTitle>
             </CardHeader>

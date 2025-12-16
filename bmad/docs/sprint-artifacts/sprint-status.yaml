@@ -62,7 +62,7 @@ development_status:
   epic-3: backlog
   3-1-migrate-components-to-tailwind-variants: done
   3-2-enhance-card-component-variants: done
-  3-3-apply-card-variants-to-dashboard: backlog
+  3-3-apply-card-variants-to-dashboard: done
   3-4-component-discovery-and-documentation: backlog
   epic-3-retrospective: optional
   # Epic 3: Design System Enhancement (2025-01-27)
