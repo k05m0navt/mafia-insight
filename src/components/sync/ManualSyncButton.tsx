@@ -139,6 +139,14 @@ export function ManualSyncButton({
         )}
       </Button>
 
+      {/* Show message when import is running (Task 7: AC #1) */}
+      {isRunning && (
+        <div className="text-sm text-muted-foreground" role="status">
+          Import already in progress. Please wait for current import to
+          complete.
+        </div>
+      )}
+
       {showProgress && isRunning && (
         <div className="space-y-1" role="status" aria-live="polite">
           <div className="flex items-center justify-between text-sm">

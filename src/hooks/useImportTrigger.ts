@@ -19,6 +19,17 @@ export interface CancelImportResponse {
   message: string;
 }
 
+export interface ImportRunningError extends Error {
+  code: 'IMPORT_RUNNING';
+  details?: {
+    progress: number;
+    currentOperation: string;
+    currentPhase?: string;
+    estimatedTimeRemaining?: number | null;
+    startTime?: string | null;
+  };
+}
+
 async function triggerImport(
   options: TriggerImportOptions = {}
 ): Promise<TriggerImportResponse> {
@@ -33,6 +44,16 @@ async function triggerImport(
   const data = await response.json();
 
   if (!response.ok) {
+    // Handle 409 Conflict (concurrent import prevention) with detailed error
+    if (response.status === 409 && data.code === 'IMPORT_RUNNING') {
+      const error: ImportRunningError = new Error(
+        data.error ||
+          'Import already in progress. Please wait for current import to complete.'
+      ) as ImportRunningError;
+      error.code = 'IMPORT_RUNNING';
+      error.details = data.details;
+      throw error;
+    }
     throw new Error(data.error || 'Failed to trigger import');
   }
 
