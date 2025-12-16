@@ -101,7 +101,7 @@ export default function Home() {
           Master Every Role
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          <Card variant="outlined" padding="sm" className="text-center">
+          <Card variant="role" roleType="don" className="text-center">
             <div className="text-center">
               <Badge className={`${roleColors.DON.primary} text-white mb-2`}>
                 DON
@@ -111,7 +111,7 @@ export default function Home() {
               </p>
             </div>
           </Card>
-          <Card variant="outlined" padding="sm" className="text-center">
+          <Card variant="role" roleType="mafia" className="text-center">
             <div className="text-center">
               <Badge className={`${roleColors.MAFIA.primary} text-white mb-2`}>
                 MAFIA
@@ -121,7 +121,7 @@ export default function Home() {
               </p>
             </div>
           </Card>
-          <Card variant="outlined" padding="sm" className="text-center">
+          <Card variant="role" roleType="sheriff" className="text-center">
             <div className="text-center">
               <Badge
                 className={`${roleColors.SHERIFF.primary} text-black mb-2`}
@@ -133,7 +133,7 @@ export default function Home() {
               </p>
             </div>
           </Card>
-          <Card variant="outlined" padding="sm" className="text-center">
+          <Card variant="role" roleType="citizen" className="text-center">
             <div className="text-center">
               <Badge
                 className={`${roleColors.CITIZEN.primary} text-white mb-2`}

@@ -320,7 +320,7 @@ function TournamentsPageContent() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Tournaments</h1>
         </div>
-        <Card>
+        <Card variant="info">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-red-500">🚫</span>
@@ -589,7 +589,7 @@ function TournamentsPageContent() {
 
         <DataTransition>
           {tournaments.length === 0 ? (
-            <Card>
+            <Card variant="info">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-muted-foreground">No tournaments found</p>
@@ -705,7 +705,7 @@ function TournamentsPageContent() {
         {/* Show error message if there's an error but we have existing data */}
         {error && tournaments.length > 0 && (
           <div className="mt-4">
-            <Card className="border-destructive">
+            <Card variant="info" className="border-destructive">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-destructive">Error: {error}</p>
