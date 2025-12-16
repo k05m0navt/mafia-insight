@@ -41,7 +41,7 @@ export function ImportSummary({
   ];
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <CardTitle>Import Summary</CardTitle>
       </CardHeader>

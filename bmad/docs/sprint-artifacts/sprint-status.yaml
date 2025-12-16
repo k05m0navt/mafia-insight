@@ -75,6 +75,18 @@ development_status:
   3-13-individual-game-detail-view: backlog
   epic-3-retrospective: optional
 
+  epic-6: backlog
+  6-1-migrate-components-to-tailwind-variants: done
+  6-2-enhance-card-component-variants: done
+  6-3-apply-card-variants-to-dashboard: done
+  6-4-component-discovery-and-documentation: done
+  epic-6-retrospective: optional
+  # Epic 6: Design System Enhancement (2025-01-27)
+  # Sprint Change: UI/UX Design System Enhancement via correct-course workflow
+  # See: bmad/docs/sprint-change-proposal-2025-01-27.md
+  # All stories complete - design system migrated to tailwind-variants with enhanced Card variants
+  # Note: class-variance-authority can be removed from package.json (optional cleanup)
+
   epic-4: backlog
   4-1-interactive-timeline-display: backlog
   4-2-timeline-date-range-filtering: backlog

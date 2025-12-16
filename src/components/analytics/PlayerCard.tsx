@@ -39,7 +39,7 @@ export function PlayerCard({ player, onViewAnalytics }: PlayerCardProps) {
     player.totalGames > 0 ? (player.wins / player.totalGames) * 100 : 0;
 
   return (
-    <Card className="w-full">
+    <Card variant="interactive" className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>{player.name}</span>

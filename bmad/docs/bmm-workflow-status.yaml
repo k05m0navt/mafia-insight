@@ -121,7 +121,7 @@ workflow_status:
   # Phase 3: Implementation
   phase_3_implementation:
     sprint-planning:
-      status: 'required'
+      status: 'bmad/docs/sprint-artifacts/sprint-status.yaml'
       agent: 'sm'
       command: 'sprint-planning'
       note: 'Creates sprint plan with stories'

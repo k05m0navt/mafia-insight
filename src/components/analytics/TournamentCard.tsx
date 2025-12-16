@@ -66,7 +66,7 @@ export function TournamentCard({
   };
 
   return (
-    <Card className="w-full">
+    <Card variant="elevated" className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>{tournament.name}</span>
