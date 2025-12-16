@@ -463,7 +463,7 @@ export class IntegrityChecker {
     // Validate one-to-many: GameParticipation → Game (many participations per game is expected)
     const gameParticipations = await resilientDB.execute((db) =>
       db.gameParticipation.findMany({
-        select: { id: true, gameId: true },
+        select: { id: true, gameId: true, playerId: true },
       })
     );
 
