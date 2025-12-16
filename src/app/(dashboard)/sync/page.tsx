@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ManualSyncButton } from '@/components/sync/ManualSyncButton';
 import {
   Card,
@@ -27,6 +28,9 @@ import { ImportErrorSummary } from '@/components/import/ImportErrorSummary';
 import { useImportErrorSummary } from '@/hooks/useImportErrorSummary';
 import { useImportProgress } from '@/hooks/useImportProgress';
 import { ImportProgressCard } from '@/components/import/ImportProgressCard';
+import { ResumeImportDialog } from '@/components/import/ResumeImportDialog';
+import { useCheckpoint } from '@/hooks/useCheckpoint';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Manual Sync Page
@@ -34,6 +38,9 @@ import { ImportProgressCard } from '@/components/import/ImportProgressCard';
  * Users can trigger manual sync and view sync status.
  */
 export default function SyncPage() {
+  const queryClient = useQueryClient();
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+
   const {
     syncStatus,
     isLoadingStatus,
@@ -57,6 +64,53 @@ export default function SyncPage() {
   // Fetch detailed import progress with real-time updates
   const { data: importProgress, isLoading: _isLoadingProgress } =
     useImportProgress(false); // Use polling (can be changed to true for SSE)
+
+  // Fetch checkpoint information (only when import is not running)
+  const { data: checkpoint } = useCheckpoint(!isRunning);
+
+  // Show resume dialog when checkpoint exists and import is not running
+  useEffect(() => {
+    if (checkpoint && !isRunning && !resumeDialogOpen) {
+      // Use setTimeout to avoid calling setState synchronously within effect
+      const timer = setTimeout(() => {
+        setResumeDialogOpen(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [checkpoint, isRunning, resumeDialogOpen]);
+
+  // Handle resume from checkpoint
+  const handleResume = async () => {
+    const response = await fetch('/api/gomafia-sync/import/resume', {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to resume import');
+    }
+
+    // Invalidate queries to refresh status
+    queryClient.invalidateQueries({ queryKey: ['syncStatus'] });
+    queryClient.invalidateQueries({ queryKey: ['checkpoint'] });
+    queryClient.invalidateQueries({ queryKey: ['importProgress'] });
+  };
+
+  // Handle start fresh (clear checkpoint and start new import)
+  const handleStartFresh = async () => {
+    // Clear checkpoint
+    const clearResponse = await fetch('/api/gomafia-sync/import/checkpoint', {
+      method: 'DELETE',
+    });
+
+    if (!clearResponse.ok) {
+      throw new Error('Failed to clear checkpoint');
+    }
+
+    // Invalidate queries
+    queryClient.invalidateQueries({ queryKey: ['checkpoint'] });
+    queryClient.invalidateQueries({ queryKey: ['syncStatus'] });
+  };
 
   const formatLastSyncTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never';
@@ -323,6 +377,15 @@ export default function SyncPage() {
           <SyncLogsTable />
         </CardContent>
       </Card>
+
+      {/* Resume Import Dialog */}
+      <ResumeImportDialog
+        open={resumeDialogOpen}
+        checkpoint={checkpoint || null}
+        onResume={handleResume}
+        onStartFresh={handleStartFresh}
+        onClose={() => setResumeDialogOpen(false)}
+      />
     </div>
   );
 }

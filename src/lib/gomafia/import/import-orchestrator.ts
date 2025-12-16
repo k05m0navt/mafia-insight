@@ -150,8 +150,34 @@ export class ImportOrchestrator {
   /**
    * Start the import process.
    * Acquires advisory lock and begins orchestration.
+   * Checks for existing checkpoint and offers resume option if found.
    */
   async start(): Promise<string> {
+    // Check for existing checkpoint before starting
+    const existingCheckpoint = await this.loadCheckpoint();
+
+    if (existingCheckpoint) {
+      // Check if checkpoint is recent (within last 24 hours) or stale
+      const checkpointAge = existingCheckpoint.importStartTimestamp
+        ? new Date().getTime() -
+          (existingCheckpoint.importStartTimestamp instanceof Date
+            ? existingCheckpoint.importStartTimestamp.getTime()
+            : new Date(existingCheckpoint.importStartTimestamp).getTime())
+        : Infinity;
+
+      const isStale = checkpointAge > 24 * 60 * 60 * 1000; // 24 hours
+
+      if (isStale) {
+        console.warn(
+          `[ImportOrchestrator] Stale checkpoint detected (${Math.floor(checkpointAge / 1000 / 60 / 60)} hours old). Consider starting fresh.`
+        );
+      } else {
+        console.log(
+          `[ImportOrchestrator] Recent checkpoint found. Import can be resumed from phase ${existingCheckpoint.currentPhase}, batch ${existingCheckpoint.currentBatch}`
+        );
+      }
+    }
+
     // Create sync log
     const syncLog = await resilientDB.execute((db) =>
       db.syncLog.create({
@@ -164,8 +190,17 @@ export class ImportOrchestrator {
     );
 
     this.currentSyncLogId = syncLog.id;
-    this.importStartTime = new Date();
-    this.phaseProgress.clear();
+
+    // Restore import start time from checkpoint if resuming, otherwise use current time
+    if (existingCheckpoint?.importStartTimestamp) {
+      this.importStartTime =
+        existingCheckpoint.importStartTimestamp instanceof Date
+          ? existingCheckpoint.importStartTimestamp
+          : new Date(existingCheckpoint.importStartTimestamp);
+    } else {
+      this.importStartTime = new Date();
+      this.phaseProgress.clear();
+    }
 
     // Start timeout timer
     this.timeoutManager.start();
@@ -198,23 +233,54 @@ export class ImportOrchestrator {
   /**
    * Save checkpoint during import.
    * Includes current processedIds for duplicate prevention on resume.
+   * Enhances checkpoint with phase progress map and import start timestamp.
    */
   async saveCheckpoint(checkpoint: ImportCheckpoint): Promise<void> {
-    await this.checkpointManager.saveCheckpoint(checkpoint);
+    // Enhance checkpoint with phase progress and import start time
+    const enhancedCheckpoint: ImportCheckpoint = {
+      ...checkpoint,
+      importStartTimestamp: this.importStartTime || new Date(),
+      phaseProgress: Object.fromEntries(this.phaseProgress),
+      lastProcessedIdByPhase: {
+        ...(checkpoint.lastProcessedIdByPhase || {}),
+        [checkpoint.currentPhase]: checkpoint.lastProcessedId,
+      },
+    };
+
+    await this.checkpointManager.saveCheckpoint(enhancedCheckpoint);
   }
 
   /**
    * Load checkpoint for resume.
-   * Restores processedIds Set for duplicate prevention.
+   * Restores processedIds Set, phase progress map, and import start time.
    */
   async loadCheckpoint(): Promise<ImportCheckpoint | null> {
     const checkpoint = await this.checkpointManager.loadCheckpoint();
 
     if (checkpoint) {
-      // Restore processedIds Set from checkpoint (T114)
+      // Restore processedIds Set from checkpoint
       this.processedIds = new Set(checkpoint.processedIds);
+
+      // Restore phase progress map
+      if (checkpoint.phaseProgress) {
+        this.phaseProgress.clear();
+        for (const [phase, progress] of Object.entries(
+          checkpoint.phaseProgress
+        )) {
+          this.phaseProgress.set(phase as ImportPhase, progress);
+        }
+      }
+
+      // Restore import start time (for elapsed time calculation)
+      if (checkpoint.importStartTimestamp) {
+        this.importStartTime =
+          checkpoint.importStartTimestamp instanceof Date
+            ? checkpoint.importStartTimestamp
+            : new Date(checkpoint.importStartTimestamp);
+      }
+
       console.log(
-        `Loaded checkpoint: ${checkpoint.currentPhase} phase, batch ${checkpoint.currentBatch}, ${checkpoint.processedIds.length} entities processed`
+        `Loaded checkpoint: ${checkpoint.currentPhase} phase, batch ${checkpoint.currentBatch}, ${checkpoint.processedIds.length} entities processed, progress=${checkpoint.progress}%`
       );
     }
 
@@ -258,6 +324,64 @@ export class ImportOrchestrator {
    */
   clearProcessedIds(): void {
     this.processedIds.clear();
+  }
+
+  /**
+   * Resume import from checkpoint.
+   * Loads checkpoint state, restores phase progress, and continues from saved position.
+   */
+  async resumeFromCheckpoint(): Promise<void> {
+    const checkpoint = await this.loadCheckpoint();
+
+    if (!checkpoint) {
+      throw new Error('No checkpoint found to resume from');
+    }
+
+    // Validate checkpoint is valid
+    if (!checkpoint.currentPhase || checkpoint.currentBatch < 0) {
+      throw new Error('Invalid checkpoint: missing required fields');
+    }
+
+    // Restore phase progress map
+    if (checkpoint.phaseProgress) {
+      this.phaseProgress.clear();
+      for (const [phase, progress] of Object.entries(
+        checkpoint.phaseProgress
+      )) {
+        this.phaseProgress.set(phase as ImportPhase, progress);
+      }
+    }
+
+    // Restore import start time for elapsed time calculation
+    if (checkpoint.importStartTimestamp) {
+      this.importStartTime =
+        checkpoint.importStartTimestamp instanceof Date
+          ? checkpoint.importStartTimestamp
+          : new Date(checkpoint.importStartTimestamp);
+    }
+
+    // Set current phase to checkpoint phase
+    this.currentPhase = checkpoint.currentPhase;
+
+    // Restore processedIds Set to skip already-processed entities
+    this.processedIds = new Set(checkpoint.processedIds);
+
+    console.log(
+      `[ImportOrchestrator] Resuming from checkpoint: phase=${checkpoint.currentPhase}, batch=${checkpoint.currentBatch}, progress=${checkpoint.progress}%, processed=${checkpoint.processedIds.length} entities`
+    );
+
+    // Update sync status to show resume
+    await resilientDB.execute((db) =>
+      db.syncStatus.update({
+        where: { id: 'current' },
+        data: {
+          isRunning: true,
+          progress: checkpoint.progress,
+          currentOperation: `Resuming from checkpoint: ${checkpoint.currentPhase} phase`,
+          updatedAt: new Date(),
+        },
+      })
+    );
   }
 
   /**
@@ -789,10 +913,11 @@ export class ImportOrchestrator {
       })
     );
 
-    // Clear checkpoint on success
+    // Clear checkpoint on success or when user chooses "Start fresh"
     if (success) {
       await this.checkpointManager.clearCheckpoint();
     }
+    // Note: Checkpoint is kept on failure to allow manual resume
   }
 
   /**
