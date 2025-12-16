@@ -78,6 +78,11 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 - **[API Documentation](./API.md)** - Comprehensive API reference
 - **[Deployment Guide](./docs/deployment/VERCEL-SETUP.md)** - Deploy to production
 - **[Testing Guide](./docs/testing/README.md)** - Testing strategy and guides
+- **[Component Library](./bmad/docs/component-library.md)** - Component library documentation and usage
+- **[Component Discovery Report](./bmad/docs/component-discovery-report.md)** - Discovered components from registries
+- **[Storybook Documentation](http://localhost:6006)** - Interactive component documentation (run `npm run storybook`)
+
+**Note:** When building Storybook, warnings about "use client" directives being ignored are expected and can be safely ignored. See [Component Library Documentation](./bmad/docs/component-library.md#build-warnings) for details.
 
 ## 📦 Installation
 

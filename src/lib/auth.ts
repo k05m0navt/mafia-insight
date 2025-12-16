@@ -7,8 +7,9 @@ import {
 } from '@/types/auth';
 import { NextAuthOptions } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
-import { Session, User as NextAuthUser } from 'next-auth';
+import { Session, User as NextAuthUser, Account } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
+import { Prisma } from '@prisma/client';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
@@ -361,8 +362,9 @@ export const authOptions: NextAuthOptions = {
             account.access_token || '',
             account.refresh_token || undefined,
             user.image ||
-              (profile as any)?.picture ||
-              (profile as any)?.avatar_url,
+              (profile as { picture?: string; avatar_url?: string })?.picture ||
+              (profile as { picture?: string; avatar_url?: string })
+                ?.avatar_url,
             user.id // Use NextAuth's user ID
           );
           user.id = newUser.id;
@@ -389,7 +391,7 @@ export const authOptions: NextAuthOptions = {
           const { prisma } = await import('@/lib/db');
 
           // Extract provider-specific error details
-          const errorDetails: Record<string, any> = {
+          const errorDetailsObj: Record<string, unknown> = {
             provider: account?.provider,
             error: error instanceof Error ? error.message : 'Unknown error',
           };
@@ -399,34 +401,37 @@ export const authOptions: NextAuthOptions = {
             // Google OAuth errors
             if (account?.provider === 'google') {
               if (error.message.includes('access_denied')) {
-                errorDetails.errorCode = 'OAUTH_ACCESS_DENIED';
-                errorDetails.errorType = 'user_denied';
+                errorDetailsObj.errorCode = 'OAUTH_ACCESS_DENIED';
+                errorDetailsObj.errorType = 'user_denied';
               } else if (error.message.includes('invalid_grant')) {
-                errorDetails.errorCode = 'OAUTH_INVALID_GRANT';
-                errorDetails.errorType = 'token_expired';
+                errorDetailsObj.errorCode = 'OAUTH_INVALID_GRANT';
+                errorDetailsObj.errorType = 'token_expired';
               } else if (error.message.includes('invalid_client')) {
-                errorDetails.errorCode = 'OAUTH_INVALID_CLIENT';
-                errorDetails.errorType = 'configuration_error';
+                errorDetailsObj.errorCode = 'OAUTH_INVALID_CLIENT';
+                errorDetailsObj.errorType = 'configuration_error';
               }
             }
 
             // GitHub OAuth errors
             if (account?.provider === 'github') {
               if (error.message.includes('access_denied')) {
-                errorDetails.errorCode = 'OAUTH_ACCESS_DENIED';
-                errorDetails.errorType = 'user_denied';
+                errorDetailsObj.errorCode = 'OAUTH_ACCESS_DENIED';
+                errorDetailsObj.errorType = 'user_denied';
               } else if (error.message.includes('bad_verification_code')) {
-                errorDetails.errorCode = 'OAUTH_BAD_VERIFICATION_CODE';
-                errorDetails.errorType = 'verification_error';
+                errorDetailsObj.errorCode = 'OAUTH_BAD_VERIFICATION_CODE';
+                errorDetailsObj.errorType = 'verification_error';
               }
             }
 
             // Classify error as transient or permanent
             const transientErrors = ['network_error', 'timeout', 'rate_limit'];
-            errorDetails.isTransient = transientErrors.some((e) =>
+            errorDetailsObj.isTransient = transientErrors.some((e) =>
               error.message.toLowerCase().includes(e)
             );
           }
+
+          const errorDetails: Prisma.InputJsonValue =
+            errorDetailsObj as Prisma.InputJsonValue;
 
           await prisma.securityEvent.create({
             data: {
@@ -451,13 +456,14 @@ export const authOptions: NextAuthOptions = {
     }: {
       token: JWT;
       user: NextAuthUser | AdapterUser;
-      account?: any;
+      account: Account | null;
     }) {
       // Initial sign-in: store user data and account info
       if (user) {
         token.id = user.id;
         token.email = user.email || undefined;
-        token.role = (user as any).role || 'user';
+        token.role =
+          (user as NextAuthUser & { role?: UserRole }).role || 'user';
         token.name = user.name || undefined;
 
         // Store OAuth provider info in token
@@ -472,8 +478,8 @@ export const authOptions: NextAuthOptions = {
           const accountRecord = await prisma.account.findUnique({
             where: {
               provider_providerAccountId: {
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
+                provider: account.provider!,
+                providerAccountId: account.providerAccountId!,
               },
             },
           });
