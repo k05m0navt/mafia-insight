@@ -702,6 +702,150 @@ export class ImportOrchestrator {
   }
 
   /**
+   * Run phase-level integrity checks after a phase completes.
+   * Performs integrity checks relevant to the completed phase (Story 2.9: AC #2).
+   *
+   * @param phase The import phase that just completed
+   */
+  async runPhaseIntegrityChecks(phase: ImportPhase): Promise<void> {
+    const integrityChecker = new IntegrityChecker(this.db);
+
+    // Run checks relevant to the completed phase
+    let phaseChecks: Array<
+      Promise<import('./integrity-checker').IntegrityCheckResult>
+    > = [];
+
+    switch (phase) {
+      case 'CLUBS':
+        // After clubs phase, check player-club links if players exist
+        phaseChecks = [integrityChecker.checkPlayerClubLinks()];
+        break;
+      case 'PLAYERS':
+        // After players phase, check player-club links
+        phaseChecks = [integrityChecker.checkPlayerClubLinks()];
+        break;
+      case 'TOURNAMENTS':
+        // After tournaments phase, check tournament-chief judge links
+        phaseChecks = [integrityChecker.checkTournamentChiefJudgeLinks()];
+        break;
+      case 'GAMES':
+        // After games phase, check game-tournament links, game-judge links, and game participation links
+        phaseChecks = [
+          integrityChecker.checkGameTournamentLinks(),
+          integrityChecker.checkGameJudgeLinks(),
+          integrityChecker.checkGameParticipationLinks(),
+        ];
+        break;
+      case 'STATISTICS':
+        // After statistics phase, check player-tournament links
+        phaseChecks = [integrityChecker.checkPlayerTournamentLinks()];
+        break;
+      default:
+        // For other phases, skip phase-level checks (will be checked in full audit)
+        return;
+    }
+
+    try {
+      const results = await Promise.all(phaseChecks);
+      const failedChecks = results.filter((r) => !r.passed);
+
+      if (failedChecks.length > 0) {
+        console.warn(
+          `[ImportOrchestrator] Phase-level integrity checks failed for phase ${phase}:`,
+          failedChecks.map((c) => c.checkName)
+        );
+        // Log violations but don't fail import (Option 2: Skip and log)
+        for (const check of failedChecks) {
+          if (check.violations) {
+            console.warn(
+              `[ImportOrchestrator] Integrity violations in ${check.checkName}:`,
+              check.violations.length
+            );
+          }
+        }
+      } else {
+        console.log(
+          `[ImportOrchestrator] Phase-level integrity checks passed for phase ${phase}`
+        );
+      }
+
+      // Store phase-level integrity check results in sync log
+      await this.storeIntegrityResultsForPhase(phase, results);
+    } catch (error) {
+      console.error(
+        `[ImportOrchestrator] Error running phase-level integrity checks for ${phase}:`,
+        error
+      );
+      // Don't fail import on integrity check errors, just log them
+    }
+  }
+
+  /**
+   * Store integrity check results in SyncLog.errors JSON field after a phase completes.
+   * This allows tracking integrity check results per phase (Story 2.9: AC #2).
+   *
+   * @param phase The import phase that just completed
+   * @param results Integrity check results for this phase
+   */
+  async storeIntegrityResultsForPhase(
+    phase: ImportPhase,
+    results: Array<import('./integrity-checker').IntegrityCheckResult>
+  ): Promise<void> {
+    if (!this.currentSyncLogId) {
+      console.warn(
+        '[ImportOrchestrator] No sync log ID available, skipping integrity results storage'
+      );
+      return;
+    }
+
+    // Get existing errors from SyncLog
+    const existingSyncLog = await resilientDB.execute((db) =>
+      db.syncLog.findUnique({
+        where: { id: this.currentSyncLogId! },
+        select: { errors: true },
+      })
+    );
+
+    // Parse existing errors or initialize empty structure
+    let existingErrors: Record<string, unknown> = {};
+    if (existingSyncLog?.errors && typeof existingSyncLog.errors === 'object') {
+      existingErrors = existingSyncLog.errors as Record<string, unknown>;
+    }
+
+    // Prepare integrity results for this phase
+    const phaseIntegrityResults = {
+      checks: results.map((r) => ({
+        checkName: r.checkName,
+        passed: r.passed,
+        totalChecked: r.totalChecked,
+        errorCount: r.errors.length,
+        violations: r.violations || [],
+      })),
+      passed: results.every((r) => r.passed),
+      failedChecks: results.filter((r) => !r.passed).length,
+    };
+
+    // Store in integrityResults structure
+    const updatedErrors: Record<string, unknown> = {
+      ...existingErrors,
+      integrityResults: {
+        ...((existingErrors.integrityResults as Record<string, unknown>) || {}),
+        [phase]: phaseIntegrityResults,
+      },
+    };
+
+    // Update SyncLog with integrity results
+    await resilientDB.execute((db) =>
+      db.syncLog.update({
+        where: { id: this.currentSyncLogId! },
+        data: {
+          errors: updatedErrors as Prisma.InputJsonValue,
+        },
+      })
+    );
+  }
+
+  /**
    * Store validation metrics in SyncLog.errors JSON field after a phase completes.
    * This allows tracking validation metrics per phase and checking threshold compliance.
    *
@@ -1866,6 +2010,9 @@ export class ImportOrchestrator {
       try {
         await phase.execute();
         console.log(`[Historical Import] Completed phase: ${name}`);
+
+        // Run phase-level integrity checks after phase completes (Story 2.9: AC #2)
+        await this.runPhaseIntegrityChecks(name as ImportPhase);
       } catch (error: unknown) {
         const isCancellationError =
           error instanceof Error &&
@@ -1885,6 +2032,78 @@ export class ImportOrchestrator {
         );
         // Continue with next phase even if this one failed
       }
+    }
+
+    // Run full integrity audit before marking import as complete (Story 2.9: AC #2)
+    console.log(
+      '[Historical Import] Running full integrity audit before completion...'
+    );
+    try {
+      const integrityChecker = new IntegrityChecker(this.db);
+      const integrityResults = await integrityChecker.getIntegritySummary();
+      console.log('[Historical Import] Full integrity audit results:', {
+        status: integrityResults.status,
+        passedChecks: integrityResults.passedChecks,
+        failedChecks: integrityResults.failedChecks,
+      });
+
+      // Store full integrity audit results
+      if (this.currentSyncLogId) {
+        const existingSyncLog = await resilientDB.execute((db) =>
+          db.syncLog.findUnique({
+            where: { id: this.currentSyncLogId! },
+            select: { errors: true },
+          })
+        );
+
+        let existingErrors: Record<string, unknown> = {};
+        if (
+          existingSyncLog?.errors &&
+          typeof existingSyncLog.errors === 'object'
+        ) {
+          existingErrors = existingSyncLog.errors as Record<string, unknown>;
+        }
+
+        const updatedErrors: Record<string, unknown> = {
+          ...existingErrors,
+          integrityResults: {
+            ...((existingErrors.integrityResults as Record<string, unknown>) ||
+              {}),
+            fullAudit: {
+              status: integrityResults.status,
+              totalChecks: integrityResults.totalChecks,
+              passedChecks: integrityResults.passedChecks,
+              failedChecks: integrityResults.failedChecks,
+              message: integrityResults.message,
+              issues: integrityResults.issues || [],
+              timestamp: new Date().toISOString(),
+            },
+          },
+        };
+
+        await resilientDB.execute((db) =>
+          db.syncLog.update({
+            where: { id: this.currentSyncLogId! },
+            data: {
+              errors: updatedErrors as Prisma.InputJsonValue,
+            },
+          })
+        );
+      }
+
+      // Log integrity issues but don't fail import (Option 2: Skip and log strategy)
+      if (integrityResults.status === 'FAIL') {
+        console.warn(
+          '[Historical Import] Import completed with integrity issues:',
+          integrityResults.issues?.slice(0, 10) // Log first 10 issues
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[Historical Import] Error running full integrity audit:',
+        error
+      );
+      // Don't fail import on integrity check errors, just log them
     }
 
     // Mark as completed
