@@ -295,15 +295,18 @@ model SyncStatus {
 }
 
 model ImportCheckpoint {
-  id              String   @id @default("current")
-  currentPhase    String
-  currentBatch    Int
-  lastProcessedId String?
-  processedIds    String[]
-  progress        Int
-  lastUpdated     DateTime @updatedAt
-  createdAt       DateTime @default(now())
-  isPaused        Boolean  @default(false)
+  id                    String    @id @default("current")
+  currentPhase           String
+  currentBatch           Int
+  lastProcessedId        String?
+  processedIds           String[]
+  progress               Int
+  lastUpdated            DateTime  @updatedAt
+  createdAt              DateTime  @default(now())
+  isPaused               Boolean   @default(false)
+  importStartTimestamp   DateTime?
+  phaseProgress          Json?     // Map<ImportPhase, {processed: number, total: number}>
+  lastProcessedIdByPhase Json?     // Record<string, string | null>
 
   @@map("import_checkpoints")
 }
