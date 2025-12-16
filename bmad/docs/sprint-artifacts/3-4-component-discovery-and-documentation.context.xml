@@ -1,0 +1,324 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3.4</storyId>
+    <title>Component Discovery and Documentation</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/3-4-component-discovery-and-documentation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to discover and document components from shadcn registries that best fit the app's analytics dashboard needs</iWant>
+    <soThat>we can leverage existing, well-designed components and maintain a comprehensive component library documentation using Storybook</soThat>
+    <tasks>
+- [ ] Task 1: Research component discovery tools and best practices (AC: #1, #5)
+  - [ ] Research shadcn MCP capabilities for component discovery
+  - [ ] Research Storybook setup and configuration for Next.js
+  - [ ] Research context7 MCP for accessing library documentation
+  - [ ] Use web search to find component discovery best practices
+  - [ ] Document discovery methodology and tools
+
+- [ ] Task 2: Discover components from shadcn registries (AC: #1, #2)
+  - [ ] Use shadcn MCP to list available registries
+  - [ ] Search @shadcn registry for analytics/dashboard components
+  - [ ] Search @magicui registry for chart/metric components
+  - [ ] Search @aceternity registry for interactive/visualization components
+  - [ ] Search @shadcnblocks registry for dashboard layout components
+  - [ ] Document discovered components with registry sources
+
+- [ ] Task 3: Evaluate discovered components (AC: #2)
+  - [ ] Evaluate alignment with design system (tailwind-variants, design guide)
+  - [ ] Assess suitability for analytics dashboard use cases
+  - [ ] Check TypeScript support and type safety
+  - [ ] Verify accessibility compliance
+  - [ ] Review component quality and documentation
+  - [ ] Create evaluation matrix with recommendations
+
+- [ ] Task 4: Set up Storybook for component documentation (AC: #3)
+  - [ ] Install Storybook dependencies (`@storybook/nextjs`, `@storybook/react`, etc.)
+  - [ ] Initialize Storybook configuration (`.storybook/main.ts`, `.storybook/preview.ts`)
+  - [ ] Configure TypeScript with path aliases (@/components, @/lib)
+  - [ ] Configure Next.js App Router support in Storybook
+  - [ ] Set up theme decorator for light/dark mode
+  - [ ] Test Storybook builds and runs correctly
+
+- [ ] Task 5: Create Storybook stories for existing components (AC: #3)
+  - [ ] Create stories for Card component (all variants: metric, chart, info, role)
+  - [ ] Create stories for Badge component (all variants)
+  - [ ] Create stories for Button component (all variants)
+  - [ ] Create stories for Alert component (all variants)
+  - [ ] Create stories for other key UI components
+  - [ ] Add component documentation (JSDoc, usage examples, props tables)
+
+- [ ] Task 6: Document discovered components and recommendations (AC: #4)
+  - [ ] Create component discovery report document
+  - [ ] Document registry sources for each discovered component
+  - [ ] Include evaluation results and recommendations
+  - [ ] Provide usage examples for recommended components
+  - [ ] Create integration guide for adding components to project
+  - [ ] Update component inventory documentation
+
+- [ ] Task 7: Create Storybook stories for recommended components (AC: #4)
+  - [ ] Select top 3-5 recommended components to demonstrate
+  - [ ] Add recommended components to project (if feasible for demo)
+  - [ ] Create Storybook stories showing component variations
+  - [ ] Document integration process and any modifications needed
+  - [ ] Add usage examples and best practices
+
+- [ ] Task 8: Finalize documentation and update project docs (AC: #5)
+  - [ ] Document context7 MCP usage for library documentation
+  - [ ] Document shadcn MCP usage for component discovery
+  - [ ] Update README with Storybook documentation links
+  - [ ] Create component library documentation guide
+  - [ ] Test: Verify Storybook builds and all stories render correctly
+  - [ ] Test: Verify component discovery report is complete
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. **Given** the project uses shadcn/UI components and has multiple registries configured (@shadcn, @magicui, @aceternity, @shadcnblocks)  
+   **When** I search for analytics, dashboard, chart, metric, and statistics components  
+   **Then** the system discovers relevant components from registries:
+   - Components for data visualization (charts, graphs, metrics)
+   - Analytics dashboard components (statistics cards, KPI displays)
+   - Interactive components (filters, date pickers, search)
+   - Layout components (dashboards, grids, responsive layouts)
+   - Components that align with app design needs (modern, beautiful, analytics-focused)
+
+2. **And** discovered components are evaluated against:
+   - Alignment with app design system (tailwind-variants, design guide specifications)
+   - Suitability for analytics dashboard use cases
+   - TypeScript support and type safety
+   - Accessibility compliance (WCAG 2.1 AA)
+   - Component quality and documentation
+
+3. **And** Storybook is set up and configured for component documentation:
+   - Storybook installation and configuration for Next.js with App Router
+   - TypeScript configuration with path aliases (@/components)
+   - Story files created for key existing components (Card, Badge, Button, etc.)
+   - Storybook preview configured with theme support (light/dark mode)
+   - Documentation structure established for component library
+
+4. **And** discovered components are documented:
+   - Component discovery report with registry sources and evaluation results
+   - Recommendations for which components to add to the project
+   - Storybook stories created for newly discovered/recommended components
+   - Usage examples and integration notes for recommended components
+   - Component inventory updated with discovered options
+
+5. **And** documentation includes:
+   - Usage of context7 MCP for library documentation (Storybook, shadcn, etc.)
+   - Usage of shadcn MCP for component discovery
+   - Web search research for component discovery best practices
+   - Integration guide for adding recommended components to the project
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Component Library</section>
+        <snippet>ShadCN/UI copy-paste model - components are in src/components/ui/ directory. Styling uses Tailwind CSS 3.3.0 with utility-first approach, using tailwind-variants for variant system. Type safety maintained with TypeScript 5.0.0 strict mode.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Styling</section>
+        <snippet>Tailwind CSS 3.3.0 - Utility-first CSS framework. Custom color theme (Competitive Data). Responsive breakpoints. Dark theme support. Uses tailwind-variants for variant system instead of class-variance-authority.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Project Structure</section>
+        <snippet>Components located in src/components/ui/ following shadcn/UI copy-paste model. Storybook configuration should be in .storybook/ directory at project root. Story files co-located with components in src/components/ui/*.stories.tsx or in .storybook/stories/.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/3-1-migrate-components-to-tailwind-variants.md</path>
+        <title>Story 3.1: Migrate Components to Tailwind Variants</title>
+        <section>Dev Notes</section>
+        <snippet>Component patterns established from ShadCN/UI. Migration from class-variance-authority to tailwind-variants for better type safety and composition. All components maintain backward compatibility with same APIs. All components use tv() function and VariantProps from tailwind-variants.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/3-2-enhance-card-component-variants.md</path>
+        <title>Story 3.2: Enhance Card Component Variants</title>
+        <section>Dev Notes</section>
+        <snippet>Card component now has enhanced variants (metric, chart, info, role) with comprehensive JSDoc documentation. Component tests established at tests/components/ui-components.test.tsx with 32 tests. All Card variants match design guide specifications.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/3-3-apply-card-variants-to-dashboard.md</path>
+        <title>Story 3.3: Apply Card Variants to Dashboard</title>
+        <section>Dev Notes</section>
+        <snippet>All Card variants match design guide specifications (metric: 8px radius/20px padding, role: 12px radius/24px padding). Components located in src/components/ui/ following shadcn/UI copy-paste model. All components use tailwind-variants with tv() function for variant composition.</snippet>
+      </doc>
+      <doc>
+        <path>components.json</path>
+        <title>ShadCN/UI Configuration</title>
+        <section>Registries</section>
+        <snippet>Multiple registries configured: @shadcn, @magicui, @aceternity, @shadcnblocks, @blocks, @reui, @smoothui, @shadcn-studio, @tailark. Style: new-york. RSC: true. TypeScript: true. Path aliases: @/components, @/lib/utils.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/sprint-status.yaml</path>
+        <title>Sprint Status</title>
+        <section>Epic 3</section>
+        <snippet>Epic 3: Design System Enhancement (2025-01-27). Sprint Change: UI/UX Design System Enhancement via correct-course workflow. All stories complete - design system migrated to tailwind-variants with enhanced Card variants. Story 3-4 is currently in drafted status.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>cardVariants, Card, CardProps</symbol>
+        <lines>1-126</lines>
+        <reason>Enhanced Card component with variants (metric, chart, info, role) using tailwind-variants. Reference implementation for variant patterns. Comprehensive JSDoc documentation included.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>buttonVariants, Button, ButtonProps</symbol>
+        <lines>1-54</lines>
+        <reason>Button component migrated to tailwind-variants. Uses tv() function and VariantProps. Reference for migration pattern and variant structure.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/badge.tsx</path>
+        <kind>component</kind>
+        <symbol>badgeVariants, Badge, BadgeProps</symbol>
+        <lines>1-32</lines>
+        <reason>Badge component migrated to tailwind-variants. Uses tv() for variant definitions. Reference for migration pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/alert.tsx</path>
+        <kind>component</kind>
+        <symbol>alertVariants, Alert, AlertTitle, AlertDescription</symbol>
+        <lines>1-57</lines>
+        <reason>Alert component migrated to tailwind-variants. Shows variant pattern with default and destructive variants. Reference for component structure.</reason>
+      </artifact>
+      <artifact>
+        <path>components.json</path>
+        <kind>config</kind>
+        <symbol>registries, aliases, style</symbol>
+        <lines>1-28</lines>
+        <reason>ShadCN/UI configuration file with registry definitions. Contains all configured registries (@shadcn, @magicui, @aceternity, etc.) and path aliases. Required for shadcn MCP component discovery.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui</path>
+        <kind>directory</kind>
+        <symbol>UI Components</symbol>
+        <lines>N/A</lines>
+        <reason>Directory containing all UI components. Components include: alert, avatar, badge, button, card, checkbox, dialog, form, input, label, navigation-menu, select, sheet, table, tabs, toast, and more. All components use tailwind-variants pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>package.json</path>
+        <kind>config</kind>
+        <symbol>dependencies, devDependencies</symbol>
+        <lines>45-144</lines>
+        <reason>Package dependencies including React 19.2.0, Next.js 16.0.0, TypeScript 5.0.0, tailwind-variants 3.2.2, and Radix UI components. Storybook dependencies need to be added: @storybook/nextjs, @storybook/react, etc.</reason>
+      </artifact>
+      <artifact>
+        <path>tsconfig.json</path>
+        <kind>config</kind>
+        <symbol>paths, compilerOptions</symbol>
+        <lines>N/A</lines>
+        <reason>TypeScript configuration with path aliases (@/* → ./src/*). Required for Storybook to resolve component imports correctly.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package name="react" version="^19.2.0" />
+        <package name="next" version="^16.0.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="tailwindcss" version="^3.3.0" />
+        <package name="@radix-ui/react-*" version="various" />
+        <package name="@storybook/nextjs" version="to-be-installed" />
+        <package name="@storybook/react" version="to-be-installed" />
+        <package name="@storybook/addon-essentials" version="to-be-installed" />
+        <package name="@storybook/addon-interactions" version="to-be-installed" />
+        <package name="@storybook/test" version="to-be-installed" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <rule>Component Library Pattern</rule>
+      <description>ShadCN/UI copy-paste model - components must be in src/components/ui/ directory. Components are copied into project, not installed as npm packages.</description>
+    </constraint>
+    <constraint>
+      <rule>Variant System</rule>
+      <description>All components must use tailwind-variants with tv() function for variant composition. Do not use class-variance-authority. Maintain backward compatibility with existing component APIs.</description>
+    </constraint>
+    <constraint>
+      <rule>Type Safety</rule>
+      <description>TypeScript 5.0.0 with strict mode. All Storybook stories must have proper TypeScript types. Component props must be typed using VariantProps from tailwind-variants.</description>
+    </constraint>
+    <constraint>
+      <rule>Design System Alignment</rule>
+      <description>Components must align with design guide specifications. Follow established variant patterns (metric: 8px radius/20px padding, role: 12px radius/24px padding). Use design tokens from UX Design Specification.</description>
+    </constraint>
+    <constraint>
+      <rule>Accessibility</rule>
+      <description>All discovered components must meet WCAG 2.1 AA standards. Components should use Radix UI primitives for accessibility. Verify keyboard navigation, screen reader support, and color contrast ratios.</description>
+    </constraint>
+    <constraint>
+      <rule>Next.js App Router</rule>
+      <description>Storybook must support Next.js App Router structure with route groups. Configure Storybook to handle App Router patterns and server components appropriately.</description>
+    </constraint>
+    <constraint>
+      <rule>Path Aliases</rule>
+      <description>Use path aliases (@/components, @/lib) consistently. Storybook configuration must resolve these aliases correctly. TypeScript path mapping must be configured in Storybook.</description>
+    </constraint>
+    <constraint>
+      <rule>Testing Standards</rule>
+      <description>Maintain minimum 80% test coverage for all new code. Storybook stories serve as visual regression tests and documentation. Component tests located in tests/components/ directory.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>shadcn MCP</name>
+      <kind>MCP Server</kind>
+      <signature>get_project_registries(), list_items_in_registries(registries), search_items_in_registries(registries, query), view_items_in_registries(items), get_item_examples_from_registries(registries, query)</signature>
+      <path>MCP Server: mafia-insight-shadcn</path>
+      <description>MCP server for discovering and viewing components from shadcn registries. Use to search for analytics, dashboard, chart, metric components across configured registries.</description>
+    </interface>
+    <interface>
+      <name>context7 MCP</name>
+      <kind>MCP Server</kind>
+      <signature>resolve-library-id(libraryName), get-library-docs(context7CompatibleLibraryID, mode, topic)</signature>
+      <path>MCP Server: context7</path>
+      <description>MCP server for accessing up-to-date documentation for libraries. Use to get Storybook documentation, shadcn documentation, and other library docs.</description>
+    </interface>
+    <interface>
+      <name>Card Component API</name>
+      <kind>React Component</kind>
+      <signature>Card({ variant, roleType, className, children, ...props }: CardProps)</signature>
+      <path>src/components/ui/card.tsx</path>
+      <description>Card component with variants: default, elevated, outlined, ghost, interactive, metric, chart, info, role. Uses tailwind-variants for variant composition. Reference implementation for component patterns.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test coverage minimum 80% for all new code. Component tests use Vitest with React Testing Library. Storybook stories serve as visual regression tests and documentation. E2E tests use Playwright. Component tests located in tests/components/ directory. All Storybook stories should have proper TypeScript types. Accessibility testing via @axe-core/playwright for E2E tests. Component tests verify variant rendering, prop handling, and accessibility compliance.
+    </standards>
+    <locations>
+      <location>tests/components/</location>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>src/components/ui/*.stories.tsx</location>
+      <location>.storybook/stories/</location>
+    </locations>
+    <ideas>
+      <idea acId="1">Test: Verify shadcn MCP can discover components from all configured registries. Test: Verify component discovery returns relevant analytics/dashboard components.</idea>
+      <idea acId="2">Test: Verify discovered components align with tailwind-variants pattern. Test: Verify TypeScript types are correct for discovered components. Test: Verify accessibility compliance (WCAG 2.1 AA) for recommended components.</idea>
+      <idea acId="3">Test: Verify Storybook builds and runs correctly with Next.js App Router. Test: Verify path aliases (@/components, @/lib) resolve correctly in Storybook. Test: Verify theme decorator works for light/dark mode. Test: Verify all story files render without errors.</idea>
+      <idea acId="4">Test: Verify component discovery report is complete with all required sections. Test: Verify Storybook stories for recommended components render correctly. Test: Verify integration guide provides clear instructions for adding components.</idea>
+      <idea acId="5">Test: Verify context7 MCP usage is documented correctly. Test: Verify shadcn MCP usage is documented correctly. Test: Verify README includes Storybook documentation links.</idea>
+    </ideas>
+  </tests>
+</story-context>
