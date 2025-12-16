@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // SyncType enum
-export const SyncTypeSchema = z.enum(['FULL', 'INCREMENTAL']);
+export const SyncTypeSchema = z.enum(['FULL', 'INCREMENTAL', 'HISTORICAL']);
 export type SyncType = z.infer<typeof SyncTypeSchema>;
 
 // SyncStatusEnum for SyncLog

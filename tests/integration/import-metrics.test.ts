@@ -171,4 +171,95 @@ describe('ImportOrchestrator Metrics Collection (Integration)', () => {
     expect(metrics.validRecords).toBe(2);
     expect(metrics.invalidRecords).toBe(1);
   });
+
+  // Task 10: AC #1 - Test batch-level validation threshold check
+  it('should pause import when validation threshold not met (< 98%)', async () => {
+    // Create a sync log for testing
+    const syncLog = await db.syncLog.create({
+      data: {
+        type: 'FULL',
+        status: 'RUNNING',
+        startTime: new Date(),
+      },
+    });
+
+    // Set sync log ID in orchestrator
+    orchestrator['currentSyncLogId'] = syncLog.id;
+
+    // Simulate import with 95% validation rate (below 98% threshold)
+    for (let i = 0; i < 95; i++) {
+      orchestrator.recordValidRecord('players');
+    }
+    for (let i = 0; i < 5; i++) {
+      orchestrator.recordInvalidRecord('players', 'Validation error');
+    }
+
+    // Check threshold - should return false (threshold not met)
+    const thresholdMet = await orchestrator.checkValidationThreshold(
+      'PLAYERS',
+      0
+    );
+    expect(thresholdMet).toBe(false);
+
+    // Verify sync status was updated to indicate validation failure
+    const syncStatus = await db.syncStatus.findUnique({
+      where: { id: 'current' },
+    });
+    expect(syncStatus?.isRunning).toBe(false);
+    expect(syncStatus?.lastError).toContain('Data quality below threshold');
+
+    // Cleanup
+    await db.syncLog.delete({ where: { id: syncLog.id } });
+  });
+
+  // Task 10: AC #1 - Test validation metrics stored in SyncLog after phase
+  it('should store validation metrics in SyncLog.errors after phase completion', async () => {
+    const syncLog = await db.syncLog.create({
+      data: {
+        type: 'FULL',
+        status: 'RUNNING',
+        startTime: new Date(),
+      },
+    });
+
+    orchestrator['currentSyncLogId'] = syncLog.id;
+
+    // Record some validation metrics
+    orchestrator.recordValidRecord('Club');
+    orchestrator.recordValidRecord('Club');
+    orchestrator.recordInvalidRecord('Club', 'Validation failed', {
+      gomafiaId: 'test-club-1',
+    });
+
+    // Store validation metrics for phase
+    await orchestrator.storeValidationMetricsForPhase('CLUBS');
+
+    // Verify metrics were stored in SyncLog
+    const updatedSyncLog = await db.syncLog.findUnique({
+      where: { id: syncLog.id },
+      select: { errors: true },
+    });
+
+    expect(updatedSyncLog?.errors).toBeDefined();
+    const errors = updatedSyncLog?.errors as Record<string, unknown>;
+    expect(errors.validationMetrics).toBeDefined();
+    const metrics = errors.validationMetrics as Record<string, unknown>;
+    expect(metrics.CLUBS).toBeDefined();
+
+    const phaseMetrics = metrics.CLUBS as {
+      validationRate: number;
+      meetsThreshold: boolean;
+      totalRecords: number;
+      validRecords: number;
+      invalidRecords: number;
+    };
+
+    expect(phaseMetrics.validationRate).toBe(67); // 2/3 = 66.67% rounded
+    expect(phaseMetrics.totalRecords).toBe(3);
+    expect(phaseMetrics.validRecords).toBe(2);
+    expect(phaseMetrics.invalidRecords).toBe(1);
+
+    // Cleanup
+    await db.syncLog.delete({ where: { id: syncLog.id } });
+  });
 });

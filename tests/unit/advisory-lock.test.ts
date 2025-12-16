@@ -86,4 +86,90 @@ describe('AdvisoryLockManager', () => {
 
     await lockManager.releaseLock();
   });
+
+  it('should support user-specific locks', async () => {
+    const userId1 = 'test-user-1';
+    const userId2 = 'test-user-2';
+
+    // Create second lock manager with separate DB connection
+    const lockManager2 = new AdvisoryLockManager(db2);
+
+    // User 1 acquires lock
+    const user1Acquire = await lockManager.acquireLock(userId1);
+    expect(user1Acquire).toBe(true);
+
+    // User 2 should be able to acquire lock (different user)
+    const user2Acquire = await lockManager2.acquireLock(userId2);
+    expect(user2Acquire).toBe(true);
+
+    // User 1 should not be able to acquire another lock for same user
+    const user1SecondAcquire = await lockManager2.acquireLock(userId1);
+    expect(user1SecondAcquire).toBe(false);
+
+    // Release both locks
+    await lockManager.releaseLock(userId1);
+    await lockManager2.releaseLock(userId2);
+  });
+
+  it('should track lock age', async () => {
+    const userId = 'test-user-1';
+
+    // Acquire lock
+    const acquired = await lockManager.acquireLock(userId);
+    expect(acquired).toBe(true);
+
+    // Get lock age
+    const age = lockManager.getLockAge(userId);
+    expect(age).not.toBeNull();
+    expect(age).toBeGreaterThanOrEqual(0);
+
+    // Wait a bit
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Age should have increased
+    const ageAfter = lockManager.getLockAge(userId);
+    expect(ageAfter).toBeGreaterThan(age!);
+
+    // Release lock
+    await lockManager.releaseLock(userId);
+
+    // Age should be null after release
+    const ageAfterRelease = lockManager.getLockAge(userId);
+    expect(ageAfterRelease).toBeNull();
+  });
+
+  it('should check if lock is held', async () => {
+    const userId = 'test-user-1';
+
+    // Initially, lock should not be held
+    expect(lockManager.isLockHeld(userId)).toBe(false);
+
+    // Acquire lock
+    const acquired = await lockManager.acquireLock(userId);
+    expect(acquired).toBe(true);
+
+    // Lock should be held
+    expect(lockManager.isLockHeld(userId)).toBe(true);
+
+    // Release lock
+    await lockManager.releaseLock(userId);
+
+    // Lock should no longer be held
+    expect(lockManager.isLockHeld(userId)).toBe(false);
+  });
+
+  it('should cleanup stale locks', async () => {
+    const userId = 'test-user-1';
+
+    // Acquire lock
+    const acquired = await lockManager.acquireLock(userId);
+    expect(acquired).toBe(true);
+
+    // Cleanup should not affect non-stale locks
+    await lockManager.cleanupStaleLock(userId);
+    expect(lockManager.isLockHeld(userId)).toBe(true);
+
+    // Release normally
+    await lockManager.releaseLock(userId);
+  });
 });

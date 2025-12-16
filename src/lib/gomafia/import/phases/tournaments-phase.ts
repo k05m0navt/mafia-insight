@@ -145,6 +145,11 @@ export class TournamentsPhase {
       const isValid = await this.validateData(tournament);
       if (!isValid) {
         invalidCount++;
+        this.orchestrator.recordInvalidRecord(
+          'Tournament',
+          'Validation failed',
+          { gomafiaId: tournament.gomafiaId }
+        );
         continue;
       }
 
@@ -205,6 +210,22 @@ export class TournamentsPhase {
             })
           );
 
+          // Record valid records for this batch
+          tournamentsToInsert.forEach(() => {
+            this.orchestrator.recordValidRecord('Tournament');
+          });
+
+          // Check validation threshold after batch (Task 2: AC #1)
+          const thresholdMet = await this.orchestrator.checkValidationThreshold(
+            'TOURNAMENTS',
+            batchIndex
+          );
+          if (!thresholdMet) {
+            throw new Error(
+              'Import paused: Validation threshold not met (< 98%). Please review errors.'
+            );
+          }
+
           // Save checkpoint
           const checkpoint = this.createCheckpoint(
             batchIndex,
@@ -247,6 +268,11 @@ export class TournamentsPhase {
       // Validate
       const isValid = await this.validateData(tournament);
       if (!isValid) {
+        this.orchestrator.recordInvalidRecord(
+          'Tournament',
+          'Validation failed',
+          { gomafiaId: tournament.gomafiaId }
+        );
         continue;
       }
 
@@ -287,6 +313,11 @@ export class TournamentsPhase {
           skipDuplicates: true,
         })
       );
+
+      // Record valid records for this batch
+      validTournaments.forEach(() => {
+        this.orchestrator.recordValidRecord('Tournament');
+      });
 
       // Mark as saved
       validTournaments.forEach((tournament) =>

@@ -19,26 +19,38 @@ function getCurrentOrchestrator(): ImportOrchestrator | null {
 
 /**
  * POST /api/gomafia-sync/import/resume
- * Resume a paused import
+ * Resume an interrupted import from checkpoint
  */
 export async function POST() {
   const lockManager = new AdvisoryLockManager(db);
 
   try {
-    // Check if there's a paused checkpoint
+    // Load checkpoint from database
     const checkpoint = await resilientDB.execute((db) =>
       db.importCheckpoint.findUnique({
         where: { id: 'current' },
       })
     );
 
-    if (!checkpoint || !checkpoint.isPaused) {
+    // Validate checkpoint exists
+    if (!checkpoint) {
       return NextResponse.json(
         {
-          error: 'No paused import found to resume',
-          code: 'NO_PAUSED_IMPORT',
+          error: 'No checkpoint found to resume from',
+          code: 'NO_CHECKPOINT',
         },
         { status: 404 }
+      );
+    }
+
+    // Validate checkpoint is valid (not corrupted)
+    if (!checkpoint.currentPhase || checkpoint.currentBatch < 0) {
+      return NextResponse.json(
+        {
+          error: 'Invalid checkpoint: missing required fields',
+          code: 'INVALID_CHECKPOINT',
+        },
+        { status: 400 }
       );
     }
 
@@ -52,6 +64,10 @@ export async function POST() {
         {
           error: 'Import is already running',
           code: 'IMPORT_RUNNING',
+          details: {
+            progress: status.progress || 0,
+            currentOperation: status.currentOperation || 'Unknown',
+          },
         },
         { status: 409 }
       );
@@ -69,18 +85,29 @@ export async function POST() {
       );
     }
 
-    // Resume via orchestrator if available, otherwise start new import from checkpoint
+    // Resume via orchestrator if available
     const orchestrator = getCurrentOrchestrator();
     if (orchestrator) {
-      await orchestrator.resume();
-      return NextResponse.json({
-        success: true,
-        message: 'Import resumed successfully',
-      });
+      try {
+        await orchestrator.resumeFromCheckpoint();
+        return NextResponse.json({
+          success: true,
+          message: 'Import resumed successfully from checkpoint',
+          checkpoint: {
+            phase: checkpoint.currentPhase,
+            batch: checkpoint.currentBatch,
+            progress: checkpoint.progress,
+          },
+        });
+      } catch (resumeError) {
+        // Release lock on error
+        await lockManager.releaseLock();
+        throw resumeError;
+      }
     } else {
-      // Resume from checkpoint by starting import from the checkpoint phase
-      // This would need to be implemented in the import route
-      // For now, just update the status
+      // No orchestrator instance - this means we need to start a new import
+      // that will resume from checkpoint. For now, mark checkpoint as ready to resume
+      // The actual import route will handle resuming from checkpoint
       await resilientDB.execute((db) =>
         db.importCheckpoint.updateMany({
           where: { id: 'current' },
@@ -95,7 +122,8 @@ export async function POST() {
         where: { id: 'current' },
         data: {
           isRunning: true,
-          currentOperation: 'Resuming import...',
+          currentOperation: 'Resuming import from checkpoint...',
+          progress: checkpoint.progress,
           updatedAt: new Date(),
         },
       });

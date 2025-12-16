@@ -1,0 +1,342 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>5</storyId>
+    <title>Import Error Handling & Retry Mechanisms</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-5-import-error-handling-retry-mechanisms.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to handle import errors gracefully with automatic retries</iWant>
+    <soThat>transient failures don't block the entire import process</soThat>
+    <tasks>
+      <task id="1">Enhance error categorization logic (AC: #1)</task>
+      <task id="2">Enhance RetryManager with exponential backoff (AC: #1)</task>
+      <task id="3">Integrate error handling into ImportOrchestrator and phases (AC: #1)</task>
+      <task id="4">Create error summary tracking and reporting (AC: #1, #2)</task>
+      <task id="5">Create error reporting API endpoint (AC: #2)</task>
+      <task id="6">Create error display UI component (AC: #2)</task>
+      <task id="7">Integrate error summary into import status page (AC: #1, #2)</task>
+      <task id="8">Create TanStack Query hook for error summary (AC: #2)</task>
+      <task id="9">Add error notifications to sync completion (AC: #1, #2)</task>
+      <task id="10">Integration and E2E testing (AC: #1, #2)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>an import is running</given>
+      <when>an error occurs (network timeout, parsing error, etc.)</when>
+      <then>
+        - Catches the error and categorizes it (transient vs permanent)
+        - For transient errors (network timeout, rate limit):
+          - Implements exponential backoff retry (1s, 2s, 4s, 8s delays)
+          - Retries up to 3 times before marking as failed
+          - Logs retry attempts with timestamps
+        - For permanent errors (invalid data format, missing required field):
+          - Logs error with full context (entity ID, error message, stack trace)
+          - Skips the problematic entity and continues with next
+          - Records skipped entity in skipped_entities table
+        - Continues processing remaining entities after error
+        - Shows error summary at end: "Import completed with X errors. Y entities skipped."
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>error reporting</given>
+      <then>
+        - Displays user-friendly error messages in UI
+        - Provides detailed error log for administrators
+        - Groups errors by type for easier debugging
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown - Story 2.5</title>
+        <section>Story 2.5: Import Error Handling & Retry Mechanisms</section>
+        <snippet>Error categorization: transient (retry) vs permanent (skip). Retry logic: exponential backoff with jitter. Error logging: structured logging with context (entity type, ID, error type).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Failed Scraping Points Storage & Retry</section>
+        <snippet>SkippedEntity model stores failed scraping operations with retry capability. SkippedEntitiesManager manages skipped entities. Status tracking: PENDING, RETRYING, COMPLETED, FAILED. Retry count tracking and exponential backoff.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>GoMafia.pro Integration</section>
+        <snippet>Playwright for web scraping. Rate limiting: 2-second delays (30 req/min). Batch processing: 100 records per batch. Checkpoint system for resume capability. Advisory locks prevent concurrent imports.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>State Management</section>
+        <snippet>TanStack Query 5.0.0 for server state. Configuration in src/lib/queryClient.ts. Stale time: 5 minutes. GC time: 10 minutes. Retry: 3 attempts. Background refetching enabled.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Component Library</section>
+        <snippet>ShadCN/UI components: Card, Badge, Table, Alert, Accordion. Built on Radix UI primitives. WCAG 2.1 Level AA accessible. Full customization control.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/2-4-data-quality-validation-98-threshold.md</path>
+        <title>Previous Story: Data Quality Validation</title>
+        <section>Dev Agent Record</section>
+        <snippet>ValidationMetricsTracker integrated into ImportOrchestrator. SyncLog.errors JSON field used for storing error details and validation metrics. SkippedEntity model and SkippedEntitiesManager exist for recording permanent errors.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/gomafia/import/retry-manager.ts</path>
+        <kind>service</kind>
+        <symbol>RetryManager</symbol>
+        <lines>26-199</lines>
+        <reason>Existing RetryManager class with exponential backoff. Needs enhancement for error categorization and retry attempt logging with timestamps.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/skipped-entities-manager.ts</path>
+        <kind>service</kind>
+        <symbol>SkippedEntitiesManager</symbol>
+        <lines>31-321</lines>
+        <reason>Manages skipped entities for permanent errors. Can be reused for recording permanent errors with error context (entity type, entity ID, phase, error code, error message, error details).</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/import-orchestrator.ts</path>
+        <kind>service</kind>
+        <symbol>ImportOrchestrator</symbol>
+        <lines>77-1794</lines>
+        <reason>Main import orchestration class. Needs error handling integration with RetryManager for transient errors and SkippedEntitiesManager for permanent errors. Error context preservation required.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/phases/clubs-phase.ts</path>
+        <kind>service</kind>
+        <symbol>ClubsPhase</symbol>
+        <lines>1-*</lines>
+        <reason>Import phase that needs error handling integration. Wrap entity processing with RetryManager.execute() for transient errors.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/phases/players-phase.ts</path>
+        <kind>service</kind>
+        <symbol>PlayersPhase</symbol>
+        <lines>1-*</lines>
+        <reason>Import phase that needs error handling integration. Wrap entity processing with RetryManager.execute() for transient errors.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/phases/games-phase.ts</path>
+        <kind>service</kind>
+        <symbol>GamesPhase</symbol>
+        <lines>1-*</lines>
+        <reason>Import phase that needs error handling integration. Wrap entity processing with RetryManager.execute() for transient errors.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/gomafia/import/phases/tournaments-phase.ts</path>
+        <kind>service</kind>
+        <symbol>TournamentsPhase</symbol>
+        <lines>1-*</lines>
+        <reason>Import phase that needs error handling integration. Wrap entity processing with RetryManager.execute() for transient errors.</reason>
+      </artifact>
+      <artifact>
+        <path>src/services/validation-service.ts</path>
+        <kind>service</kind>
+        <symbol>ValidationMetricsTracker</symbol>
+        <lines>41-84</lines>
+        <reason>ValidationMetricsTracker tracks validation metrics. Error summary should integrate with this system to track error counts alongside validation metrics.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/sync/page.tsx</path>
+        <kind>component</kind>
+        <symbol>SyncPage</symbol>
+        <lines>1-292</lines>
+        <reason>Import status page where error summary component should be integrated. Uses TanStack Query hooks for data fetching.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>SyncLog</symbol>
+        <lines>262-272</lines>
+        <reason>SyncLog model with errors JSON field. Error summary should be stored here alongside validation metrics in structure: { errorSummary: {...}, validationMetrics: {...} }.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>SkippedEntity</symbol>
+        <lines>310-331</lines>
+        <reason>SkippedEntity model for storing failed scraping operations. Fields: phase, entityType, entityId, pageNumber, errorCode, errorMessage, errorDetails, status, retryCount.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/db/syncLog.ts</path>
+        <kind>service</kind>
+        <symbol>getSyncLogWithErrors</symbol>
+        <lines>152-171</lines>
+        <reason>Function to get sync log with error details. Can be extended to return error summary from SyncLog.errors JSON field.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/errorTracking/syncErrors.ts</path>
+        <kind>service</kind>
+        <symbol>logSyncError</symbol>
+        <lines>38-70</lines>
+        <reason>Existing error logging function. Can be referenced for error logging patterns, but needs enhancement for structured error categorization.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="playwright" version="^1.56.1" />
+        <package name="redis" version="^4.6.0" />
+        <package name="zustand" version="^4.4.0" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <type>Architecture Pattern</type>
+      <description>Clean Architecture + Hexagonal Architecture patterns. Error handling logic in src/lib/gomafia/import/ following Clean Architecture patterns. Domain layer must remain framework-independent.</description>
+    </constraint>
+    <constraint>
+      <type>Error Categorization</type>
+      <description>Implement error categorization to distinguish transient (retryable) from permanent (non-retryable) errors. Transient: network timeouts, rate limits, connection errors, 502/503/504. Permanent: validation errors, parsing errors, data format errors, 400/404.</description>
+    </constraint>
+    <constraint>
+      <type>Retry Logic</type>
+      <description>Use existing RetryManager class from src/lib/gomafia/import/retry-manager.ts. Exponential backoff with delays: 1s, 2s, 4s, 8s. Max retries: 3 (configurable). Retry only for transient errors.</description>
+    </constraint>
+    <constraint>
+      <type>Error Storage</type>
+      <description>Store error summary in SyncLog.errors JSON field alongside validation metrics. Structure: { errorSummary: { totalErrors, errorsByCategory, errorsByType, skippedEntitiesByPhase, recentErrors }, validationMetrics: {...} }</description>
+    </constraint>
+    <constraint>
+      <type>SkippedEntity Integration</type>
+      <description>Use SkippedEntitiesManager to record permanent errors in SkippedEntity table. Store error context (entity type, entity ID, phase, error code, error message, error details).</description>
+    </constraint>
+    <constraint>
+      <type>Error Logging</type>
+      <description>Log all errors with full context (entity ID, entity type, phase, error message, stack trace). Use structured logging with error codes for categorization.</description>
+    </constraint>
+    <constraint>
+      <type>State Management</type>
+      <description>Use TanStack Query for server state (error summary polling). Configuration in src/lib/queryClient.ts. Use useQuery with polling (2s interval when import running).</description>
+    </constraint>
+    <constraint>
+      <type>UI Components</type>
+      <description>Use ShadCN/UI components: Card for summary container, Badge for error counts, Table for error list, Alert for warnings, Accordion for expandable error details.</description>
+    </constraint>
+    <constraint>
+      <type>Responsive Design</type>
+      <description>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</description>
+    </constraint>
+    <constraint>
+      <type>Accessibility</type>
+      <description>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</description>
+    </constraint>
+    <constraint>
+      <type>Testing</type>
+      <description>Maintain minimum 80% test coverage. TDD approach: Write tests before implementation, follow Red-Green-Refactor cycle. Unit tests for error categorization, RetryManager, ErrorSummaryTracker. Integration tests for error handling flow during import. E2E tests for error summary display. Accessibility tests using @axe-core/playwright.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>RetryManager.execute</name>
+      <kind>method signature</kind>
+      <signature>async execute&lt;T&gt;(operation: () =&gt; Promise&lt;T&gt;, options?: RetryOptions): Promise&lt;T&gt;</signature>
+      <path>src/lib/gomafia/import/retry-manager.ts</path>
+    </interface>
+    <interface>
+      <name>RetryManager.isTransientError</name>
+      <kind>method signature</kind>
+      <signature>isTransientError(error: Error): boolean</signature>
+      <path>src/lib/gomafia/import/retry-manager.ts</path>
+    </interface>
+    <interface>
+      <name>SkippedEntitiesManager.recordSkippedEntity</name>
+      <kind>method signature</kind>
+      <signature>async recordSkippedEntity(data: SkippedEntityData): Promise&lt;string&gt;</signature>
+      <path>src/lib/gomafia/import/skipped-entities-manager.ts</path>
+    </interface>
+    <interface>
+      <name>Error Summary API Endpoint</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/gomafia-sync/import/errors</signature>
+      <path>src/app/api/gomafia-sync/import/errors/route.ts</path>
+    </interface>
+    <interface>
+      <name>SyncLog.errors JSON Field</name>
+      <kind>database field</kind>
+      <signature>errors: Json? (structure: { errorSummary: {...}, validationMetrics: {...} })</signature>
+      <path>prisma/schema.prisma</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test coverage minimum: 80%. TDD approach required (Red-Green-Refactor cycle). Unit tests for error categorization logic, RetryManager enhancements, ErrorSummaryTracker. Integration tests for complete error handling flow (import → error occurs → categorization → retry/skip → error summary → UI display). E2E tests for error summary display on sync page. Accessibility tests using @axe-core/playwright for WCAG 2.1 AA compliance. Test locations: tests/unit/ for unit tests, tests/integration/ for integration tests, tests/e2e/ for E2E tests, tests/components/ for component tests.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">
+        <description>Unit test: Verify error categorization correctly identifies transient errors (network timeout, rate limit, 502/503/504) vs permanent errors (validation, parsing, 400/404)</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Unit test: Verify exponential backoff delays are correct (1s, 2s, 4s, 8s) in RetryManager</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Unit test: Verify retry attempts are logged with timestamps</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Unit test: Verify max retry limit (3) is enforced</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Unit test: Verify failed retries are recorded in SkippedEntity</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Integration test: Import with transient errors → Verify retries occur, errors logged, import completes</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Integration test: Import with permanent errors → Verify errors skipped, logged, processing continues</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Integration test: Import with mixed errors → Verify both retries and skips occur correctly</description>
+      </idea>
+      <idea criterionId="1">
+        <description>Integration test: Error summary tracking → Verify error counts and summaries are accurate</description>
+      </idea>
+      <idea criterionId="2">
+        <description>E2E test: User views import status → Error summary displayed → User can view error details</description>
+      </idea>
+      <idea criterionId="2">
+        <description>E2E accessibility test: Verify error summary component is accessible (WCAG 2.1 AA)</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Component test: Verify ImportErrorSummary component displays error summary correctly</description>
+      </idea>
+      <idea criterionId="2">
+        <description>Component test: Verify ImportErrorSummary handles missing data gracefully</description>
+      </idea>
+      <idea criterionId="2">
+        <description>API test: Verify error summary endpoint returns correct error summary</description>
+      </idea>
+      <idea criterionId="2">
+        <description>API test: Verify error summary endpoint handles missing sync log gracefully</description>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

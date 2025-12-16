@@ -1,0 +1,248 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>7</storyId>
+    <title>Checkpoint &amp; Resume Interrupted Imports</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27T00:00:00.000Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-7-checkpoint-resume-interrupted-imports.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to save import checkpoints periodically</iWant>
+    <soThat>interrupted imports can resume from the last checkpoint instead of starting over</soThat>
+    <tasks>
+      <task id="1" description="Enhance checkpoint saving frequency and granularity">
+        <subtasks>
+          <subtask>Review existing CheckpointManager.saveCheckpoint() implementation</subtask>
+          <subtask>Configure checkpoint frequency: every 100 entities or every phase completion (configurable)</subtask>
+          <subtask>Enhance checkpoint data to include: Import start timestamp, Total entities to import per phase, Processed count for each phase, Phase-specific metadata</subtask>
+          <subtask>Ensure checkpoint saves are atomic (database transaction)</subtask>
+          <subtask>Add checkpoint creation timestamp logging</subtask>
+        </subtasks>
+      </task>
+      <task id="2" description="Implement checkpoint detection on import start">
+        <subtasks>
+          <subtask>Enhance ImportOrchestrator.start() to check for existing checkpoint</subtask>
+          <subtask>Load checkpoint using CheckpointManager.loadCheckpoint()</subtask>
+          <subtask>Detect incomplete import: checkpoint exists and import not completed</subtask>
+          <subtask>Determine if checkpoint is recent (within last 24 hours) or stale</subtask>
+        </subtasks>
+      </task>
+      <task id="3" description="Create resume import API endpoint">
+        <subtasks>
+          <subtask>Create POST endpoint: src/app/api/gomafia-sync/import/resume/route.ts</subtask>
+          <subtask>Load checkpoint from database</subtask>
+          <subtask>Validate checkpoint exists and is valid</subtask>
+          <subtask>Initialize ImportOrchestrator with checkpoint state</subtask>
+          <subtask>Resume import from checkpoint position</subtask>
+          <subtask>Handle errors: invalid checkpoint, missing checkpoint, corrupted checkpoint</subtask>
+        </subtasks>
+      </task>
+      <task id="4" description="Enhance ImportOrchestrator to resume from checkpoint">
+        <subtasks>
+          <subtask>Add resumeFromCheckpoint() method to ImportOrchestrator</subtask>
+          <subtask>Load checkpoint state (phase, batch, lastProcessedId, processedIds)</subtask>
+          <subtask>Restore phase progress tracking from checkpoint</subtask>
+          <subtask>Skip already-processed entities using processedIds</subtask>
+          <subtask>Continue from lastProcessedId position</subtask>
+          <subtask>Restore import start time for elapsed time calculation</subtask>
+          <subtask>Update progress tracking to resume from checkpoint (not from zero)</subtask>
+        </subtasks>
+      </task>
+      <task id="5" description="Create UI for checkpoint resume option">
+        <subtasks>
+          <subtask>Create component: src/components/import/ResumeImportDialog.tsx</subtask>
+          <subtask>Display checkpoint information: Last checkpoint timestamp, Phase where import stopped, Progress percentage at checkpoint, Processed/total entities at checkpoint</subtask>
+          <subtask>Provide two options: Resume from checkpoint button, Start fresh button</subtask>
+          <subtask>Show warning if checkpoint is stale (&gt; 24 hours old)</subtask>
+          <subtask>Use ShadCN/UI Dialog component for modal</subtask>
+          <subtask>Ensure responsive design and accessibility</subtask>
+        </subtasks>
+      </task>
+      <task id="6" description="Integrate resume dialog into import flow">
+        <subtasks>
+          <subtask>Detect checkpoint on import page load (src/app/(dashboard)/sync/page.tsx)</subtask>
+          <subtask>Show ResumeImportDialog if checkpoint exists and import not running</subtask>
+          <subtask>Handle Resume from checkpoint action: call resume API endpoint</subtask>
+          <subtask>Handle Start fresh action: clear checkpoint and start new import</subtask>
+          <subtask>Update UI to show resume option in import status</subtask>
+        </subtasks>
+      </task>
+      <task id="7" description="Enhance progress tracking to resume from checkpoint">
+        <subtasks>
+          <subtask>Update progress calculation to account for checkpoint position</subtask>
+          <subtask>Ensure progress percentage resumes from checkpoint (not from zero)</subtask>
+          <subtask>Update phase progress tracking to include pre-checkpoint progress</subtask>
+          <subtask>Calculate elapsed time from import start (not resume time)</subtask>
+          <subtask>Update ImportProgressCard to show resumed progress correctly</subtask>
+        </subtasks>
+      </task>
+      <task id="8" description="Add checkpoint cleanup on import completion">
+        <subtasks>
+          <subtask>Clear checkpoint when import completes successfully</subtask>
+          <subtask>Clear checkpoint when user chooses Start fresh</subtask>
+          <subtask>Keep checkpoint if import fails (for manual resume)</subtask>
+          <subtask>Add cleanup in ImportOrchestrator.complete() method</subtask>
+        </subtasks>
+      </task>
+      <task id="9" description="Integration and E2E testing">
+        <subtasks>
+          <subtask>Create integration test for checkpoint save/load</subtask>
+          <subtask>Test: Import with checkpoint saving → Verify checkpoints saved correctly</subtask>
+          <subtask>Test: Interrupt import → Verify checkpoint exists → Resume → Verify import continues</subtask>
+          <subtask>Test: Resume from checkpoint → Verify processed entities are skipped</subtask>
+          <subtask>Test: Progress tracking resumes correctly from checkpoint</subtask>
+          <subtask>Create E2E test for resume flow</subtask>
+          <subtask>Test: User starts import → Import interrupted → User sees resume dialog → User resumes → Import continues</subtask>
+          <subtask>Test: User starts import → Import interrupted → User chooses Start fresh → New import starts</subtask>
+          <subtask>Create E2E accessibility test for resume dialog</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">
+      <given>an import is running</given>
+      <when>a checkpoint is reached (every N entities processed, e.g., every 100 games)</when>
+      <then>
+        <item>The system saves current import state to checkpoint table: Current phase (Clubs, Players, Games, Statistics), Last processed entity ID for each phase, Import start timestamp, Total entities to import, Processed count for each phase</item>
+        <item>Persists checkpoint data atomically (transaction)</item>
+        <item>Logs checkpoint creation timestamp</item>
+      </then>
+    </criterion>
+    <criterion id="AC2">
+      <given>an import is running</given>
+      <when>import is interrupted (server restart, timeout, user cancellation)</when>
+      <then>
+        <item>System detects incomplete import on next run</item>
+        <item>Offers to resume from last checkpoint</item>
+        <item>User can choose: Resume from checkpoint or Start fresh</item>
+        <item>Resume option loads checkpoint state and continues from saved position</item>
+        <item>Progress tracking resumes from checkpoint (not from zero)</item>
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 2: Data Import &amp; Synchronization - Story 2.7">
+        Story acceptance criteria and technical notes. Checkpoint table schema: sync_checkpoint (user_id, phase, last_entity_id, processed_count, timestamp). Checkpoint frequency: configurable (default: every 100 entities or every phase completion). Atomic checkpoint save: database transaction. Resume logic: load checkpoint, skip already-processed entities.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="GoMafia.pro Integration - Data Import Flow">
+        Import flow architecture and checkpoint system. Progress tracking should resume from checkpoint position, not from zero. Calculate progress as: (checkpoint_progress + new_progress) / total. Restore phase progress map from checkpoint. Checkpoint storage in ImportCheckpoint table (id='current').
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Database Models - ImportCheckpoint">
+        ImportCheckpoint model structure: id (String @id @default('current')), currentPhase (String), currentBatch (Int), lastProcessedId (String?), processedIds (String[]), progress (Int), isPaused (Boolean @default(false)), timestamps.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="State Management">
+        TanStack Query for server state (resume API calls). Configuration in src/lib/queryClient.ts. Use hooks for API calls and state management.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Component Library">
+        Use ShadCN/UI components: Dialog for resume modal, Button for actions, Card for checkpoint information display. Components located in src/components/ui/.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Responsive Design">
+        Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px. Ensure resume dialog works on all screen sizes.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Accessibility">
+        WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text. Ensure resume dialog is fully accessible.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Error Handling">
+        Handle checkpoint errors gracefully: invalid checkpoint, missing checkpoint, corrupted checkpoint. Provide user-friendly error messages.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-6-real-time-import-progress-tracking.md" title="Story 2.6: Real-Time Import Progress Tracking" section="Dev Notes">
+        ImportOrchestrator has comprehensive progress tracking with phase progress, current entity tracking, and processing rate calculation. Checkpoint system should integrate with this progress tracking. ImportStartTime tracking for elapsed time calculation. Phase progress Map tracks processed/total counts per phase.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/gomafia/import/checkpoint-manager.ts" kind="service" symbol="CheckpointManager" lines="1-133" reason="Core checkpoint management class. Provides saveCheckpoint(), loadCheckpoint(), and clearCheckpoint() methods. Uses ImportCheckpoint interface. Updates both importCheckpoint table and syncStatus progress. Need to enhance to include phase progress map and import start timestamp." />
+      <artifact path="src/lib/gomafia/import/checkpoint-manager.ts" kind="interface" symbol="ImportCheckpoint" lines="8-31" reason="Checkpoint data structure interface. Current fields: currentPhase, currentBatch, lastProcessedId, processedIds, progress, isPaused. May need to enhance to include phaseProgress map and importStartTimestamp." />
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="service" symbol="ImportOrchestrator" lines="84-108" reason="Main import orchestrator class. Tracks importStartTime (Date | null) and phaseProgress (Map&lt;ImportPhase, {processed: number, total: number}&gt;). Has checkpointManager, processedIds Set, and methods for checkpoint operations. Need to add resumeFromCheckpoint() method." />
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="method" symbol="ImportOrchestrator.saveCheckpoint()" lines="202-204" reason="Delegates to checkpointManager.saveCheckpoint(). May need enhancement to include phase progress map and import start time." />
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="method" symbol="ImportOrchestrator.loadCheckpoint()" lines="210-222" reason="Loads checkpoint and restores processedIds Set. Need to enhance to restore phaseProgress map and importStartTime." />
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="method" symbol="ImportOrchestrator.start()" lines="154-196" reason="Starts import process. Initializes importStartTime and clears phaseProgress. Need to enhance to check for existing checkpoint and offer resume option." />
+      <artifact path="src/app/api/gomafia-sync/import/resume/route.ts" kind="api-route" symbol="POST /api/gomafia-sync/import/resume" lines="24-135" reason="Existing resume endpoint. Currently handles paused imports. Need to enhance to handle interrupted imports (not just paused), validate checkpoint, and properly resume import from checkpoint position." />
+      <artifact path="src/app/(dashboard)/sync/page.tsx" kind="page" symbol="SyncPage" lines="36-229" reason="Sync page component. Uses useManualSync, useImportProgress hooks. Need to add checkpoint detection logic and integrate ResumeImportDialog component." />
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="model ImportCheckpoint" lines="297-309" reason="Prisma model for ImportCheckpoint table. Current fields: id, currentPhase, currentBatch, lastProcessedId, processedIds, progress, isPaused, timestamps. May need to add fields for phaseProgress map (JSON) and importStartTimestamp." />
+      <artifact path="src/components/import/ImportProgressCard.tsx" kind="component" symbol="ImportProgressCard" reason="Displays import progress. Uses useImportProgress hook. Need to update to show resumed progress correctly (accounting for checkpoint position)." />
+      <artifact path="src/hooks/useImportProgress.ts" kind="hook" symbol="useImportProgress" reason="React hook for fetching import progress. Uses TanStack Query. May need enhancement to include checkpoint information." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@prisma/client" version="^5.0.0" reason="Database ORM for checkpoint persistence" />
+        <package name="@tanstack/react-query" version="^5.0.0" reason="Server state management for resume API calls" />
+        <package name="next" version="^16.0.0" reason="Next.js framework for API routes and pages" />
+        <package name="react" version="^19.2.0" reason="React for UI components" />
+        <package name="zod" version="^4.1.12" reason="Schema validation for checkpoint data" />
+        <package name="date-fns" version="^4.1.0" reason="Date formatting for checkpoint timestamps" />
+      </ecosystem>
+      <ecosystem name="ui">
+        <package name="@radix-ui/react-dialog" version="^1.1.15" reason="Dialog component for ResumeImportDialog (via ShadCN/UI)" />
+        <package name="@radix-ui/react-button" reason="Button component for actions (via ShadCN/UI)" />
+        <package name="lucide-react" version="^0.548.0" reason="Icons for UI components" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="architecture">
+      <rule>Checkpoint storage uses ImportCheckpoint table (id='current'). Use atomic database transaction for checkpoint saves. CheckpointManager class handles save/load/clear operations.</rule>
+      <rule>Checkpoint frequency: configurable (default: every 100 entities or every phase completion). Balance between checkpoint overhead and resume granularity.</rule>
+      <rule>Resume logic: Load checkpoint, restore phase and batch position, skip already-processed entities using processedIds, continue from lastProcessedId. Restore phase progress map and import start time.</rule>
+      <rule>Progress tracking should resume from checkpoint position, not from zero. Calculate progress as: (checkpoint_progress + new_progress) / total. Restore phase progress map from checkpoint.</rule>
+    </constraint>
+    <constraint category="state-management">
+      <rule>Use TanStack Query for server state (resume API calls). Configuration in src/lib/queryClient.ts.</rule>
+    </constraint>
+    <constraint category="ui-components">
+      <rule>Use ShadCN/UI components: Dialog for resume modal, Button for actions, Card for checkpoint information display.</rule>
+      <rule>Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</rule>
+      <rule>WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</rule>
+    </constraint>
+    <constraint category="error-handling">
+      <rule>Handle checkpoint errors gracefully: invalid checkpoint, missing checkpoint, corrupted checkpoint. Provide user-friendly error messages.</rule>
+    </constraint>
+    <constraint category="testing">
+      <rule>Test coverage minimum 80%. Write tests before implementation (TDD). Include unit, integration, and E2E tests.</rule>
+      <rule>Test complete flow: save checkpoint → interrupt import → detect checkpoint → resume → verify progress. Test checkpoint data integrity, stale checkpoint detection, progress resume accuracy.</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="CheckpointManager API" kind="class-interface" signature="class CheckpointManager { async saveCheckpoint(checkpoint: ImportCheckpoint): Promise&lt;void&gt;; async loadCheckpoint(): Promise&lt;ImportCheckpoint | null&gt;; async clearCheckpoint(): Promise&lt;void&gt;; }" path="src/lib/gomafia/import/checkpoint-manager.ts" />
+    <interface name="ImportCheckpoint Interface" kind="typescript-interface" signature="interface ImportCheckpoint { currentPhase: ImportPhase; currentBatch: number; lastProcessedId: string | null; processedIds: string[]; progress: number; isPaused?: boolean; }" path="src/lib/gomafia/import/checkpoint-manager.ts" />
+    <interface name="Resume Import API" kind="rest-endpoint" signature="POST /api/gomafia-sync/import/resume - Request: {} | Response: { success: boolean; message: string; checkpoint?: { phase: string; batch: number; progress: number; } }" path="src/app/api/gomafia-sync/import/resume/route.ts" />
+    <interface name="ImportOrchestrator Methods" kind="class-interface" signature="class ImportOrchestrator { async saveCheckpoint(checkpoint: ImportCheckpoint): Promise&lt;void&gt;; async loadCheckpoint(): Promise&lt;ImportCheckpoint | null&gt;; async start(): Promise&lt;string&gt;; async resumeFromCheckpoint(): Promise&lt;void&gt;; // TO BE IMPLEMENTED }" path="src/lib/gomafia/import/import-orchestrator.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing standards require minimum 80% coverage, TDD approach. Unit tests for checkpoint save/load operations, integration tests for resume flow, E2E tests for user-facing resume dialog. Use Vitest for unit/integration tests, Playwright for E2E tests. Test complete flow: save checkpoint → interrupt import → detect checkpoint → resume → verify progress. Test checkpoint data integrity, stale checkpoint detection (24 hours), progress resume accuracy. Use @axe-core/playwright for E2E accessibility testing to verify WCAG 2.1 AA compliance.
+    </standards>
+    <locations>
+      <location>tests/unit/checkpoint-manager.test.ts - Unit tests for CheckpointManager</location>
+      <location>tests/integration/import-resume.test.ts - Integration tests for resume flow</location>
+      <location>tests/e2e/import-resume.spec.ts - E2E tests for resume dialog and user flow</location>
+      <location>tests/components/ResumeImportDialog.test.tsx - Component tests for ResumeImportDialog (if created)</location>
+    </locations>
+    <ideas>
+      <test id="AC1-1" criterion="AC1" description="Verify checkpoint saves correctly with all required data: currentPhase, currentBatch, lastProcessedId, processedIds, progress, importStartTimestamp, phaseProgress map" />
+      <test id="AC1-2" criterion="AC1" description="Verify checkpoint saves are atomic (database transaction)" />
+      <test id="AC1-3" criterion="AC1" description="Verify checkpoint creation timestamp is logged" />
+      <test id="AC1-4" criterion="AC1" description="Verify checkpoint saves every 100 entities (configurable)" />
+      <test id="AC2-1" criterion="AC2" description="Verify system detects incomplete import on next run (checkpoint exists and import not completed)" />
+      <test id="AC2-2" criterion="AC2" description="Verify resume dialog appears when checkpoint exists" />
+      <test id="AC2-3" criterion="AC2" description="Verify Resume from checkpoint option loads checkpoint state and continues from saved position" />
+      <test id="AC2-4" criterion="AC2" description="Verify Start fresh option clears checkpoint and starts new import" />
+      <test id="AC2-5" criterion="AC2" description="Verify progress tracking resumes from checkpoint (not from zero)" />
+      <test id="AC2-6" criterion="AC2" description="Verify processed entities are skipped on resume (using processedIds)" />
+      <test id="AC2-7" criterion="AC2" description="Verify stale checkpoint detection (&gt; 24 hours old) shows warning" />
+      <test id="AC2-8" criterion="AC2" description="E2E: User starts import → Import interrupted → User sees resume dialog → User resumes → Import continues" />
+      <test id="AC2-9" criterion="AC2" description="E2E: User starts import → Import interrupted → User chooses Start fresh → New import starts" />
+      <test id="AC2-10" criterion="AC2" description="E2E accessibility: Verify resume dialog is accessible (WCAG 2.1 AA compliance using @axe-core/playwright)" />
+    </ideas>
+  </tests>
+</story-context>

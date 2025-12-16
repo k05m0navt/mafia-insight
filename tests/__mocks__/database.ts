@@ -718,22 +718,93 @@ const prisma = {
   }),
   $executeRaw: createMockFn(async () => 0),
   $queryRaw: createMockFn(async (...args: any[]) => {
+    // Helper to recursively find numbers in nested structures
+    const findNumber = (value: any): number | null => {
+      if (typeof value === 'number') {
+        return value;
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const num = findNumber(item);
+          if (num !== null) return num;
+        }
+      }
+      if (value && typeof value === 'object') {
+        for (const key in value) {
+          const num = findNumber(value[key]);
+          if (num !== null) return num;
+        }
+      }
+      return null;
+    };
+
     const [first] = args;
     let queryText = '';
+    let lockId: number | null = null;
 
+    // Extract query text from various Prisma formats
     if (typeof first === 'string') {
       queryText = first;
+    } else if (first && Array.isArray(first)) {
+      // Prisma tagged template literal format
+      // Can be: TemplateStringsArray or array of strings
+      if (first.length > 0) {
+        if (Array.isArray(first[0])) {
+          // TemplateStringsArray: [['SELECT pg_try_advisory_lock(', ')'], lockId]
+          queryText = first[0].join('?');
+          // The parameter values come after the template strings
+          if (first.length > 1) {
+            lockId = findNumber(first[1]);
+          }
+        } else if (typeof first[0] === 'string') {
+          queryText = first.join('');
+        }
+      }
+
+      // Also check all args for numeric values
+      if (lockId === null) {
+        for (let i = 1; i < args.length; i++) {
+          const num = findNumber(args[i]);
+          if (num !== null) {
+            lockId = num;
+            break;
+          }
+        }
+      }
     } else if (Array.isArray(first?.raw)) {
       queryText = first.raw.join('');
-    } else if (Array.isArray(first) && typeof first[0] === 'string') {
-      queryText = (first as string[]).join('');
+      lockId = findNumber(args.slice(1));
     } else if (first && typeof first.text === 'string') {
       queryText = first.text;
+    } else if (first && typeof first === 'object') {
+      // Check if it's a Prisma query object with values
+      lockId = findNumber(first);
     }
 
+    // Handle advisory lock queries
     if (queryText.includes('pg_try_advisory_lock')) {
-      const match = queryText.match(/pg_try_advisory_lock\((\d+)\)/);
-      const lockId = match ? Number(match[1]) : 0;
+      // First try to extract lockId from query text (for direct SQL)
+      if (queryText) {
+        const textMatch = queryText.match(/pg_try_advisory_lock\((\d+)\)/);
+        if (textMatch) {
+          lockId = Number(textMatch[1]);
+        } else if (lockId === null) {
+          // Try to find any large number in the query text (lock IDs are typically large)
+          const numbers = queryText.match(/\d+/g);
+          if (numbers) {
+            const largeNumber = numbers.find((n) => Number(n) > 100000);
+            if (largeNumber) {
+              lockId = Number(largeNumber);
+            }
+          }
+        }
+      }
+
+      // If still no lockId found, use 0 as fallback
+      if (lockId === null) {
+        lockId = 0;
+      }
+
       const acquired = !advisoryLocks.has(lockId);
       if (acquired) {
         advisoryLocks.add(lockId);
@@ -742,8 +813,28 @@ const prisma = {
     }
 
     if (queryText.includes('pg_advisory_unlock')) {
-      const match = queryText.match(/pg_advisory_unlock\((\d+)\)/);
-      const lockId = match ? Number(match[1]) : 0;
+      // First try to extract lockId from query text
+      if (queryText) {
+        const textMatch = queryText.match(/pg_advisory_unlock\((\d+)\)/);
+        if (textMatch) {
+          lockId = Number(textMatch[1]);
+        } else if (lockId === null) {
+          // Try to find any large number in the query text
+          const numbers = queryText.match(/\d+/g);
+          if (numbers) {
+            const largeNumber = numbers.find((n) => Number(n) > 100000);
+            if (largeNumber) {
+              lockId = Number(largeNumber);
+            }
+          }
+        }
+      }
+
+      // If still no lockId found, use 0 as fallback
+      if (lockId === null) {
+        lockId = 0;
+      }
+
       advisoryLocks.delete(lockId);
       return [{ pg_advisory_unlock: true }];
     }

@@ -1,0 +1,139 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>9</storyId>
+    <title>Referential Integrity Verification</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-9-referential-integrity-verification.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to verify referential integrity of imported relationships</iWant>
+    <soThat>all data connections are valid and analytics queries don't fail</soThat>
+    <tasks>
+      <task id="1">Review existing IntegrityChecker implementation and identify gaps (AC: #1, #2)</task>
+      <task id="2">Enhance IntegrityChecker with missing referential integrity checks (AC: #1)</task>
+      <task id="3">Implement violation logging and error handling strategies (AC: #1)</task>
+      <task id="4">Integrate integrity checks into import orchestration (AC: #2)</task>
+      <task id="5">Enhance integrity check result reporting (AC: #1, #2)</task>
+      <task id="6">Add comprehensive unit tests for integrity checks (AC: #1)</task>
+      <task id="7">Add integration tests for integrity check integration (AC: #2)</task>
+      <task id="8">Update API endpoints to expose integrity check results (AC: #1, #2)</task>
+      <task id="9">Add E2E tests for integrity verification visibility (AC: #1, #2)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>data is imported with relationships (games reference players, players belong to clubs, etc.)</given>
+      <when>relationships are established</when>
+      <then>
+        - Verifies foreign key references exist before creating relationships:
+          - Games reference valid Player IDs
+          - Players reference valid Club IDs (if applicable)
+          - Games reference valid Tournament IDs
+          - Tournament judges reference valid Judge/Player IDs
+        - Validates relationship cardinality (one-to-many, many-to-many as expected)
+        - Logs referential integrity violations
+        - Handles missing references:
+          - Option 1: Create placeholder entities (with flag indicating incomplete data)
+          - Option 2: Skip relationship and log warning
+          - Option 3: Fail import with error report
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>integrity checks run</given>
+      <when>checks execute</when>
+      <then>
+        - After each phase completes (phase-level verification)
+        - At end of full import (full integrity audit)
+        - Before marking import as complete
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 2: Data Import &amp; Synchronization - Story 2.9">
+        <snippet>Story 2.9: Referential Integrity Verification. As a system, I want to verify referential integrity of imported relationships, so that all data connections are valid and analytics queries don't fail. Covers FR15: System verifies referential integrity of imported relationships.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="GoMafia.pro Integration">
+        <snippet>Import orchestration: phase-based import (Clubs → Players → Games → Statistics). Integrity checks should integrate at phase boundaries. Database Foreign Keys: Prisma schema includes foreign key constraints (ON DELETE RESTRICT, ON UPDATE CASCADE). Application-level verification complements database constraints.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Data Import Flow">
+        <snippet>Import flow: User triggers import → Import Orchestrator → Scraper → Parser → Validator → Database Insert → Checkpoint Saved → Progress Updated. Integrity checking logic should be in domain/infrastructure layer following import orchestration patterns.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Error Handling">
+        <snippet>Integrity violations should be logged with structured error information. Review existing error logging patterns for consistency. Error logging format: Structured logging with context including error code, message, and context.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Testing">
+        <snippet>Testing patterns and standards. Maintain minimum 80% test coverage. TDD approach: write tests before implementation. Test types: Unit tests for integrity check logic, integration tests for import orchestration integration, E2E tests for user-facing integrity status.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-8-concurrent-import-prevention.md" title="Story 2.8" section="Dev Notes">
+        <snippet>AdvisoryLockManager Enhanced: Lock timeout mechanism (12 hours), stale lock cleanup, lock age tracking, and user-specific lock support implemented. Import Route Pattern: Import routes check locks before starting, return 409 Conflict with detailed error messages. Status Endpoint: Status endpoint includes explicit isRunning field for easier UI consumption.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-4-data-quality-validation-98-threshold.md" title="Story 2.4" section="Dev Notes">
+        <snippet>IntegrityChecker class exists at src/lib/gomafia/import/integrity-checker.ts for referential integrity validation. Enhanced with comprehensive checks: GameParticipation → Player/Game, Game → Tournament, Player/Tournament → Club. Validation endpoint exists at src/app/api/gomafia-sync/import/validation/route.ts.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/gomafia/import/integrity-checker.ts" kind="service" symbol="IntegrityChecker" lines="1-380" reason="Core integrity checking class. Contains checkGameParticipationLinks(), checkPlayerTournamentLinks(), checkOrphanedRecords(), checkGameTournamentLinks(), checkPlayerClubLinks(). Needs enhancement for tournament judges, cardinality validation, and violation logging."/>
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="service" symbol="ImportOrchestrator" lines="790-800" reason="Import orchestration class. Currently runs integrity checks only at end of import (line 797-798). Needs phase-level integrity checks after each phase completes (Clubs, Players, Games, Statistics)."/>
+      <artifact path="src/app/api/gomafia-sync/import/validation/route.ts" kind="api-route" symbol="GET /api/gomafia-sync/import/validation" lines="124-125" reason="Validation API endpoint. Currently includes integrity check results in response (lines 260-267). Needs enhancement to include detailed integrity violations and relationship cardinality violations."/>
+      <artifact path="tests/unit/integrity-checker.test.ts" kind="test" symbol="IntegrityChecker tests" reason="Existing unit tests for IntegrityChecker. Tests checkGameParticipationLinks, checkPlayerTournamentLinks, checkOrphanedRecords. Needs tests for new checks (tournament judges, cardinality validation), violation logging, and missing reference handling strategies."/>
+      <artifact path="prisma/schema.prisma" kind="schema" symbol="Database Schema" reason="Prisma schema with foreign key relationships. Includes Game, Player, Club, Tournament, GameParticipation, PlayerTournament models with foreign key constraints. Reference for understanding relationship structure and cardinality."/>
+      <artifact path="src/lib/db-resilient.ts" kind="utility" symbol="resilientDB" reason="Resilient database access utility. Use resilientDB.execute() for all database operations to handle connection failures gracefully. All IntegrityChecker methods should use this pattern."/>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@prisma/client" version="^5.0.0"/>
+        <package name="next" version="^16.0.0"/>
+        <package name="typescript" version="^5.0.0"/>
+        <package name="zod" version="^4.1.12"/>
+      </ecosystem>
+      <ecosystem name="test">
+        <package name="vitest" version="^1.0.0"/>
+        <package name="@playwright/test" version="^1.56.1"/>
+        <package name="@testing-library/react" version="^16.0.0"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture: Integrity checking logic should be in domain/infrastructure layer. IntegrityChecker is in src/lib/gomafia/import/integrity-checker.ts following import orchestration patterns</constraint>
+    <constraint>Database Foreign Keys: Prisma schema includes foreign key constraints (ON DELETE RESTRICT, ON UPDATE CASCADE). Application-level verification complements database constraints</constraint>
+    <constraint>Resilient Database Access: Use resilientDB.execute() for all database operations to handle connection failures gracefully</constraint>
+    <constraint>Import Orchestration: ImportOrchestrator manages phase-based import (Clubs → Players → Games → Statistics). Integrity checks should integrate at phase boundaries</constraint>
+    <constraint>Error Logging: Integrity violations should be logged with structured error information. Review existing error logging patterns for consistency</constraint>
+    <constraint>Testing Standards: Maintain minimum 80% test coverage. TDD approach: write tests before implementation, follow Red-Green-Refactor cycle</constraint>
+    <constraint>Test Types: Unit tests for integrity check logic, integration tests for import orchestration integration, E2E tests for user-facing integrity status, accessibility tests using axe-core</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="IntegrityChecker API" kind="class interface" signature="class IntegrityChecker { checkGameParticipationLinks(): Promise&lt;IntegrityCheckResult&gt;; checkPlayerTournamentLinks(): Promise&lt;IntegrityCheckResult&gt;; checkOrphanedRecords(): Promise&lt;OrphanedRecordsResult&gt;; checkGameTournamentLinks(): Promise&lt;IntegrityCheckResult&gt;; checkPlayerClubLinks(): Promise&lt;IntegrityCheckResult&gt;; checkAllIntegrity(): Promise&lt;AllIntegrityResult&gt;; getIntegritySummary(): Promise&lt;IntegritySummary&gt;; }" path="src/lib/gomafia/import/integrity-checker.ts"/>
+    <interface name="GET /api/gomafia-sync/import/validation" kind="REST endpoint" signature="GET /api/gomafia-sync/import/validation - Returns validation metrics and integrity check results. Response includes: validationRate, meetsThreshold, integrity.status, integrity.totalChecks, integrity.passedChecks, integrity.failedChecks, integrity.message, integrity.issues" path="src/app/api/gomafia-sync/import/validation/route.ts"/>
+    <interface name="ImportOrchestrator.complete()" kind="method" signature="async complete(): Promise&lt;void&gt; - Completes import and runs integrity checks. Currently runs integrity checks only at end (line 797-798). Should run phase-level checks after each phase." path="src/lib/gomafia/import/import-orchestrator.ts"/>
+  </interfaces>
+
+  <tests>
+    <standards>Test-Driven Development (TDD) is MANDATORY. Write tests before implementation, follow Red-Green-Refactor cycle. Maintain minimum 80% test coverage for all new code. Use Vitest for unit/integration tests, Playwright for E2E tests, React Testing Library for component tests. Test types: unit tests for integrity check logic (IntegrityChecker methods), integration tests for import orchestration integration (phase-level checks), E2E tests for user-facing integrity status display, accessibility tests using @axe-core/playwright for WCAG 2.1 AA compliance verification.</standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterion="1">Test: Enhanced IntegrityChecker - Verify GameParticipation.playerId references existing Player, verify GameParticipation.gameId references existing Game, verify Game.tournamentId references existing Tournament (if present), verify Player.clubId references existing Club (if present), verify Tournament judges reference valid Judge/Player IDs (if applicable), verify relationship cardinality (one-to-many, many-to-many relationships), verify integrity failures reported correctly with detailed context</idea>
+      <idea criterion="1">Test: Violation Logging - Verify violations are logged with detailed context (entity type and ID, missing reference type and ID, relationship type), verify missing references are handled according to chosen strategy (Option 1: placeholder, Option 2: skip and log, Option 3: fail import)</idea>
+      <idea criterion="2">Test: Phase-Level Integrity Checks - Verify checks run after Clubs phase completes, verify checks run after Players phase completes, verify checks run after Games phase completes, verify checks run after Statistics phase completes, verify full integrity audit runs at end of import before marking as complete, verify import completion blocked if critical integrity failures occur (if strategy is Option 3)</idea>
+      <idea criterion="2">Test: Integration - Run import → Verify phase-level checks execute, verify full integrity audit runs after import completion, verify integrity check results are logged correctly, verify missing references are handled according to strategy, verify import can complete with integrity violations (if strategy allows), verify import fails if critical violations occur (if strategy is Option 3)</idea>
+      <idea criterion="1,2">Test: API Endpoint - Verify GET /api/gomafia-sync/import/validation returns integrity check results, verify detailed violations are included in response, verify integrity summary is accessible for monitoring, verify phase-level checks don't block import progress visibility</idea>
+      <idea criterion="1,2">Test: E2E - Complete import → View integrity check results in UI, verify integrity status is displayed in import summary, verify integrity violations are visible to users (if applicable), verify integrity check results are shown after import completion</idea>
+    </ideas>
+  </tests>
+</story-context>
+

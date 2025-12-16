@@ -48,48 +48,60 @@ development_status:
   epic-1-retrospective: completed
 
   epic-2: backlog
-  2-1-historical-data-import-from-gomafia-pro: backlog
-  2-2-automatic-scheduled-synchronization: backlog
-  2-3-manual-data-synchronization-trigger: backlog
-  2-4-data-quality-validation-98-threshold: backlog
-  2-5-import-error-handling-retry-mechanisms: backlog
-  2-6-real-time-import-progress-tracking: backlog
-  2-7-checkpoint-resume-interrupted-imports: backlog
-  2-8-concurrent-import-prevention: backlog
-  2-9-referential-integrity-verification: backlog
-  epic-2-retrospective: optional
+  2-1-historical-data-import-from-gomafia-pro: done
+  2-2-automatic-scheduled-synchronization: done
+  2-3-manual-data-synchronization-trigger: done
+  2-4-data-quality-validation-98-threshold: done
+  2-5-import-error-handling-retry-mechanisms: done
+  2-6-real-time-import-progress-tracking: done
+  2-7-checkpoint-resume-interrupted-imports: done
+  2-8-concurrent-import-prevention: done
+  2-9-referential-integrity-verification: done
+  epic-2-retrospective: completed
 
   epic-3: backlog
-  3-1-role-based-performance-metrics-display: backlog
-  3-2-elo-rating-with-historical-trends: backlog
-  3-3-win-rate-analysis-across-roles: backlog
-  3-4-basic-performance-statistics-summaries: backlog
-  3-5-date-range-filtering-for-analytics: backlog
-  3-6-role-filtering-for-analytics: backlog
-  3-7-performance-trends-over-time: backlog
-  3-8-role-comparison-capability: backlog
-  3-9-analytics-navigation-data-display-components: backlog
-  3-10-mobile-pwa-access-responsive-layouts: backlog
-  3-11-responsive-charts-data-visualization: backlog
-  3-12-search-for-players-or-games: backlog
-  3-13-individual-game-detail-view: backlog
+  3-1-migrate-components-to-tailwind-variants: done
+  3-2-enhance-card-component-variants: done
+  3-3-apply-card-variants-to-dashboard: done
+  3-4-component-discovery-and-documentation: done
   epic-3-retrospective: optional
+  # Epic 3: Design System Enhancement (2025-01-27)
+  # Sprint Change: UI/UX Design System Enhancement via correct-course workflow
+  # See: bmad/docs/sprint-change-proposal-2025-01-27.md
+  # All stories complete - design system migrated to tailwind-variants with enhanced Card variants
+  # Note: class-variance-authority can be removed from package.json (optional cleanup)
 
   epic-4: backlog
-  4-1-interactive-timeline-display: backlog
-  4-2-timeline-date-range-filtering: backlog
-  4-3-timeline-role-filtering: backlog
-  4-4-timeline-game-outcome-filtering: backlog
-  4-5-timeline-visual-performance-representation: backlog
-  4-6-mobile-responsive-timeline: backlog
-  4-7-interactive-timeline-elements-game-details: backlog
+  4-1-role-based-performance-metrics-display: backlog
+  4-2-elo-rating-with-historical-trends: backlog
+  4-3-win-rate-analysis-across-roles: backlog
+  4-4-basic-performance-statistics-summaries: backlog
+  4-5-date-range-filtering-for-analytics: backlog
+  4-6-role-filtering-for-analytics: backlog
+  4-7-performance-trends-over-time: backlog
+  4-8-role-comparison-capability: backlog
+  4-9-analytics-navigation-data-display-components: backlog
+  4-10-mobile-pwa-access-responsive-layouts: backlog
+  4-11-responsive-charts-data-visualization: backlog
+  4-12-search-for-players-or-games: backlog
+  4-13-individual-game-detail-view: backlog
   epic-4-retrospective: optional
 
   epic-5: backlog
-  5-1-complete-tournament-history-tracking: backlog
-  5-2-games-judged-per-month-statistics: backlog
-  5-3-earnings-tracking-trends: backlog
-  5-4-judge-performance-metrics: backlog
-  5-5-judge-analytics-date-range-filtering: backlog
-  5-6-judge-analytics-trends-patterns: backlog
+  5-1-interactive-timeline-display: backlog
+  5-2-timeline-date-range-filtering: backlog
+  5-3-timeline-role-filtering: backlog
+  5-4-timeline-game-outcome-filtering: backlog
+  5-5-timeline-visual-performance-representation: backlog
+  5-6-mobile-responsive-timeline: backlog
+  5-7-interactive-timeline-elements-game-details: backlog
   epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-complete-tournament-history-tracking: backlog
+  6-2-games-judged-per-month-statistics: backlog
+  6-3-earnings-tracking-trends: backlog
+  6-4-judge-performance-metrics: backlog
+  6-5-judge-analytics-date-range-filtering: backlog
+  6-6-judge-analytics-trends-patterns: backlog
+  epic-6-retrospective: optional

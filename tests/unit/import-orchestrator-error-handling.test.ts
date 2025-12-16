@@ -30,6 +30,7 @@ describe('ImportOrchestrator - Error Handling', () => {
     mockDb = {
       syncLog: {
         create: vi.fn().mockResolvedValue({ id: 'log-1' }),
+        findUnique: vi.fn().mockResolvedValue({ errors: {} }),
         update: vi.fn().mockResolvedValue({}),
       },
       syncStatus: {
@@ -55,6 +56,9 @@ describe('ImportOrchestrator - Error Handling', () => {
         findMany: vi.fn().mockResolvedValue([]),
       },
       playerTournament: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      club: {
         findMany: vi.fn().mockResolvedValue([]),
       },
     };

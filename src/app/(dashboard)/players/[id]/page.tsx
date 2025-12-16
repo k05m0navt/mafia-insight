@@ -230,7 +230,7 @@ export default function PlayerDetailsPage() {
 
       {/* Player Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card variant="elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ELO Rating</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
@@ -241,7 +241,7 @@ export default function PlayerDetailsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Games</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -254,7 +254,7 @@ export default function PlayerDetailsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
