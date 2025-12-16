@@ -142,10 +142,11 @@ export async function POST(request: NextRequest) {
   const lockManager = new AdvisoryLockManager(db);
   // Track which lock type was acquired for proper cleanup in error handler
   let acquiredLockType: 'user' | 'system' | null = null;
+  // Declare userId outside try block so it's accessible in catch block
+  let userId: string | null = null;
 
   try {
     // Authenticate user for historical imports
-    let userId: string | null = null;
     try {
       const { user } = await authenticateRequest(request);
       userId = user.id;
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
         let estimatedTimeRemaining: number | null = null;
         if (
           status?.isRunning &&
+          status.progress !== null &&
           status.progress > 0 &&
           status.totalRecordsProcessed
         ) {
@@ -370,7 +372,7 @@ export async function POST(request: NextRequest) {
         });
 
         currentImportController = null;
-        await lockManager.releaseLock(userId);
+        await lockManager.releaseLock(userId || undefined);
       });
 
       return NextResponse.json(
@@ -417,6 +419,7 @@ export async function POST(request: NextRequest) {
       let estimatedTimeRemaining: number | null = null;
       if (
         status?.isRunning &&
+        status.progress !== null &&
         status.progress > 0 &&
         status.totalRecordsProcessed
       ) {
