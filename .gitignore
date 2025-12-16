@@ -141,3 +141,6 @@ scripts/
 test-results/
 playwright-report/
 .jscpdrc.json
+
+*storybook.log
+storybook-static

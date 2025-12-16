@@ -1,0 +1,394 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>1</storyId>
+    <title>Migrate Components to Tailwind Variants</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/3-1-migrate-components-to-tailwind-variants.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>all UI components to use tailwind-variants instead of class-variance-authority</iWant>
+    <soThat>we have a modern, type-safe variant system with better composition capabilities</soThat>
+    <tasks>
+      <task id="1" description="Audit existing components for CVA usage">
+        <subtask>Search codebase for class-variance-authority imports</subtask>
+        <subtask>Search codebase for cva function usage</subtask>
+        <subtask>List all components currently using CVA</subtask>
+        <subtask>Verify which components already use tailwind-variants</subtask>
+        <subtask>Create migration checklist</subtask>
+      </task>
+      <task id="2" description="Migrate Button component">
+        <subtask>Replace cva import with tv from tailwind-variants</subtask>
+        <subtask>Convert cva() call to tv() with same variant structure</subtask>
+        <subtask>Update VariantProps import to use tailwind-variants</subtask>
+        <subtask>Verify component API unchanged</subtask>
+        <subtask>Test: Verify all button variants work correctly</subtask>
+        <subtask>Test: Verify TypeScript types are correct</subtask>
+      </task>
+      <task id="3" description="Migrate Badge component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Maintain all existing variants</subtask>
+        <subtask>Test: Verify badge variants work correctly</subtask>
+      </task>
+      <task id="4" description="Migrate Alert component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Maintain all existing variants</subtask>
+        <subtask>Test: Verify alert variants work correctly</subtask>
+      </task>
+      <task id="5" description="Migrate Label component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Maintain same functionality</subtask>
+        <subtask>Test: Verify label component works correctly</subtask>
+      </task>
+      <task id="6" description="Migrate Toast component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Preserve complex variant system (animation, state variants)</subtask>
+        <subtask>Test: Verify all toast variants and animations work</subtask>
+      </task>
+      <task id="7" description="Migrate Sheet component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Preserve side variants (top, bottom, left, right)</subtask>
+        <subtask>Preserve animation states</subtask>
+        <subtask>Test: Verify sheet variants and animations work</subtask>
+      </task>
+      <task id="8" description="Migrate Navigation Menu component">
+        <subtask>Replace CVA with tailwind-variants</subtask>
+        <subtask>Preserve trigger styles and navigation states</subtask>
+        <subtask>Test: Verify navigation menu works correctly</subtask>
+      </task>
+      <task id="9" description="Verify Card component uses tailwind-variants">
+        <subtask>Check if Card component already uses tailwind-variants</subtask>
+        <subtask>If not, migrate Card component</subtask>
+        <subtask>If already migrated, verify variant structure is correct</subtask>
+        <subtask>Test: Verify card variants work correctly</subtask>
+      </task>
+      <task id="10" description="Migrate any remaining components">
+        <subtask>Check for any other components using CVA</subtask>
+        <subtask>Migrate any found components</subtask>
+        <subtask>Test: Verify all migrated components work correctly</subtask>
+      </task>
+      <task id="11" description="Update component tests">
+        <subtask>Review existing component tests</subtask>
+        <subtask>Verify all tests pass after migration</subtask>
+        <subtask>Update tests if needed (should not be necessary if API unchanged)</subtask>
+        <subtask>Test: Run full test suite</subtask>
+      </task>
+      <task id="12" description="Cleanup and documentation">
+        <subtask>Remove class-variance-authority from package.json (optional)</subtask>
+        <subtask>Verify no remaining CVA imports in codebase</subtask>
+        <subtask>Update component documentation to reference tailwind-variants</subtask>
+        <subtask>Update style guide if needed</subtask>
+        <subtask>Test: Verify no CVA references remain</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>The codebase has components using class-variance-authority (CVA)</given>
+      <when>I review all UI components</when>
+      <then>All components in src/components/ui/ use tailwind-variants instead of CVA:
+        - Import tv and VariantProps from tailwind-variants
+        - Use tv() function instead of cva()
+        - Maintain backward compatibility (same component API)
+        - All existing variants preserved
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>The migration is in progress</given>
+      <when>I check the migration status</when>
+      <then>The migration includes:
+        - Button component migrated
+        - Badge component migrated
+        - Alert component migrated
+        - Label component migrated
+        - Toast component migrated
+        - Sheet component migrated
+        - Navigation Menu component migrated
+        - Card component enhanced with tailwind-variants (if not already done)
+        - Any other UI components using CVA
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>The migration is complete</given>
+      <when>I verify the migrated components</when>
+      <then>After migration:
+        - All components maintain identical APIs (no breaking changes)
+        - All existing tests pass without modification
+        - Type safety is maintained or improved
+        - Component variants work identically to before
+      </then>
+    </criterion>
+    <criterion id="4">
+      <given>The migration is complete</given>
+      <when>I perform cleanup</when>
+      <then>Cleanup includes:
+        - class-variance-authority dependency can be removed from package.json (optional)
+        - No remaining imports of class-variance-authority in codebase
+        - Documentation updated to reflect tailwind-variants usage
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/sprint-change-proposal-2025-01-27.md</path>
+        <title>Sprint Change Proposal: UI/UX Design System Enhancement</title>
+        <section>Component Migrations</section>
+        <snippet>Migration from CVA to tailwind-variants for better type safety and more flexible variant composition. All 7 components (Button, Badge, Alert, Label, Toast, Sheet, Navigation Menu) have been migrated. Card component enhanced with new variants.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Component Library</section>
+        <snippet>ShadCN/UI copy-paste model - components are in src/components/ui/ directory. Styling uses Tailwind CSS 3.3.0 with utility-first approach. Type safety maintained with TypeScript 5.0.0 strict mode.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 3: Player Analytics Dashboard</section>
+        <snippet>Epic 3 focuses on player analytics with role-based performance metrics. Story 3.1 is part of design system enhancement to migrate components to tailwind-variants for better type safety and composition capabilities.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/3-1-migrate-components-to-tailwind-variants.md</path>
+        <title>Story 3.1: Migrate Components to Tailwind Variants</title>
+        <section>Dev Notes</section>
+        <snippet>Component patterns established from ShadCN/UI. Migration from class-variance-authority to tailwind-variants for better type safety and composition. All components maintain backward compatibility with same APIs.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>buttonVariants, Button, ButtonProps</symbol>
+        <lines>1-51</lines>
+        <reason>Example of component already migrated to tailwind-variants. Uses tv() function and VariantProps from tailwind-variants. Reference implementation for other components.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/badge.tsx</path>
+        <kind>component</kind>
+        <symbol>badgeVariants, Badge, BadgeProps</symbol>
+        <lines>1-32</lines>
+        <reason>Already migrated to tailwind-variants. Uses tv() for variant definitions. Reference for migration pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/alert.tsx</path>
+        <kind>component</kind>
+        <symbol>alertVariants, Alert, AlertTitle, AlertDescription</symbol>
+        <lines>1-57</lines>
+        <reason>Already migrated to tailwind-variants. Shows variant pattern with default and destructive variants.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/label.tsx</path>
+        <kind>component</kind>
+        <symbol>labelVariants, Label</symbol>
+        <lines>1-26</lines>
+        <reason>Already migrated to tailwind-variants. Simplified variant with base styles only.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/toast.tsx</path>
+        <kind>component</kind>
+        <symbol>toastVariants, Toast, ToastProvider, ToastViewport</symbol>
+        <lines>1-128</lines>
+        <reason>Already migrated to tailwind-variants. Complex variant system with animation and state variants preserved. Reference for complex migrations.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/sheet.tsx</path>
+        <kind>component</kind>
+        <symbol>sheetVariants, Sheet, SheetContent, SheetProps</symbol>
+        <lines>1-71</lines>
+        <reason>Already migrated to tailwind-variants. Preserves side variants (top, bottom, left, right) and animation states.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/navigation-menu.tsx</path>
+        <kind>component</kind>
+        <symbol>navigationMenuTriggerStyle, NavigationMenu, NavigationMenuTrigger</symbol>
+        <lines>1-128</lines>
+        <reason>Already migrated to tailwind-variants. Uses tv() for trigger styles. Navigation states preserved.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>cardVariants, Card, CardProps, CardHeader, CardContent</symbol>
+        <lines>1-109</lines>
+        <reason>Enhanced with tailwind-variants. Includes variant options (default, elevated, outlined, ghost, interactive) and padding variants (none, sm, default, lg). Reference for enhanced variant patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/utils.ts</path>
+        <kind>utility</kind>
+        <symbol>cn</symbol>
+        <lines>1-10</lines>
+        <reason>Utility function for className merging. Used by all components with tailwind-variants. Combines clsx and tailwind-merge.</reason>
+      </artifact>
+      <artifact>
+        <path>package.json</path>
+        <kind>manifest</kind>
+        <symbol>dependencies, devDependencies</symbol>
+        <lines>45-141</lines>
+        <reason>Contains tailwind-variants dependency (v3.2.2) and class-variance-authority (v0.7.1) which can be removed after migration verification. Shows all project dependencies.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="class-variance-authority" version="^0.7.1" note="Can be removed after migration verification" />
+        <package name="tailwind-merge" version="^3.3.1" />
+        <package name="clsx" version="^2.1.1" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="tailwindcss" version="^3.3.0" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <category>Architecture</category>
+      <rule>UI components must be in src/components/ui/ following ShadCN/UI patterns</rule>
+      <source>bmad/docs/architecture.md#Project-Structure</source>
+    </constraint>
+    <constraint>
+      <category>Styling</category>
+      <rule>Tailwind CSS 3.3.0 with utility-first approach. All styling must use Tailwind utilities.</rule>
+      <source>bmad/docs/architecture.md#Styling</source>
+    </constraint>
+    <constraint>
+      <category>Type Safety</category>
+      <rule>TypeScript 5.0.0 with strict mode - maintain type safety during migration. All components must have proper TypeScript types.</rule>
+      <source>bmad/docs/architecture.md#Language</source>
+    </constraint>
+    <constraint>
+      <category>Component API</category>
+      <rule>All components must maintain backward compatibility - same component API, no breaking changes.</rule>
+      <source>bmad/docs/sprint-artifacts/3-1-migrate-components-to-tailwind-variants.md#Acceptance-Criteria</source>
+    </constraint>
+    <constraint>
+      <category>Variant System</category>
+      <rule>Use tailwind-variants tv() function instead of class-variance-authority cva(). Import VariantProps from tailwind-variants.</rule>
+      <source>bmad/docs/sprint-change-proposal-2025-01-27.md#Component-Migrations</source>
+    </constraint>
+    <constraint>
+      <category>Testing</category>
+      <rule>All existing tests must pass without modification. Maintain minimum 80% test coverage.</rule>
+      <source>.specify/memory/constitution.md#Testing-Requirements</source>
+    </constraint>
+    <constraint>
+      <category>Package Management</category>
+      <rule>Use Yarn exclusively for package management. Never use npm.</rule>
+      <source>.specify/memory/constitution.md#Package-Management</source>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>VariantProps</name>
+      <kind>TypeScript type</kind>
+      <signature>VariantProps&lt;typeof componentVariants&gt;</signature>
+      <path>tailwind-variants</path>
+      <note>Type helper for extracting variant prop types from tv() definitions. Used in all component prop interfaces.</note>
+    </interface>
+    <interface>
+      <name>tv</name>
+      <kind>Function</kind>
+      <signature>tv(config: VariantConfig): VariantFunction</signature>
+      <path>tailwind-variants</path>
+      <note>Function for creating variant definitions. Replaces cva() from class-variance-authority. Accepts base, variants, defaultVariants, and compoundVariants.</note>
+    </interface>
+    <interface>
+      <name>cn</name>
+      <kind>Utility function</kind>
+      <signature>cn(...inputs: ClassValue[]): string</signature>
+      <path>src/lib/utils.ts</path>
+      <note>Utility for merging className strings. Combines clsx and tailwind-merge. Used by all components to merge variant classes with custom className props.</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test-Driven Development (TDD) is mandatory. All code must have corresponding tests. Test coverage must be maintained above 80%. Use React Testing Library for component tests. Follow Red-Green-Refactor cycle. All existing tests must pass after migration without modification. Component tests should verify variant functionality, TypeScript types, and backward compatibility.
+    </standards>
+    <locations>
+      <location>tests/components/ui/</location>
+      <location>tests/components/</location>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+    </locations>
+    <ideas>
+      <idea criterion="1">
+        <description>Test that all components import tv and VariantProps from tailwind-variants</description>
+        <type>unit</type>
+        <location>tests/components/ui/</location>
+      </idea>
+      <idea criterion="1">
+        <description>Test that all components use tv() function instead of cva()</description>
+        <type>unit</type>
+        <location>tests/components/ui/</location>
+      </idea>
+      <idea criterion="1">
+        <description>Test that all component APIs remain unchanged (backward compatibility)</description>
+        <type>component</type>
+        <location>tests/components/ui/</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Button component variants (default, destructive, outline, secondary, ghost, link) and sizes (default, sm, lg, icon)</description>
+        <type>component</type>
+        <location>tests/components/ui/button.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Badge component variants (default, secondary, destructive, outline)</description>
+        <type>component</type>
+        <location>tests/components/ui/badge.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Alert component variants (default, destructive)</description>
+        <type>component</type>
+        <location>tests/components/ui/alert.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Toast component variants and animations (default, destructive, swipe states)</description>
+        <type>component</type>
+        <location>tests/components/ui/toast.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Sheet component side variants (top, bottom, left, right) and animations</description>
+        <type>component</type>
+        <location>tests/components/ui/sheet.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Navigation Menu trigger styles and navigation states</description>
+        <type>component</type>
+        <location>tests/components/ui/navigation-menu.test.tsx</location>
+      </idea>
+      <idea criterion="2">
+        <description>Test Card component variants (default, elevated, outlined, ghost, interactive) and padding variants (none, sm, default, lg)</description>
+        <type>component</type>
+        <location>tests/components/ui/card.test.tsx</location>
+      </idea>
+      <idea criterion="3">
+        <description>Run full test suite to verify all tests pass after migration</description>
+        <type>integration</type>
+        <location>tests/</location>
+      </idea>
+      <idea criterion="3">
+        <description>Test TypeScript types are correct for all migrated components</description>
+        <type>unit</type>
+        <location>tests/components/ui/</location>
+      </idea>
+      <idea criterion="4">
+        <description>Verify no remaining imports of class-variance-authority in codebase</description>
+        <type>unit</type>
+        <location>tests/</location>
+      </idea>
+      <idea criterion="4">
+        <description>Test that class-variance-authority can be safely removed from package.json</description>
+        <type>integration</type>
+        <location>tests/</location>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

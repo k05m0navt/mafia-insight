@@ -83,6 +83,168 @@ describe('ShadCN/UI Components with Custom Theme', () => {
       const card = container.querySelector('.bg-card');
       expect(card).toHaveClass('bg-card', 'text-card-foreground');
     });
+
+    describe('Card Variants', () => {
+      it('should render default variant correctly', () => {
+        const { container } = render(<Card variant="default">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toBeInTheDocument();
+        expect(card).toHaveClass('shadow-[0_1px_3px_rgba(0,0,0,0.1)]');
+      });
+
+      it('should render elevated variant with hover effect', () => {
+        const { container } = render(<Card variant="elevated">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]');
+      });
+
+      it('should render outlined variant without shadow', () => {
+        const { container } = render(<Card variant="outlined">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('border-2', 'shadow-none');
+      });
+
+      it('should render ghost variant with transparent background', () => {
+        const { container } = render(<Card variant="ghost">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass(
+          'bg-transparent',
+          'border-transparent',
+          'shadow-none'
+        );
+      });
+
+      it('should render interactive variant with cursor pointer', () => {
+        const { container } = render(
+          <Card variant="interactive">Content</Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('cursor-pointer', 'hover:border-primary/50');
+      });
+
+      it('should render metric variant with 8px radius and 20px padding', () => {
+        const { container } = render(<Card variant="metric">Content</Card>);
+        const card = container.querySelector('.rounded-lg');
+        expect(card).toBeInTheDocument();
+        expect(card).toHaveClass('shadow-[0_1px_2px_rgba(0,0,0,0.05)]', 'p-5');
+      });
+
+      it('should render chart variant correctly', () => {
+        const { container } = render(<Card variant="chart">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toBeInTheDocument();
+        expect(card).toHaveClass('shadow-sm');
+      });
+
+      it('should render info variant correctly', () => {
+        const { container } = render(<Card variant="info">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toBeInTheDocument();
+        expect(card).toHaveClass('shadow-sm');
+      });
+
+      it('should render role variant with don roleType', () => {
+        const { container } = render(
+          <Card variant="role" roleType="don">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass(
+          'border-2',
+          'bg-purple-50',
+          'border-purple-600'
+        );
+      });
+
+      it('should render role variant with mafia roleType', () => {
+        const { container } = render(
+          <Card variant="role" roleType="mafia">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('border-2', 'bg-gray-100', 'border-black');
+      });
+
+      it('should render role variant with sheriff roleType', () => {
+        const { container } = render(
+          <Card variant="role" roleType="sheriff">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass(
+          'border-2',
+          'bg-yellow-50',
+          'border-yellow-400'
+        );
+      });
+
+      it('should render role variant with citizen roleType', () => {
+        const { container } = render(
+          <Card variant="role" roleType="citizen">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('border-2', 'bg-red-50', 'border-red-500');
+      });
+    });
+
+    describe('Card Padding Variants', () => {
+      it('should apply padding-none correctly', () => {
+        const { container } = render(<Card padding="none">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('p-0');
+      });
+
+      it('should apply padding-sm correctly', () => {
+        const { container } = render(<Card padding="sm">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('p-4');
+      });
+
+      it('should apply padding-default correctly', () => {
+        const { container } = render(<Card padding="default">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('p-6');
+      });
+
+      it('should apply padding-lg correctly', () => {
+        const { container } = render(<Card padding="lg">Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('p-8');
+      });
+
+      it('should override metric variant padding with custom padding', () => {
+        const { container } = render(
+          <Card variant="metric" padding="sm">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-lg');
+        expect(card).toHaveClass('p-4'); // Should use sm padding, not default metric padding
+      });
+    });
+
+    describe('Backward Compatibility', () => {
+      it('should maintain default variant behavior', () => {
+        const { container } = render(<Card>Content</Card>);
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('shadow-[0_1px_3px_rgba(0,0,0,0.1)]', 'p-6');
+      });
+
+      it('should work with existing variant and padding combinations', () => {
+        const { container } = render(
+          <Card variant="elevated" padding="lg">
+            Content
+          </Card>
+        );
+        const card = container.querySelector('.rounded-xl');
+        expect(card).toHaveClass('p-8');
+      });
+    });
   });
 
   describe('Input Component', () => {

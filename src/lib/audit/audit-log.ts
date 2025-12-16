@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { AuditActionType } from '@prisma/client';
+import { AuditActionType, Prisma } from '@prisma/client';
 
 export interface AuditLogEntry {
   actionType: AuditActionType;
@@ -22,7 +22,7 @@ export async function logAdminAction(entry: AuditLogEntry): Promise<void> {
         targetUserId: entry.targetUserId,
         oldValue: entry.oldValue,
         newValue: entry.newValue,
-        metadata: (entry.metadata || {}) as any,
+        metadata: (entry.metadata || {}) as Prisma.InputJsonValue,
       },
     });
   } catch (error) {

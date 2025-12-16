@@ -1,0 +1,186 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>2</storyId>
+    <title>Enhance Card Component Variants</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/3-2-enhance-card-component-variants.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the Card component to have enhanced variants that match our design system specifications</iWant>
+    <soThat>we can create consistent, beautiful card layouts for metrics, charts, info displays, and role-based content</soThat>
+    <tasks>
+- [ ] Task 1: Review design system specifications (AC: #1)
+  - [ ] Review design-guide.md Card Variants section
+  - [ ] Review style-guide.md Card specifications
+  - [ ] Identify specific styling requirements for each card type
+  - [ ] Document variant requirements and design tokens
+
+- [ ] Task 2: Design variant structure (AC: #1, #2)
+  - [ ] Define Metric Card variant styling (8px radius, 20px padding, subtle shadow)
+  - [ ] Define Chart Card variant styling (full chart layout support)
+  - [ ] Define Info Card variant styling (icon + text layout)
+  - [ ] Define Role Card variant structure (role-based color theming)
+  - [ ] Plan variant composition with existing padding variants
+
+- [ ] Task 3: Implement Metric Card variant (AC: #1, #2, #3)
+  - [ ] Add 'metric' variant to cardVariants
+  - [ ] Apply design guide specifications: 8px radius, 20px padding, subtle shadow
+  - [ ] Ensure backward compatibility
+  - [ ] Test: Verify metric variant renders correctly
+  - [ ] Test: Verify TypeScript types are correct
+
+- [ ] Task 4: Implement Chart Card variant (AC: #1, #2, #3)
+  - [ ] Add 'chart' variant to cardVariants
+  - [ ] Apply design guide specifications for chart display
+  - [ ] Ensure proper spacing for chart title and controls
+  - [ ] Test: Verify chart variant renders correctly
+  - [ ] Test: Verify TypeScript types are correct
+
+- [ ] Task 5: Implement Info Card variant (AC: #1, #2, #3)
+  - [ ] Add 'info' variant to cardVariants
+  - [ ] Apply design guide specifications for info display
+  - [ ] Ensure proper layout for icon + text content
+  - [ ] Test: Verify info variant renders correctly
+  - [ ] Test: Verify TypeScript types are correct
+
+- [ ] Task 6: Implement Role Card variant (AC: #1, #2, #3)
+  - [ ] Add 'role' variant to cardVariants
+  - [ ] Implement role-based color theming support
+  - [ ] Apply design guide specifications: 12px radius, 24px padding, 2px border
+  - [ ] Consider role color system integration (Don, Mafia, Sheriff, Citizen)
+  - [ ] Test: Verify role variant renders correctly with different roles
+  - [ ] Test: Verify TypeScript types are correct
+
+- [ ] Task 7: Enhance existing variants (AC: #2)
+  - [ ] Review existing variants (default, elevated, outlined, ghost, interactive)
+  - [ ] Ensure all variants match design guide shadow specifications
+  - [ ] Verify border radius consistency (12px for base cards)
+  - [ ] Enhance hover states and transitions where needed
+  - [ ] Test: Verify all existing variants still work correctly
+
+- [ ] Task 8: Update Card component documentation (AC: #4)
+  - [ ] Add JSDoc comments explaining each variant
+  - [ ] Document usage examples for new variants
+  - [ ] Update component file with variant descriptions
+  - [ ] Ensure TypeScript types are well-documented
+
+- [ ] Task 9: Verify backward compatibility (AC: #3)
+  - [ ] Test: Verify all existing Card usages still work
+  - [ ] Test: Verify default variant behavior unchanged
+  - [ ] Test: Verify padding variants work with new variants
+  - [ ] Test: Verify no breaking changes to component API
+
+- [ ] Task 10: Component testing (AC: #1, #2, #3)
+  - [ ] Create or update component tests for new variants
+  - [ ] Test: Verify all variants render correctly
+  - [ ] Test: Verify variant combinations work (e.g., metric + padding-sm)
+  - [ ] Test: Verify role variant with different role colors
+  - [ ] Test: Run full test suite to ensure no regressions
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. **Given** the Card component currently has basic variants (default, elevated, outlined, ghost, interactive)  
+   **When** I review the design system specifications  
+   **Then** the Card component includes enhanced variants that align with design guide requirements:
+   - Metric Card variant: Optimized for displaying large numbers with trend indicators
+   - Chart Card variant: Full chart display with title and controls area
+   - Info Card variant: Text content with icon support
+   - Role Card variant: Role-based color theming (Don, Mafia, Sheriff, Citizen)
+   - Enhanced visual styling matching design guide specifications
+
+2. **And** the enhanced variants include:
+   - Proper spacing and padding for each card type
+   - Appropriate shadows and elevations per design guide
+   - Border radius matching design specifications (8px for metric, 12px for base/role)
+   - Hover states and transitions for interactive cards
+   - Support for role-based color theming in Role Card variant
+
+3. **And** the Card component maintains:
+   - Backward compatibility with existing variants
+   - Type safety with proper VariantProps
+   - All existing padding variants (none, sm, default, lg)
+   - Consistent API structure
+
+4. **And** the implementation includes:
+   - Updated Card component with new variant definitions
+   - Proper TypeScript types for all new variants
+   - Documentation comments explaining variant usage
+   - Visual examples or usage notes in component file
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/prd.md" title="Product Requirements Document" section="Visual Design & User Experience">
+        <snippet>FR59-FR66 define visual design requirements including modern, enticing design with animations, high-quality visuals, and impressive layouts. The platform uses ShadCN/UI components with full customization control.</snippet>
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Component Library">
+        <snippet>ShadCN/UI copy-paste model - components in src/components/ui/ directory. Styling uses Tailwind CSS 3.3.0 with utility-first approach. TypeScript 5.0.0 with strict mode maintains type safety. Variant system uses tailwind-variants with tv() function for all variants.</snippet>
+      </doc>
+      <doc path="bmad/docs/ux-design-specification.md" title="UX Design Specification" section="Design System Foundation">
+        <snippet>ShadCN/UI (New York style) with copy-paste components providing full customization control. Built on Radix UI primitives ensuring accessibility (WCAG 2.1 Level AA). Additional registries configured: @magicui, @blocks, @shadcnblocks, @reui, @smoothui.</snippet>
+      </doc>
+      <doc path="docs/design/design-guide.md" title="Design Guide" section="Cards">
+        <snippet>Card Variants: Metric Card (large number with trend indicator), Chart Card (full chart with title and controls), Info Card (text content with icon), Action Card (interactive with hover states). Base Card: 24px padding, 8px border radius, subtle elevation shadow.</snippet>
+      </doc>
+      <doc path="docs/style/style-guide.md" title="Style Guide" section="Cards">
+        <snippet>Base Card: 12px border radius, 24px padding, 0 1px 3px rgba(0, 0, 0, 0.1) shadow, hover: 0 4px 12px rgba(0, 0, 0, 0.15). Metric Card: 8px border radius, 20px padding, 0 1px 2px rgba(0, 0, 0, 0.05) shadow. Role Card: 12px border radius, 24px padding, 2px solid role-based color border, role-based light color background.</snippet>
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/3-1-migrate-components-to-tailwind-variants.md" title="Previous Story: Migrate Components to Tailwind Variants" section="Dev Agent Record">
+        <snippet>All components now use tailwind-variants with tv() function. Card component already migrated and has base variant structure. Pattern established for variant composition. Use VariantProps&lt;typeof cardVariants&gt; for proper TypeScript inference.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/components/ui/card.tsx" kind="component" symbol="Card, cardVariants" lines="1-109" reason="Current Card component implementation using tailwind-variants. Has base variants (default, elevated, outlined, ghost, interactive) and padding variants (none, sm, default, lg). Needs enhancement with new variants: metric, chart, info, role." />
+      <artifact path="src/components/ui/button.tsx" kind="component" symbol="buttonVariants" lines="7-32" reason="Reference implementation for tailwind-variants pattern with tv() function and VariantProps. Shows proper variant structure and TypeScript type inference pattern." />
+      <artifact path="src/lib/utils.ts" kind="utility" symbol="cn" reason="Utility function for className merging used by Card component. Required for combining variant classes with custom className prop." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="tailwindcss" version="^3.3.0" />
+        <package name="tailwind-merge" version="^3.3.1" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="@radix-ui/react-slot" version="^1.2.3" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Component Library: ShadCN/UI copy-paste model - components in src/components/ui/ directory. Do not modify ShadCN/UI base components directly, enhance with custom variants.</constraint>
+    <constraint>Styling: Tailwind CSS 3.3.0 with utility-first approach. Use Tailwind utility classes, not custom CSS. Follow design guide specifications for spacing, colors, shadows.</constraint>
+    <constraint>Type Safety: TypeScript 5.0.0 with strict mode - maintain type safety. Use VariantProps&lt;typeof cardVariants&gt; for proper TypeScript inference.</constraint>
+    <constraint>Variant System: Use tailwind-variants with tv() function for all variants. Follow established pattern from Story 3-1 migration. Maintain backward compatibility with existing variants.</constraint>
+    <constraint>Design System: Follow design guide specifications for card variants. Reference docs/design/design-guide.md and docs/style/style-guide.md for exact specifications.</constraint>
+    <constraint>Backward Compatibility: All existing Card usages must continue to work. Default variant behavior must remain unchanged. Padding variants must work with new variants.</constraint>
+    <constraint>Testing: Maintain minimum 80% test coverage. Use React Testing Library for component tests. Tests located in tests/components/ directory.</constraint>
+    <constraint>Role Color System: Role Card variant should support role-based theming (Don: Purple, Mafia: Black/dark, Sheriff: Blue, Citizen: Green/neutral). Consider separate prop (e.g., role="don") or variant system integration.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="CardProps" kind="TypeScript interface" signature="export interface CardProps extends React.HTMLAttributes&lt;HTMLDivElement&gt;, VariantProps&lt;typeof cardVariants&gt; {}" path="src/components/ui/card.tsx" />
+    <interface name="cardVariants" kind="tailwind-variants configuration" signature="const cardVariants = tv({ base: '...', variants: { variant: {...}, padding: {...} }, defaultVariants: {...} })" path="src/components/ui/card.tsx" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test Coverage: Maintain minimum 80% test coverage for all new code. Test Types: Component tests for UI components using React Testing Library. TDD Approach: Write tests before implementation, follow Red-Green-Refactor cycle. Component Testing: Use React Testing Library for component tests located in tests/components/ directory. Test all variants render correctly, variant combinations work, and no regressions occur.
+    </standards>
+    <locations>
+      <location>tests/components/ui/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea acId="1">Test: Verify metric variant renders with 8px radius, 20px padding, subtle shadow. Test: Verify chart variant renders with proper spacing for title and controls. Test: Verify info variant renders with icon + text layout. Test: Verify role variant renders with role-based colors (Don, Mafia, Sheriff, Citizen).</idea>
+      <idea acId="2">Test: Verify all variants have proper spacing, padding, shadows, border radius per design guide. Test: Verify hover states and transitions work for interactive cards. Test: Verify role-based color theming in Role Card variant.</idea>
+      <idea acId="3">Test: Verify backward compatibility - all existing Card usages still work. Test: Verify default variant behavior unchanged. Test: Verify padding variants work with new variants (e.g., metric + padding-sm). Test: Verify no breaking changes to component API.</idea>
+      <idea acId="4">Test: Verify TypeScript types are correct for all new variants. Test: Verify variant combinations work correctly. Test: Run full test suite to ensure no regressions.</idea>
+    </ideas>
+  </tests>
+</story-context>

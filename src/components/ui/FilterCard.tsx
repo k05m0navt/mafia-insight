@@ -37,7 +37,10 @@ function FilterCardComponent({
   const hasActiveFilters = activeFilters.length > 0;
 
   return (
-    <Card className={cn('transition-all duration-200', className)}>
+    <Card
+      variant="info"
+      className={cn('transition-all duration-200', className)}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

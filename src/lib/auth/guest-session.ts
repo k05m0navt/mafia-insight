@@ -93,7 +93,11 @@ export class GuestSessionService {
 
     try {
       const preferences = this.getPreferences();
-      preferences[key] = value as any;
+      if (key === 'theme') {
+        preferences[key] = value as 'light' | 'dark';
+      } else {
+        preferences[key] = value;
+      }
       sessionStorage.setItem(
         GUEST_PREFERENCES_KEY,
         JSON.stringify(preferences)
