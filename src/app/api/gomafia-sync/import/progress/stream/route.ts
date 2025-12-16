@@ -4,7 +4,7 @@ import {
   calculateProcessingRate,
   calculateEstimatedTimeRemaining,
 } from '@/lib/gomafia/import/progress-calculator';
-import type { ImportProgressResponse } from '../progress/route';
+import type { ImportProgressResponse } from '../route';
 
 /**
  * GET /api/gomafia-sync/import/progress/stream
