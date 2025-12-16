@@ -56,7 +56,7 @@ development_status:
   2-6-real-time-import-progress-tracking: done
   2-7-checkpoint-resume-interrupted-imports: done
   2-8-concurrent-import-prevention: done
-  2-9-referential-integrity-verification: backlog
+  2-9-referential-integrity-verification: done
   epic-2-retrospective: optional
 
   epic-3: backlog

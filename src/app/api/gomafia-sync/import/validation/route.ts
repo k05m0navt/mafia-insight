@@ -140,6 +140,103 @@ export async function GET(request: NextRequest) {
       ? parseSyncLogErrors(mostRecentSync.errors)
       : null;
 
+    // Extract integrity results from sync log (Story 2.9: AC #1, #2)
+    const integrityResultsByPhase: Record<
+      string,
+      {
+        checks: Array<{
+          checkName: string;
+          passed: boolean;
+          totalChecked: number;
+          errorCount: number;
+          violations: Array<unknown>;
+        }>;
+        passed: boolean;
+        failedChecks: number;
+      }
+    > = {};
+    let fullIntegrityAudit: {
+      status: string;
+      totalChecks: number;
+      passedChecks: number;
+      failedChecks: number;
+      message: string;
+      issues?: string[];
+      timestamp?: string;
+    } | null = null;
+
+    if (mostRecentSync?.errors && typeof mostRecentSync.errors === 'object') {
+      const errors = mostRecentSync.errors as Record<string, unknown>;
+      const integrityResults = errors.integrityResults as
+        | {
+            [phase: string]:
+              | {
+                  checks: Array<{
+                    checkName: string;
+                    passed: boolean;
+                    totalChecked: number;
+                    errorCount: number;
+                    violations: Array<unknown>;
+                  }>;
+                  passed: boolean;
+                  failedChecks: number;
+                }
+              | {
+                  status: string;
+                  totalChecks: number;
+                  passedChecks: number;
+                  failedChecks: number;
+                  message: string;
+                  issues?: string[];
+                  timestamp?: string;
+                };
+          }
+        | undefined;
+
+      if (integrityResults) {
+        // Extract phase-level results and full audit
+        for (const [key, value] of Object.entries(integrityResults)) {
+          if (key === 'fullAudit' && value && typeof value === 'object') {
+            // This is the full audit result
+            fullIntegrityAudit = value as {
+              status: string;
+              totalChecks: number;
+              passedChecks: number;
+              failedChecks: number;
+              message: string;
+              issues?: string[];
+              timestamp?: string;
+            };
+          } else if (
+            key !== 'fullAudit' &&
+            value &&
+            typeof value === 'object'
+          ) {
+            // This is a phase-level result
+            const phaseResult = value as {
+              checks?: Array<{
+                checkName: string;
+                passed: boolean;
+                totalChecked: number;
+                errorCount: number;
+                violations: Array<unknown>;
+              }>;
+              passed?: boolean;
+              failedChecks?: number;
+            };
+            // Only add if it has the expected structure (phase result, not full audit)
+            if (phaseResult.checks && phaseResult.passed !== undefined) {
+              integrityResultsByPhase[key] = {
+                checks: phaseResult.checks,
+                passed: phaseResult.passed,
+                failedChecks: phaseResult.failedChecks || 0,
+              };
+            }
+          }
+        }
+      }
+    }
+
     // Extract validation metrics from sync log errors if available
     let validationMetrics: {
       validationRate: number;
@@ -264,6 +361,13 @@ export async function GET(request: NextRequest) {
         failedChecks: integrityResults.failedChecks,
         message: integrityResults.message,
         issues: integrityResults.issues || [],
+        // Phase-level integrity results (Story 2.9: AC #2)
+        phaseResults:
+          Object.keys(integrityResultsByPhase).length > 0
+            ? integrityResultsByPhase
+            : undefined,
+        // Full audit results (Story 2.9: AC #2)
+        fullAudit: fullIntegrityAudit || undefined,
       },
       lastSync: latestSync
         ? {
