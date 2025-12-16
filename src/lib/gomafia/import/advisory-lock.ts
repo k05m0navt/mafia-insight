@@ -24,9 +24,22 @@ export class AdvisoryLockManager {
    * @returns Lock ID number
    */
   private getLockId(userId?: string): number {
-    return userId
-      ? IMPORT_LOCK_ID + parseInt(userId.slice(0, 8), 16)
-      : IMPORT_LOCK_ID;
+    if (!userId) {
+      return IMPORT_LOCK_ID;
+    }
+
+    // Generate a numeric hash from userId string
+    // Use a simple hash function to convert string to number
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    // Use absolute value and modulo to ensure positive number
+    // Add to base lock ID, using modulo to keep it within reasonable range
+    return IMPORT_LOCK_ID + Math.abs(hash % 1000000);
   }
 
   /**
