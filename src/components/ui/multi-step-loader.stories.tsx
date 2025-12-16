@@ -68,6 +68,20 @@ const DataImportComponent = () => {
 };
 
 export const DataImport: Story = {
+  args: {
+    loadingStates: [
+      { text: 'Connecting to GoMafia Pro API...' },
+      { text: 'Fetching player data...' },
+      { text: 'Fetching game records...' },
+      { text: 'Validating data quality...' },
+      { text: 'Importing to database...' },
+      { text: 'Building indexes...' },
+      { text: 'Import complete!' },
+    ],
+    loading: false,
+    duration: 1500,
+    loop: false,
+  },
   render: () => <DataImportComponent />,
 };
 
@@ -99,6 +113,19 @@ const TournamentSyncComponent = () => {
 };
 
 export const TournamentSync: Story = {
+  args: {
+    loadingStates: [
+      { text: 'Initializing sync...' },
+      { text: 'Checking for updates...' },
+      { text: 'Downloading tournament data...' },
+      { text: 'Processing game results...' },
+      { text: 'Updating player statistics...' },
+      { text: 'Sync complete!' },
+    ],
+    loading: false,
+    duration: 2000,
+    loop: false,
+  },
   render: () => <TournamentSyncComponent />,
 };
 
@@ -128,5 +155,16 @@ const ContinuousLoaderComponent = () => {
 };
 
 export const ContinuousLoader: Story = {
+  args: {
+    loadingStates: [
+      { text: 'Processing step 1...' },
+      { text: 'Processing step 2...' },
+      { text: 'Processing step 3...' },
+      { text: 'Processing step 4...' },
+    ],
+    loading: false,
+    duration: 1000,
+    loop: true,
+  },
   render: () => <ContinuousLoaderComponent />,
 };
