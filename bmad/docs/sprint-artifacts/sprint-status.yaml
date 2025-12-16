@@ -57,7 +57,7 @@ development_status:
   2-7-checkpoint-resume-interrupted-imports: done
   2-8-concurrent-import-prevention: done
   2-9-referential-integrity-verification: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: completed
 
   epic-3: backlog
   3-1-role-based-performance-metrics-display: backlog
