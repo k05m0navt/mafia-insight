@@ -140,6 +140,8 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   const lockManager = new AdvisoryLockManager(db);
+  // Track which lock type was acquired for proper cleanup in error handler
+  let acquiredLockType: 'user' | 'system' | null = null;
 
   try {
     // Authenticate user for historical imports
@@ -202,6 +204,9 @@ export async function POST(request: NextRequest) {
 
       // Try to acquire user-specific advisory lock (allows different users to import simultaneously)
       const acquired = await lockManager.acquireLock(userId);
+      if (acquired) {
+        acquiredLockType = 'user';
+      }
 
       if (!acquired) {
         // Another import is already running for this user
@@ -209,13 +214,46 @@ export async function POST(request: NextRequest) {
           where: { id: `user-${userId}` },
         });
 
+        // Get detailed status from sync log for better error message
+        const runningSyncLog = await db.syncLog.findFirst({
+          where: {
+            status: 'RUNNING',
+            type: 'HISTORICAL',
+          },
+          orderBy: { startTime: 'desc' },
+        });
+
+        // Get checkpoint to extract current phase (more reliable than parsing currentOperation)
+        const checkpoint = await db.importCheckpoint.findUnique({
+          where: { id: `user-${userId}` },
+        });
+        const currentPhase = checkpoint?.currentPhase || 'UNKNOWN';
+
+        // Calculate estimated time remaining if we have progress data
+        let estimatedTimeRemaining: number | null = null;
+        if (
+          status?.isRunning &&
+          status.progress > 0 &&
+          status.totalRecordsProcessed
+        ) {
+          const processed = status.validRecords || 0;
+          const total = status.totalRecordsProcessed;
+          const remaining = total - processed;
+          // Estimate 2 seconds per record (conservative)
+          estimatedTimeRemaining = remaining * 2;
+        }
+
         return NextResponse.json(
           {
-            error: 'Import operation already in progress for this user',
+            error:
+              'Import already in progress. Please wait for current import to complete.',
             code: 'IMPORT_RUNNING',
             details: {
               progress: status?.progress || 0,
               currentOperation: status?.currentOperation || 'Unknown',
+              currentPhase,
+              estimatedTimeRemaining,
+              startTime: runningSyncLog?.startTime?.toISOString() || null,
             },
           },
           { status: 409 }
@@ -241,7 +279,7 @@ export async function POST(request: NextRequest) {
           (await page.$('.error, .not-found')) !== null
         ) {
           await browser.close();
-          await lockManager.releaseLock();
+          await lockManager.releaseLock(userId);
           return NextResponse.json(
             {
               error: 'Profile not found on gomafia.pro',
@@ -350,6 +388,9 @@ export async function POST(request: NextRequest) {
     // Full system import (existing behavior for backward compatibility)
     // Try to acquire advisory lock
     const acquired = await lockManager.acquireLock();
+    if (acquired) {
+      acquiredLockType = 'system';
+    }
 
     if (!acquired) {
       // Another import is already running
@@ -357,13 +398,46 @@ export async function POST(request: NextRequest) {
         where: { id: 'current' },
       });
 
+      // Get detailed status from sync log for better error message
+      const runningSyncLog = await db.syncLog.findFirst({
+        where: {
+          status: 'RUNNING',
+          type: 'FULL',
+        },
+        orderBy: { startTime: 'desc' },
+      });
+
+      // Get checkpoint to extract current phase (more reliable than parsing currentOperation)
+      const checkpoint = await db.importCheckpoint.findUnique({
+        where: { id: 'current' },
+      });
+      const currentPhase = checkpoint?.currentPhase || 'UNKNOWN';
+
+      // Calculate estimated time remaining if we have progress data
+      let estimatedTimeRemaining: number | null = null;
+      if (
+        status?.isRunning &&
+        status.progress > 0 &&
+        status.totalRecordsProcessed
+      ) {
+        const processed = status.validRecords || 0;
+        const total = status.totalRecordsProcessed;
+        const remaining = total - processed;
+        // Estimate 2 seconds per record (conservative)
+        estimatedTimeRemaining = remaining * 2;
+      }
+
       return NextResponse.json(
         {
-          error: 'Import operation already in progress',
+          error:
+            'Import already in progress. Please wait for current import to complete.',
           code: 'IMPORT_RUNNING',
           details: {
             progress: status?.progress || 0,
             currentOperation: status?.currentOperation || 'Unknown',
+            currentPhase,
+            estimatedTimeRemaining,
+            startTime: runningSyncLog?.startTime?.toISOString() || null,
           },
         },
         { status: 409 }
@@ -454,11 +528,14 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Import trigger failed:', error);
 
-    // Ensure lock is released on error (for full system imports, no userId)
-    try {
-      await lockManager.releaseLock();
-    } catch (releaseError) {
-      console.error('Failed to release lock:', releaseError);
+    // Ensure lock is released on error - release the correct lock type that was acquired
+    if (acquiredLockType) {
+      try {
+        const lockUserId = acquiredLockType === 'user' ? userId : undefined;
+        await lockManager.releaseLock(lockUserId || undefined);
+      } catch (releaseError) {
+        console.error('Failed to release lock:', releaseError);
+      }
     }
 
     return NextResponse.json(

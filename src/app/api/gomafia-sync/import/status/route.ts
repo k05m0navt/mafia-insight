@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       jobId,
+      isRunning: syncStatus.isRunning && status === 'running',
       percentageComplete,
       currentGameNumber: processedGames,
       totalGames,

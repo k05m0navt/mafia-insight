@@ -55,7 +55,7 @@ development_status:
   2-5-import-error-handling-retry-mechanisms: done
   2-6-real-time-import-progress-tracking: done
   2-7-checkpoint-resume-interrupted-imports: done
-  2-8-concurrent-import-prevention: backlog
+  2-8-concurrent-import-prevention: done
   2-9-referential-integrity-verification: backlog
   epic-2-retrospective: optional
 

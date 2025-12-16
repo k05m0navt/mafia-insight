@@ -1,0 +1,219 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>8</storyId>
+    <title>Concurrent Import Prevention</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/2-8-concurrent-import-prevention.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to prevent concurrent imports from running simultaneously</iWant>
+    <soThat>data integrity is maintained and system resources are used efficiently</soThat>
+    <tasks>
+      <task id="1">Verify and enhance advisory lock implementation (AC: #1, #2)
+        - Review existing AdvisoryLockManager implementation
+        - Verify lock acquisition before import start
+        - Verify lock release on import completion (success and failure)
+        - Add lock timeout handling (12 hours maximum)
+        - Ensure user-specific locks allow different users to import simultaneously
+        - Test: Verify lock acquisition prevents concurrent imports
+        - Test: Verify lock release on completion
+        - Test: Verify lock timeout after 12 hours</task>
+      <task id="2">Enhance import route to check lock before starting (AC: #1)
+        - Review POST /api/gomafia-sync/import route
+        - Verify lock check before creating ImportOrchestrator
+        - Return 409 Conflict status with clear error message if lock cannot be acquired
+        - Include existing import status in error response (progress, estimated completion)
+        - Test: Verify 409 response when import already running
+        - Test: Verify error message clarity</task>
+      <task id="3">Ensure lock release on all completion paths (AC: #2)
+        - Review ImportOrchestrator.complete() method
+        - Verify lock release on successful completion
+        - Verify lock release on failure/error
+        - Verify lock release on cancellation
+        - Verify lock release on timeout (12 hours)
+        - Use try-finally pattern to ensure lock always released
+        - Test: Verify lock released on success
+        - Test: Verify lock released on failure
+        - Test: Verify lock released on cancellation
+        - Test: Verify lock released on timeout</task>
+      <task id="4">Add lock timeout mechanism (AC: #2)
+        - Implement lock timeout detection (12 hours maximum)
+        - Add mechanism to detect stale locks from crashed processes
+        - Consider using lock timestamp or expiration tracking
+        - Add cleanup for stale locks on import start
+        - Test: Verify stale lock detection
+        - Test: Verify stale lock cleanup</task>
+      <task id="5">Enhance error messages and user feedback (AC: #1)
+        - Ensure error message: "Import already in progress. Please wait for current import to complete."
+        - Include existing import status in error response:
+          - Current progress percentage
+          - Current phase
+          - Estimated time remaining
+          - Start time
+        - Update UI to display concurrent import prevention message
+        - Show existing import status when concurrent import attempted
+        - Test: Verify error message clarity
+        - Test: Verify status information in error response</task>
+      <task id="6">Add status check endpoint for concurrent import detection (AC: #1)
+        - Review GET /api/gomafia-sync/import/status endpoint
+        - Verify endpoint returns isRunning flag
+        - Verify endpoint returns progress and estimated completion
+        - Ensure UI can check status before attempting import
+        - Test: Verify status endpoint returns correct isRunning flag
+        - Test: Verify status endpoint returns progress information</task>
+      <task id="7">Update UI to prevent concurrent import attempts (AC: #1)
+        - Review sync page component (`src/app/(dashboard)/sync/page.tsx`)
+        - Disable import button when import is running
+        - Show message: "Import already in progress" when button disabled
+        - Display existing import progress when concurrent import attempted
+        - Poll status endpoint to detect running imports
+        - Test: Verify button disabled when import running
+        - Test: Verify message displayed correctly
+        - Test: Verify status polling works</task>
+      <task id="8">Add integration tests for concurrent import prevention (AC: #1, #2)
+        - Create integration test: Attempt concurrent import → Verify rejection
+        - Test: Verify lock prevents concurrent imports for same user
+        - Test: Verify different users can import simultaneously (user-specific locks)
+        - Test: Verify lock released on completion
+        - Test: Verify lock released on failure
+        - Test: Verify lock timeout after 12 hours
+        - Test: Verify stale lock cleanup</task>
+      <task id="9">Add E2E tests for concurrent import prevention (AC: #1)
+        - Create E2E test: Start import → Attempt second import → Verify rejection
+        - Test: Verify error message displayed in UI
+        - Test: Verify existing import status shown
+        - Test: Verify import button disabled during import
+        - Test: Verify concurrent import from different browser tab prevented</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>an import is already running for a user</given>
+      <when>another import is attempted (manual trigger, scheduled sync, or from different browser tab)</when>
+      <then>
+        - Detects active import using advisory lock or status flag
+        - Rejects new import request with clear message: "Import already in progress. Please wait for current import to complete."
+        - Shows status of existing import (progress, estimated completion)
+        - Prevents multiple imports even if triggered from different devices/browsers
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>lock mechanism</given>
+      <when>import runs</when>
+      <then>
+        - Uses database advisory lock (PostgreSQL) or Redis distributed lock
+        - Lock is released automatically when import completes or fails
+        - Lock timeout: maximum 12 hours (prevents stale locks from crashed processes)
+        - Lock includes user_id to allow different users to import simultaneously
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 2: Data Import & Synchronization - Story 2.8">
+        Story 2.8 defines concurrent import prevention requirements. System must prevent concurrent imports using advisory locks, reject new requests with clear messages, show existing import status, and use user-specific locks to allow different users to import simultaneously.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="GoMafia.pro Integration - Advisory Locks">
+        Architecture specifies use of PostgreSQL advisory locks for preventing concurrent imports. Advisory locks work across horizontally scaled instances, provide automatic cleanup on connection termination, and integrate with existing Prisma connection pool.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Error Handling">
+        Error handling patterns specify returning 409 Conflict status when lock cannot be acquired. Include existing import status in error response for user feedback.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="State Management">
+        TanStack Query configuration for server state (import status polling). Configuration in `src/lib/queryClient.ts`. Use `refetchInterval` for real-time updates.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Component Library">
+        Use ShadCN/UI components: Button for import trigger, Card for status display, Alert for error messages.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Responsive Design">
+        Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Accessibility">
+        WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/2-7-checkpoint-resume-interrupted-imports.md" title="Story 2.7" section="Dev Notes - Learnings">
+        AdvisoryLockManager already exists with acquireLock(), releaseLock(), and withLock() methods. Lock uses PostgreSQL pg_try_advisory_lock with user-specific lock keys. ImportOrchestrator already has lockManager instance. Lock should be acquired before starting import and released on completion.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/gomafia/import/advisory-lock.ts" kind="service" symbol="AdvisoryLockManager" lines="1-65" reason="Core lock management class. Provides acquireLock(userId?), releaseLock(userId?), and withLock() methods. Uses PostgreSQL pg_try_advisory_lock with user-specific lock keys (IMPORT_LOCK_ID + userId offset) to allow different users to import simultaneously." />
+      <artifact path="src/app/api/gomafia-sync/import/route.ts" kind="controller" symbol="POST /api/gomafia-sync/import" lines="141-223" reason="Import route that creates AdvisoryLockManager and checks lock before starting import. Returns 409 Conflict with error message and existing import status if lock cannot be acquired. Lock check at line 204 uses userId for user-specific locks." />
+      <artifact path="src/app/api/gomafia-sync/import/route.ts" kind="controller" symbol="GET /api/gomafia-sync/import" lines="40-134" reason="Status endpoint that returns isRunning flag, progress, currentOperation, and other status information. Used by UI to check if import is running before attempting new import." />
+      <artifact path="src/app/api/gomafia-sync/import/status/route.ts" kind="controller" symbol="GET /api/gomafia-sync/import/status" lines="10-147" reason="Detailed status endpoint that returns jobId, percentageComplete, currentGameNumber, totalGames, estimatedTimeRemaining, currentPhase, status, and other details. Used for concurrent import detection and progress display." />
+      <artifact path="src/lib/gomafia/import/import-orchestrator.ts" kind="service" symbol="ImportOrchestrator" lines="84-112" reason="Import orchestrator that manages lockManager instance (line 86). Should ensure lock is acquired before starting import and released on completion (success, failure, cancellation, timeout). Has timeoutManager for 12-hour timeout enforcement." />
+      <artifact path="tests/unit/advisory-lock.test.ts" kind="test" symbol="AdvisoryLockManager tests" lines="1-89" reason="Unit tests for lock acquisition, release, and withLock() method. Tests concurrent lock prevention using separate database connections. Verifies lock is released even if function throws." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="playwright" version="^1.56.1" />
+      </ecosystem>
+      <ecosystem name="database">
+        <package name="PostgreSQL" version="Latest (via Supabase)" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Advisory Lock Pattern: Use PostgreSQL pg_try_advisory_lock for database-level locking. Lock key: IMPORT_LOCK_ID (123456789) + user-specific offset for user-specific locks. AdvisoryLockManager handles lock acquisition and release. Use withLock() method for automatic lock management, or acquireLock()/releaseLock() for manual control.</constraint>
+    <constraint type="pattern">Lock Management: AdvisoryLockManager handles lock acquisition and release. Use withLock() method for automatic lock management, or acquireLock()/releaseLock() for manual control. Lock timeout: Maximum 12 hours lock timeout to prevent stale locks from crashed processes. Implement lock expiration tracking or cleanup mechanism.</constraint>
+    <constraint type="error-handling">Error Handling: Return 409 Conflict status when lock cannot be acquired. Include existing import status in error response for user feedback.</constraint>
+    <constraint type="state-management">State Management: Use TanStack Query for server state (import status polling). Configuration in `src/lib/queryClient.ts`.</constraint>
+    <constraint type="ui-components">UI Components: Use ShadCN/UI components: Button for import trigger, Card for status display, Alert for error messages.</constraint>
+    <constraint type="responsive-design">Responsive Design: Mobile-first approach with breakpoints at 320px, 768px, 1024px, 1440px.</constraint>
+    <constraint type="accessibility">Accessibility: WCAG 2.1 Level AA compliance required, minimum 4.5:1 color contrast ratio for text.</constraint>
+    <constraint type="testing">Testing Standards: Maintain minimum 80% test coverage for all new code. Test types: Unit tests for lock acquisition/release/timeout, integration tests for concurrent import prevention, E2E tests for UI behavior, accessibility tests using axe-core. TDD approach: Write tests before implementation, follow Red-Green-Refactor cycle.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/gomafia-sync/import" kind="REST endpoint" signature="POST /api/gomafia-sync/import
+Request Body: { profileUrl?: string, playerId?: string, order?: 'oldest-first' | 'newest-first' }
+Response 409: { error: string, code: 'IMPORT_RUNNING', details: { progress: number, currentOperation: string } }
+Response 200: { success: boolean, jobId: string }" path="src/app/api/gomafia-sync/import/route.ts" />
+    <interface name="GET /api/gomafia-sync/import" kind="REST endpoint" signature="GET /api/gomafia-sync/import
+Response: { isRunning: boolean, progress: number, currentOperation: string | null, processedRecords: number, totalRecords: number, status: string, ... }" path="src/app/api/gomafia-sync/import/route.ts" />
+    <interface name="GET /api/gomafia-sync/import/status" kind="REST endpoint" signature="GET /api/gomafia-sync/import/status?jobId={jobId}
+Response: { jobId: string, percentageComplete: number, currentGameNumber: number, totalGames: number, estimatedTimeRemaining: number | null, currentPhase: string, status: 'running' | 'completed' | 'failed' | 'paused', ... }" path="src/app/api/gomafia-sync/import/status/route.ts" />
+    <interface name="AdvisoryLockManager.acquireLock" kind="function signature" signature="async acquireLock(userId?: string): Promise&lt;boolean&gt;
+Returns true if lock was acquired, false if already held by another process.
+Uses user-specific lock key if userId provided, otherwise system-wide lock." path="src/lib/gomafia/import/advisory-lock.ts" />
+    <interface name="AdvisoryLockManager.releaseLock" kind="function signature" signature="async releaseLock(userId?: string): Promise&lt;void&gt;
+Releases the import advisory lock. Uses user-specific lock key if userId provided." path="src/lib/gomafia/import/advisory-lock.ts" />
+    <interface name="AdvisoryLockManager.withLock" kind="function signature" signature="async withLock&lt;T&gt;(fn: () =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;
+Acquires the lock, executes the function, and releases the lock (even if function throws).
+Throws Error if lock cannot be acquired." path="src/lib/gomafia/import/advisory-lock.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Maintain minimum 80% test coverage for all new code. Test types: Unit tests for lock acquisition/release/timeout, integration tests for concurrent import prevention, E2E tests for UI behavior, accessibility tests using axe-core. TDD approach: Write tests before implementation, follow Red-Green-Refactor cycle. Use Vitest for unit/integration tests, Playwright for E2E tests. Test concurrent import prevention: Verify lock prevents concurrent imports for same user, verify different users can import simultaneously (user-specific locks), verify lock released on completion/failure/cancellation/timeout, verify stale lock cleanup, verify lock timeout after 12 hours.
+    </standards>
+    <locations>
+      <location>tests/unit/</location>
+      <location>tests/integration/</location>
+      <location>tests/e2e/</location>
+      <location>tests/components/</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">Unit test: Verify AdvisoryLockManager.acquireLock() returns false when lock already held by another connection. Test user-specific locks allow different users to acquire locks simultaneously.</idea>
+      <idea criterionId="1">Unit test: Verify AdvisoryLockManager.releaseLock() releases lock correctly. Test lock is released even if function throws in withLock().</idea>
+      <idea criterionId="2">Unit test: Verify lock timeout mechanism (12 hours maximum). Test stale lock detection and cleanup.</idea>
+      <idea criterionId="1">Integration test: Attempt concurrent import for same user → Verify 409 Conflict response with error message and existing import status. Verify lock prevents concurrent imports.</idea>
+      <idea criterionId="2">Integration test: Verify different users can import simultaneously (user-specific locks). Verify lock released on completion, failure, cancellation, and timeout.</idea>
+      <idea criterionId="1">E2E test: Start import → Attempt second import from same browser tab → Verify rejection with error message. Verify existing import status shown. Verify import button disabled during import.</idea>
+      <idea criterionId="1">E2E test: Start import → Attempt concurrent import from different browser tab → Verify rejection. Verify concurrent import from different device/browser prevented.</idea>
+      <idea criterionId="1">E2E test: Verify status endpoint returns correct isRunning flag and progress information. Verify UI polls status endpoint to detect running imports.</idea>
+    </ideas>
+  </tests>
+</story-context>
