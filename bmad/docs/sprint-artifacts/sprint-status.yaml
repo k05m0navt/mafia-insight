@@ -64,7 +64,7 @@ development_status:
   3-2-enhance-card-component-variants: done
   3-3-apply-card-variants-to-dashboard: done
   3-4-component-discovery-and-documentation: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: completed
   # Epic 3: Design System Enhancement (2025-01-27)
   # Sprint Change: UI/UX Design System Enhancement via correct-course workflow
   # See: bmad/docs/sprint-change-proposal-2025-01-27.md
