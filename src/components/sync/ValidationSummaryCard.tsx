@@ -43,7 +43,7 @@ export function ValidationSummaryCard({
   const status = getValidationStatus(validationRate);
 
   return (
-    <Card>
+    <Card variant="elevated">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Validation Summary

@@ -44,7 +44,7 @@ export function ClubCard({ club, onViewAnalytics }: ClubCardProps) {
       : 0;
 
   return (
-    <Card className="w-full flex flex-col h-full">
+    <Card variant="interactive" className="w-full flex flex-col h-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>{club.name}</span>

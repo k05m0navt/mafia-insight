@@ -1,20 +1,45 @@
 import * as React from 'react';
+import { tv, type VariantProps } from 'tailwind-variants';
 
 import { cn } from '@/lib/utils';
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      'rounded-xl border bg-card text-card-foreground shadow',
-      className
-    )}
-    {...props}
-  />
-));
+const cardVariants = tv({
+  base: 'rounded-xl border bg-card text-card-foreground shadow transition-all',
+  variants: {
+    variant: {
+      default: 'border-border shadow-sm',
+      elevated: 'border-border shadow-md hover:shadow-lg',
+      outlined: 'border-2 border-border shadow-none',
+      ghost: 'border-transparent shadow-none bg-transparent',
+      interactive:
+        'border-border shadow-sm hover:shadow-md hover:border-primary/50 cursor-pointer',
+    },
+    padding: {
+      none: 'p-0',
+      sm: 'p-4',
+      default: 'p-6',
+      lg: 'p-8',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    padding: 'default',
+  },
+});
+
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, padding, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(cardVariants({ variant, padding }), className)}
+      {...props}
+    />
+  )
+);
 Card.displayName = 'Card';
 
 const CardHeader = React.forwardRef<
