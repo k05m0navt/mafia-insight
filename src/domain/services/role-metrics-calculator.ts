@@ -110,7 +110,8 @@ export class RoleMetricsCalculator {
    * Filter role metrics by role list
    *
    * Filters the provided role metrics array to include only the specified roles.
-   * If no roles are provided or the list is empty, returns all metrics unchanged.
+   * If no roles are provided (undefined), returns all metrics unchanged.
+   * If an empty array is provided, returns an empty array.
    *
    * @param metrics - Array of RoleMetrics to filter
    * @param roles - Optional list of roles to filter by (DON, MAFIA, SHERIFF, CITIZEN)
@@ -123,8 +124,14 @@ export class RoleMetricsCalculator {
    * ```
    */
   filterByRoles(metrics: RoleMetrics[], roles?: PlayerRole[]): RoleMetrics[] {
-    if (!roles || roles.length === 0) {
+    // If roles is undefined, return all metrics
+    if (roles === undefined) {
       return metrics;
+    }
+
+    // If roles is an empty array, return empty array
+    if (roles.length === 0) {
+      return [];
     }
 
     return metrics.filter((m) => roles.includes(m.role));
