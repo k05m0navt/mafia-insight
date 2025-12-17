@@ -1,0 +1,522 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.3</storyId>
+    <title>Win Rate Analysis Across Roles</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/4-3-win-rate-analysis-across-roles.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>player</asA>
+    <iWant>to analyze my win rates across different roles and game scenarios</iWant>
+    <soThat>I understand my strengths and weaknesses in various situations</soThat>
+    <tasks>
+      <task id="1" acceptanceCriteria="1,2,3">
+        Create API endpoint for win rate analysis
+        <subtasks>
+          <subtask>Create `GET /api/players/[id]/analytics/win-rates` route handler</subtask>
+          <subtask>Implement query parameters support: `dateRange?`, `roles?` (array of roles)</subtask>
+          <subtask>Add authentication middleware (verify user owns player ID or is admin)</subtask>
+          <subtask>Implement win rate calculation logic (overall, per-role, by scenario if available)</subtask>
+          <subtask>Calculate comparison to average win rates (if aggregated data available)</subtask>
+          <subtask>Add input validation using Zod schemas</subtask>
+          <subtask>Return `WinRateAnalysis` response matching tech spec data model</subtask>
+          <subtask>Add error handling (404 for player not found, 400 for invalid parameters)</subtask>
+          <subtask>Add unit tests for API endpoint</subtask>
+        </subtasks>
+      </task>
+      <task id="2" acceptanceCriteria="2">
+        Create domain service for win rate calculation
+        <subtasks>
+          <subtask>Create `WinRateAnalyzer` service in `src/domain/services/`</subtask>
+          <subtask>Implement overall win rate calculation: (wins / total_games) × 100</subtask>
+          <subtask>Implement per-role win rate calculation: (wins in role / games in role) × 100</subtask>
+          <subtask>Implement scenario-based win rate calculation (tournament vs casual, if data available)</subtask>
+          <subtask>Implement comparison to average win rates (if aggregated data available)</subtask>
+          <subtask>Handle edge cases (no games, insufficient data, division by zero)</subtask>
+          <subtask>Add unit tests for calculation logic</subtask>
+        </subtasks>
+      </task>
+      <task id="3" acceptanceCriteria="2,4">
+        Create database query for win rate data
+        <subtasks>
+          <subtask>Create Prisma query to fetch game participation data with win/loss records</subtask>
+          <subtask>Filter by player ID, date range, and roles</subtask>
+          <subtask>Aggregate wins and losses by role</subtask>
+          <subtask>Aggregate wins and losses by scenario (tournament vs casual) if tournament data available</subtask>
+          <subtask>Add database indexes if needed (player_id, role, game_date, tournament_id)</subtask>
+          <subtask>Optimize query performance (target &lt; 500ms for aggregated data)</subtask>
+          <subtask>Add integration tests for database queries</subtask>
+        </subtasks>
+      </task>
+      <task id="4" acceptanceCriteria="1,3,6,7">
+        Create WinRateAnalysis component
+        <subtasks>
+          <subtask>Create `WinRateAnalysis` component in `src/components/analytics/`</subtask>
+          <subtask>Use TanStack Query to fetch data from API endpoint</subtask>
+          <subtask>Display overall win rate percentage prominently (large number, card component)</subtask>
+          <subtask>Display per-role win rate breakdown (cards or table)</subtask>
+          <subtask>Display bar chart comparing win rates across roles (Recharts BarChart)</subtask>
+          <subtask>Display pie chart showing win/loss distribution (Recharts PieChart)</subtask>
+          <subtask>Display scenario-based win rates (if available) with conditional rendering</subtask>
+          <subtask>Display comparison to average win rates (if available) with visual indicators</subtask>
+          <subtask>Connect to analytics store (Zustand) for filter state (date range, roles)</subtask>
+          <subtask>Implement loading states (skeleton screens)</subtask>
+          <subtask>Implement empty states for no data</subtask>
+          <subtask>Add smooth animations for data loading/updates</subtask>
+          <subtask>Make charts responsive (mobile: stacked, desktop: side-by-side)</subtask>
+          <subtask>Add component tests using React Testing Library</subtask>
+        </subtasks>
+      </task>
+      <task id="5" acceptanceCriteria="1">
+        Create win rate chart components
+        <subtasks>
+          <subtask>Create `WinRateBarChart` component for role comparison</subtask>
+          <subtask>Create `WinLossPieChart` component for win/loss distribution</subtask>
+          <subtask>Use Recharts library with lazy loading for code splitting</subtask>
+          <subtask>Add hover tooltips showing exact percentages and counts</subtask>
+          <subtask>Add color coding (green for wins, red for losses, role-specific colors)</subtask>
+          <subtask>Make charts responsive with ResponsiveContainer</subtask>
+          <subtask>Add smooth animations (300ms transitions)</subtask>
+          <subtask>Add component tests</subtask>
+        </subtasks>
+      </task>
+      <task id="6" acceptanceCriteria="1,3">
+        Integrate win rate analysis into analytics dashboard
+        <subtasks>
+          <subtask>Add `WinRateAnalysis` component to analytics dashboard page</subtask>
+          <subtask>Connect to filter state (Zustand store) for date range and roles</subtask>
+          <subtask>Implement filter application triggering data refetch</subtask>
+          <subtask>Add smooth transitions when filters change (&lt; 300ms)</subtask>
+          <subtask>Test filter integration</subtask>
+        </subtasks>
+      </task>
+      <task id="7" acceptanceCriteria="1,2">
+        Add TypeScript types and interfaces
+        <subtasks>
+          <subtask>Define `WinRateAnalysis` interface matching tech spec data model</subtask>
+          <subtask>Define `WinRateAnalysisProps` interface</subtask>
+          <subtask>Define `WinRateAnalysisResponse` interface for API response</subtask>
+          <subtask>Add types for API request/response</subtask>
+          <subtask>Ensure type safety throughout component tree</subtask>
+          <subtask>Add JSDoc comments for all public interfaces</subtask>
+        </subtasks>
+      </task>
+      <task id="8" acceptanceCriteria="4,5,7">
+        Add error handling and edge cases
+        <subtasks>
+          <subtask>Handle API errors (network, 404, 400) with user-friendly messages</subtask>
+          <subtask>Display empty states for no win rate data</subtask>
+          <subtask>Handle loading states gracefully</subtask>
+          <subtask>Handle missing scenario data gracefully (conditional rendering)</subtask>
+          <subtask>Handle missing aggregated data gracefully (show win rates without comparison)</subtask>
+          <subtask>Add retry logic for failed API calls (exponential backoff, 3 attempts)</subtask>
+          <subtask>Add error boundary for component errors</subtask>
+          <subtask>Handle edge cases (no games, division by zero, single role data)</subtask>
+        </subtasks>
+      </task>
+      <task id="9" acceptanceCriteria="1,6">
+        Performance optimization
+        <subtasks>
+          <subtask>Implement TanStack Query caching (5-minute stale time, 10-minute GC time)</subtask>
+          <subtask>Add database query optimization (indexes, efficient aggregations)</subtask>
+          <subtask>Lazy load chart libraries (code splitting)</subtask>
+          <subtask>Optimize component re-renders (React.memo if needed)</subtask>
+          <subtask>Optimize chart rendering for large datasets</subtask>
+          <subtask>Measure and verify performance targets (&lt; 500ms API response, &lt; 2s chart render)</subtask>
+        </subtasks>
+      </task>
+      <task id="10" acceptanceCriteria="1,2,3,4,5,6,7">
+        Testing
+        <subtasks>
+          <subtask>Unit tests for `WinRateAnalyzer` service (80%+ coverage)</subtask>
+          <subtask>Integration tests for API endpoint (various query parameters, error cases)</subtask>
+          <subtask>Component tests for `WinRateAnalysis` (rendering, loading states, empty states, charts)</subtask>
+          <subtask>Component tests for chart components (bar chart, pie chart)</subtask>
+          <subtask>E2E test: Complete flow (load dashboard → view win rates → apply filters → verify charts update)</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I have game data with win/loss records per role</given>
+      <when>I view win rate analytics</when>
+      <then>
+        <assertion>the system displays overall win rate percentage (prominent display)</assertion>
+        <assertion>win rate breakdown by role (Don: X%, Mafia: Y%, Sheriff: Z%, Citizen: W%)</assertion>
+        <assertion>win rate by scenario (tournament games vs casual games, if available)</assertion>
+        <assertion>comparison to average win rates (if aggregated data available)</assertion>
+        <assertion>visual charts: bar chart comparing win rates across roles, pie chart showing win/loss distribution</assertion>
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I have game data with win/loss records per role</given>
+      <when>I view the win rate breakdown</when>
+      <then>
+        <assertion>the system calculates and displays overall win rate: (total wins / total games) × 100</assertion>
+        <assertion>per-role win rates: (wins in role / games in role) × 100 for each role (Don, Mafia, Sheriff, Citizen)</assertion>
+        <assertion>win/loss counts for each role (wins, losses, total games)</assertion>
+        <assertion>win rate comparison chart showing relative performance across roles</assertion>
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>I am viewing win rate analytics</given>
+      <when>I apply date range or role filters</when>
+      <then>
+        <assertion>the system updates all win rate calculations and charts to reflect the filtered data</assertion>
+        <assertion>the charts smoothly animate to the new data</assertion>
+        <assertion>the filter indicators show active filters</assertion>
+      </then>
+    </criterion>
+    <criterion id="4">
+      <given>I have tournament and casual game data (if available)</given>
+      <when>I view win rate analytics</when>
+      <then>
+        <assertion>the system displays win rate by scenario: tournament games win rate (if tournament data available), casual games win rate (if casual data available), comparison between tournament and casual performance</assertion>
+        <assertion>if scenario data is not available, the system gracefully handles the absence without errors</assertion>
+      </then>
+    </criterion>
+    <criterion id="5">
+      <given>aggregated player data is available (if implemented)</given>
+      <when>I view win rate analytics</when>
+      <then>
+        <assertion>the system displays comparison to average win rates: player's overall win rate vs average overall win rate, player's per-role win rates vs average per-role win rates, visual indicators showing above/below average performance</assertion>
+        <assertion>if aggregated data is not available, the system displays win rates without comparison</assertion>
+      </then>
+    </criterion>
+    <criterion id="6">
+      <given>I am viewing win rate analytics</given>
+      <when>the data is loading</when>
+      <then>
+        <assertion>the system displays loading states (skeleton screens or spinners)</assertion>
+        <assertion>when data is available, it transitions smoothly with animations</assertion>
+      </then>
+    </criterion>
+    <criterion id="7">
+      <given>I have no game data or insufficient data for win rate calculation</given>
+      <when>I view win rate analytics</when>
+      <then>
+        <assertion>the system displays an empty state with helpful messaging</assertion>
+        <assertion>suggests importing game data or selecting a different time range</assertion>
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>AC3: Win Rate Analysis Across Roles</section>
+        <snippet>Win Rate Analysis enables players to analyze win rates across different roles and game scenarios. The system displays overall win rate percentage, win rate breakdown by role (Don, Mafia, Sheriff, Citizen), win rate by scenario (tournament vs casual if available), comparison to average win rates (if aggregated data available), and visual charts (bar chart comparing win rates, pie chart showing win/loss distribution).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>Data Models and Contracts - WinRateAnalysis</section>
+        <snippet>WinRateAnalysis interface: overall (percentage), byRole (Record&lt;string, number&gt;), byScenario (optional Record&lt;string, number&gt;), comparisonToAverage (optional number). Used for API responses and component props.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>APIs and Interfaces - GET /api/players/[id]/analytics/win-rates</section>
+        <snippet>API endpoint accepts query parameters: dateRange? (optional), roles? (optional array). Returns WinRateAnalysis response. Error codes: 404 (Player not found), 400 (Invalid parameters). Requires authentication via NextAuth.js session.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>System Architecture Alignment</section>
+        <snippet>Analytics components in Presentation Layer (src/components/analytics/), use cases in Application Layer (src/application/use-cases/), domain services in Domain Layer (src/domain/services/), data access through Infrastructure Layer (src/infrastructure/persistence/). State management: TanStack Query for server state, Zustand for client state (filters).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>Dependencies and Integrations - Chart Libraries</section>
+        <snippet>Recharts (^2.10.0) selected for data visualization. Use React.lazy with Suspense for code splitting. ResponsiveContainer with 300ms debounce for mobile performance. Animation settings: animationEasing="ease-in-out", animationDuration={300}.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>Performance - Response Time Targets</section>
+        <snippet>Analytics API endpoints: &lt; 500ms for aggregated data. Chart rendering: &lt; 2 seconds for initial render. Filter application: &lt; 300ms for data refresh. Optimization strategies: database indexes, TanStack Query caching (5-minute stale time, 10-minute GC time), lazy load chart libraries.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification: Player Analytics Dashboard</title>
+        <section>Test Strategy Summary</section>
+        <snippet>Unit tests: Vitest for service logic and calculations (80%+ coverage). Component tests: React Testing Library for component rendering and interactions. Integration tests: Test API endpoints with various query parameters and error cases. E2E tests: Playwright for complete user flows.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/4-2-elo-rating-with-historical-trends.md</path>
+        <title>Story 4.2: ELO Rating with Historical Trends</title>
+        <section>Learnings from Previous Story</section>
+        <snippet>Recharts library selected for React integration. Chart libraries should be lazy-loaded via React.lazy with Suspense for code splitting. Use ResponsiveContainer with 300ms debounce for mobile performance. TanStack Query hooks with 5min stale time, 10min GC time for caching. Use useAnalyticsStore() hook for shared filter state (date range, roles).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/4-3-win-rate-analysis-across-roles.md</path>
+        <title>Story 4.3: Win Rate Analysis Across Roles</title>
+        <section>Dev Notes - Architecture Patterns and Constraints</section>
+        <snippet>Clean Architecture + Hexagonal: Analytics components in Presentation Layer, use cases in Application Layer, domain services in Domain Layer, data access through Infrastructure Layer. API Routes follow established request/response format patterns. State Management: TanStack Query for server state, Zustand for client state (filters).</snippet>
+      </doc>
+      <doc>
+        <path>bmad/docs/sprint-artifacts/4-3-win-rate-analysis-across-roles.md</path>
+        <title>Story 4.3: Win Rate Analysis Across Roles</title>
+        <section>Dev Notes - Source Tree Components to Touch</section>
+        <snippet>New files: src/app/api/players/[id]/analytics/win-rates/route.ts, src/domain/services/win-rate-analyzer.ts, src/components/analytics/WinRateAnalysis.tsx, src/components/analytics/WinRateBarChart.tsx, src/components/analytics/WinLossPieChart.tsx, src/infrastructure/persistence/win-rate.repository.ts, src/hooks/useWinRateAnalysis.ts. Modify: src/store/analyticsStore.ts (ensure role filter support), src/types/analytics.ts (add win rate analysis types).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/infrastructure/persistence/role-metrics.repository.ts</path>
+        <kind>repository</kind>
+        <symbol>RoleMetricsRepository</symbol>
+        <lines>1-158</lines>
+        <reason>Reference implementation for role-based data querying patterns. Shows how to query game participation data filtered by player ID, date range, and roles. Demonstrates aggregation by role and proper use of Prisma queries with filtering.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/players/[id]/analytics/elo-trends/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET /api/players/[id]/analytics/elo-trends</symbol>
+        <lines>1-225</lines>
+        <reason>Reference implementation for analytics API endpoint pattern. Shows authentication middleware usage, query parameter validation with Zod, date range handling, player access verification, error handling patterns, and response structure. Follow same pattern for win-rates endpoint.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/analytics/ELOTrendsChart.tsx</path>
+        <kind>component</kind>
+        <symbol>ELOTrendsChart</symbol>
+        <lines>1-236</lines>
+        <reason>Reference implementation for analytics chart component. Shows TanStack Query usage, Zustand store integration for filters, lazy loading with React.lazy and Suspense, loading/error/empty states, responsive design, and Recharts integration. Follow same patterns for WinRateAnalysis component.</reason>
+      </artifact>
+      <artifact>
+        <path>src/store/analyticsStore.ts</path>
+        <kind>store</kind>
+        <symbol>useAnalyticsStore</symbol>
+        <lines>1-50</lines>
+        <reason>Zustand store for analytics filter state. Already includes selectedRoles array for role filtering. Use this store to connect WinRateAnalysis component to filter state. Ensure role filter support is complete.</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/analytics.ts</path>
+        <kind>types</kind>
+        <symbol>DateRange, PlayerRole, ELOTrendsResponse, ELOTrendsChartProps</symbol>
+        <lines>1-113</lines>
+        <reason>TypeScript interfaces for analytics. Add WinRateAnalysis, WinRateAnalysisResponse, WinRateAnalysisProps interfaces here. Follow existing patterns for DateRange and PlayerRole types. Reference ELOTrendsResponse and ELOTrendsChartProps as templates.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/players/[id]/analytics/role-based/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET /api/players/[id]/analytics/role-based</symbol>
+        <lines>1-200</lines>
+        <reason>Reference for role-based analytics endpoint. Shows similar patterns to what win-rates endpoint needs: authentication, query parameters (dateRange, roles), player access verification, repository usage, error handling. Win-rates endpoint will be similar but calculate win rates instead of role metrics.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/analytics/RoleMetricsDisplay.tsx</path>
+        <kind>component</kind>
+        <symbol>RoleMetricsDisplay</symbol>
+        <lines>1-300</lines>
+        <reason>Reference for analytics component displaying role-based data. Shows how to use TanStack Query, Zustand store, loading/error/empty states, card components, and responsive design. WinRateAnalysis component will follow similar patterns but focus on win rate calculations and charts.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/analytics/ErrorBoundary.tsx</path>
+        <kind>component</kind>
+        <symbol>ErrorBoundary</symbol>
+        <lines>1-87</lines>
+        <reason>Error boundary component for analytics. Use this to wrap WinRateAnalysis component for error handling. Shows proper error boundary implementation with fallback UI.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/public/statistics/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET /api/public/statistics</symbol>
+        <lines>1-153</lines>
+        <reason>Reference for aggregation queries. Shows how to use Prisma aggregate functions for calculating statistics. Useful for understanding how to calculate average win rates for comparison if aggregated data is needed.</reason>
+      </artifact>
+      <artifact>
+        <path>src/services/analyticsService.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsService</symbol>
+        <lines>1-314</lines>
+        <reason>Legacy analytics service. Note: New implementation should use Clean Architecture pattern with domain services and repositories instead. This file shows win rate calculation pattern: (wins / totalGames) × 100. Use as reference for calculation logic but implement in domain service layer.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="recharts" version="^3.6.0">Chart library for bar charts and pie charts</package>
+        <package name="@tanstack/react-query" version="^5.0.0">Server state management for API data fetching</package>
+        <package name="zustand" version="^4.4.0">Client state management for filter state</package>
+        <package name="zod" version="^4.1.12">Schema validation for API request/response</package>
+        <package name="next" version="^16.0.0">Next.js framework with App Router</package>
+        <package name="react" version="^19.2.0">React library</package>
+        <package name="react-dom" version="^19.2.0">React DOM</package>
+        <package name="@prisma/client" version="^5.0.0">Prisma ORM client for database access</package>
+        <package name="next-auth" version="^4.24.12">Authentication middleware</package>
+        <package name="date-fns" version="^4.1.0">Date formatting and manipulation</package>
+        <package name="lucide-react" version="^0.548.0">Icons</package>
+        <package name="tailwind-variants" version="^3.2.2">Component variant styling</package>
+        <package name="tailwindcss" version="^3.3.0">CSS framework</package>
+      </ecosystem>
+      <ecosystem name="dev">
+        <package name="vitest" version="^1.0.0">Unit and integration testing</package>
+        <package name="@testing-library/react" version="^16.0.0">Component testing</package>
+        <package name="playwright" version="^1.56.1">E2E testing</package>
+        <package name="typescript" version="^5.0.0">TypeScript compiler</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <category>Architecture</category>
+      <rule>Follow Clean Architecture + Hexagonal Architecture patterns. Analytics components in Presentation Layer (src/components/analytics/), domain services in Domain Layer (src/domain/services/), repositories in Infrastructure Layer (src/infrastructure/persistence/), API routes in Adapters Layer (src/app/api/).</rule>
+    </constraint>
+    <constraint>
+      <category>State Management</category>
+      <rule>Use TanStack Query for server state (analytics data) with 5-minute stale time and 10-minute GC time. Use Zustand store (src/store/analyticsStore.ts) for client state (filters). Connect WinRateAnalysis component to analyticsStore for date range and role filters.</rule>
+    </constraint>
+    <constraint>
+      <category>Component Library</category>
+      <rule>Use ShadCN/UI base components with custom styling. Use Tailwind CSS 3.3.0 with tailwind-variants for component variants. Follow established component patterns from ELOTrendsChart and RoleMetricsDisplay.</rule>
+    </constraint>
+    <constraint>
+      <category>Chart Library</category>
+      <rule>Use Recharts library (^3.6.0) for bar charts and pie charts. Lazy load chart components via React.lazy with Suspense for code splitting. Use ResponsiveContainer with 300ms debounce for mobile performance. Animation settings: animationEasing="ease-in-out", animationDuration={300}.</rule>
+    </constraint>
+    <constraint>
+      <category>API Routes</category>
+      <rule>Follow established request/response format patterns in src/app/api/players/[id]/analytics/. Use Next.js App Router API routes. Add authentication via authenticateRequest() middleware. Verify user owns player ID or is admin. Use Zod schemas for input validation. Return proper error codes (404 for not found, 400 for invalid parameters, 401 for auth errors, 500 for server errors).</rule>
+    </constraint>
+    <constraint>
+      <category>Type Safety</category>
+      <rule>TypeScript 5.0.0 with strict mode. Maintain type safety throughout component tree. Define all interfaces in src/types/analytics.ts. Add JSDoc comments for all public interfaces. Use type inference where appropriate but be explicit for API contracts.</rule>
+    </constraint>
+    <constraint>
+      <category>Performance</category>
+      <rule>API response time target: &lt; 500ms for aggregated data. Chart rendering target: &lt; 2 seconds for initial render. Filter application target: &lt; 300ms for data refresh. Implement database indexes on player_id, role, game_date, tournament_id. Use TanStack Query caching. Lazy load chart libraries. Optimize component re-renders with React.memo if needed.</rule>
+    </constraint>
+    <constraint>
+      <category>Testing</category>
+      <rule>Maintain minimum 80% test coverage for all new code. Unit tests: Vitest for service logic and calculations. Component tests: React Testing Library for component rendering and interactions. Integration tests: Test API endpoints with various query parameters and error cases. E2E tests: Playwright for complete user flows. Test locations: tests/unit/services/, tests/components/analytics/, tests/integration/api/analytics/, tests/e2e/analytics/.</rule>
+    </constraint>
+    <constraint>
+      <category>Error Handling</category>
+      <rule>Handle API errors (network, 404, 400) with user-friendly messages via toast notifications or error boundaries. Display empty states for no data with helpful messaging. Handle missing scenario data gracefully with conditional rendering. Handle missing aggregated data gracefully (show win rates without comparison). Add retry logic for failed API calls (exponential backoff, 3 attempts). Use ErrorBoundary component for component errors.</rule>
+    </constraint>
+    <constraint>
+      <category>Responsive Design</category>
+      <rule>Mobile-first approach with breakpoints: 320px, 768px, 1024px. Charts should be responsive (mobile: stacked, desktop: side-by-side). Use ResponsiveContainer from Recharts. Touch-optimized interactions (44x44px minimum touch targets). Responsive navigation patterns (mobile: bottom nav or hamburger menu, desktop: sidebar or top tabs).</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GET /api/players/[id]/analytics/win-rates</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/players/[id]/analytics/win-rates?dateRange={startDate,endDate,preset}&amp;roles[]=DON&amp;roles[]=MAFIA</signature>
+      <path>src/app/api/players/[id]/analytics/win-rates/route.ts</path>
+      <description>API endpoint for win rate analysis. Accepts optional query parameters: dateRange (object with startDate, endDate, or preset), roles (array of PlayerRole). Returns WinRateAnalysisResponse. Requires authentication. Returns 404 if player not found, 400 for invalid parameters.</description>
+    </interface>
+    <interface>
+      <name>WinRateAnalysis</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface WinRateAnalysis { overall: number; byRole: Record&lt;string, number&gt;; byScenario?: Record&lt;string, number&gt;; comparisonToAverage?: number; }</signature>
+      <path>src/types/analytics.ts</path>
+      <description>Data model for win rate analysis. overall: overall win rate percentage (0-100). byRole: win rate percentage per role (DON, MAFIA, SHERIFF, CITIZEN). byScenario: optional win rate by scenario (tournament vs casual). comparisonToAverage: optional difference from average win rate.</description>
+    </interface>
+    <interface>
+      <name>WinRateAnalysisResponse</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface WinRateAnalysisResponse extends WinRateAnalysis { }</signature>
+      <path>src/types/analytics.ts</path>
+      <description>API response type for win rate analysis endpoint. Extends WinRateAnalysis interface.</description>
+    </interface>
+    <interface>
+      <name>WinRateAnalysisProps</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface WinRateAnalysisProps { playerId: string; dateRange?: DateRange; roles?: PlayerRole[]; }</signature>
+      <path>src/types/analytics.ts</path>
+      <description>Props for WinRateAnalysis component. playerId: UUID of player. dateRange: optional date range filter. roles: optional array of roles to filter by.</description>
+    </interface>
+    <interface>
+      <name>WinRateAnalyzer</name>
+      <kind>Domain service class</kind>
+      <signature>class WinRateAnalyzer { calculateOverallWinRate(data: GameParticipationData[]): number; calculatePerRoleWinRates(data: GameParticipationData[]): Record&lt;string, number&gt;; calculateScenarioWinRates(data: GameParticipationData[]): Record&lt;string, number&gt; | undefined; calculateComparisonToAverage(winRates: WinRateAnalysis, averageWinRates?: WinRateAnalysis): number | undefined; }</signature>
+      <path>src/domain/services/win-rate-analyzer.ts</path>
+      <description>Domain service for win rate calculations. Handles business logic for calculating overall win rate, per-role win rates, scenario-based win rates, and comparison to averages. Pure functions with no side effects.</description>
+    </interface>
+    <interface>
+      <name>WinRateRepository</name>
+      <kind>Repository class</kind>
+      <signature>class WinRateRepository { getWinRateData(playerId: string, dateRange?: DateRange, roles?: PlayerRole[]): Promise&lt;GameParticipationData[]&gt;; verifyPlayerAccess(playerId: string, userId?: string): Promise&lt;boolean&gt;; }</signature>
+      <path>src/infrastructure/persistence/win-rate.repository.ts</path>
+      <description>Repository for querying win rate data from database. Handles all database queries related to win rate analysis. Follows Repository pattern from Clean Architecture. Reference RoleMetricsRepository for implementation patterns.</description>
+    </interface>
+    <interface>
+      <name>useWinRateAnalysis</name>
+      <kind>React hook</kind>
+      <signature>function useWinRateAnalysis(playerId: string, dateRange?: DateRange, roles?: PlayerRole[]): { data: WinRateAnalysisResponse | undefined; isLoading: boolean; error: Error | null; }</signature>
+      <path>src/hooks/useWinRateAnalysis.ts</path>
+      <description>TanStack Query hook for fetching win rate data. Returns data, loading state, and error. Handles caching, refetching, and error states. Follows same pattern as useELOTrends hook.</description>
+    </interface>
+    <interface>
+      <name>WinRateAnalysis component</name>
+      <kind>React component</kind>
+      <signature>function WinRateAnalysis({ playerId, dateRange, roles }: WinRateAnalysisProps): JSX.Element</signature>
+      <path>src/components/analytics/WinRateAnalysis.tsx</path>
+      <description>Main component for win rate analysis. Displays overall win rate, per-role breakdown, charts (bar chart and pie chart), scenario-based win rates (if available), comparison to averages (if available). Connects to analyticsStore for filters. Handles loading, error, and empty states.</description>
+    </interface>
+    <interface>
+      <name>WinRateBarChart component</name>
+      <kind>React component</kind>
+      <signature>function WinRateBarChart({ data, roles }: { data: Record&lt;string, number&gt;; roles: PlayerRole[]; }): JSX.Element</signature>
+      <path>src/components/analytics/WinRateBarChart.tsx</path>
+      <description>Bar chart component for comparing win rates across roles. Uses Recharts BarChart. Shows hover tooltips with exact percentages. Color-coded by role. Responsive with ResponsiveContainer. Smooth animations (300ms).</description>
+    </interface>
+    <interface>
+      <name>WinLossPieChart component</name>
+      <kind>React component</kind>
+      <signature>function WinLossPieChart({ wins, losses }: { wins: number; losses: number; }): JSX.Element</signature>
+      <path>src/components/analytics/WinLossPieChart.tsx</path>
+      <description>Pie chart component for win/loss distribution. Uses Recharts PieChart. Shows win/loss percentages. Color-coded (green for wins, red for losses). Responsive with ResponsiveContainer. Smooth animations (300ms).</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing follows established patterns from previous analytics stories. Unit tests use Vitest for service logic and calculations with 80%+ coverage target. Component tests use React Testing Library for rendering, interactions, loading states, empty states, and chart rendering. Integration tests verify API endpoints with various query parameters, error cases, authentication, and database queries. E2E tests use Playwright for complete user flows including filter application and chart updates. Test locations: tests/unit/services/ for domain services, tests/components/analytics/ for components, tests/integration/api/analytics/ for API endpoints, tests/e2e/analytics/ for E2E tests. Performance testing verifies API response time &lt; 500ms and chart rendering &lt; 2 seconds.
+    </standards>
+    <locations>
+      <location>tests/unit/services/WinRateAnalyzer.test.ts</location>
+      <location>tests/integration/api/analytics/win-rates.test.ts</location>
+      <location>tests/components/analytics/WinRateAnalysis.test.tsx</location>
+      <location>tests/components/analytics/WinRateBarChart.test.tsx</location>
+      <location>tests/components/analytics/WinLossPieChart.test.tsx</location>
+      <location>tests/e2e/analytics/win-rates.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea criterionId="1">
+        Test overall win rate percentage displays prominently. Test win rate breakdown by role shows correct percentages for Don, Mafia, Sheriff, Citizen. Test win rate by scenario displays when tournament data available. Test comparison to average win rates displays when aggregated data available. Test bar chart renders with correct data. Test pie chart renders with correct win/loss distribution.
+      </idea>
+      <idea criterionId="2">
+        Test overall win rate calculation: (total wins / total games) × 100. Test per-role win rate calculation: (wins in role / games in role) × 100 for each role. Test win/loss counts display correctly for each role. Test win rate comparison chart shows relative performance across roles.
+      </idea>
+      <idea criterionId="3">
+        Test date range filter updates all win rate calculations and charts. Test role filter updates all win rate calculations and charts. Test charts smoothly animate to new data when filters change. Test filter indicators show active filters.
+      </idea>
+      <idea criterionId="4">
+        Test tournament games win rate displays when tournament data available. Test casual games win rate displays when casual data available. Test comparison between tournament and casual performance displays. Test graceful handling when scenario data not available (no errors, conditional rendering).
+      </idea>
+      <idea criterionId="5">
+        Test player's overall win rate vs average overall win rate displays when aggregated data available. Test player's per-role win rates vs average per-role win rates display. Test visual indicators show above/below average performance. Test win rates display without comparison when aggregated data not available.
+      </idea>
+      <idea criterionId="6">
+        Test loading states display (skeleton screens or spinners) when data is loading. Test smooth transitions with animations when data becomes available.
+      </idea>
+      <idea criterionId="7">
+        Test empty state displays with helpful messaging when no game data available. Test empty state suggests importing game data or selecting different time range. Test graceful handling of insufficient data for win rate calculation.
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

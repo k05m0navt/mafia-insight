@@ -110,3 +110,42 @@ export interface TimeRangeSelectorProps {
     'last_month' | 'last_3_months' | 'last_6_months' | 'all_time'
   >;
 }
+
+/**
+ * Win rate analysis data model
+ */
+export interface WinRateAnalysis {
+  overall: number; // percentage (0-100)
+  byRole: Record<string, number>; // role -> win rate percentage
+  byScenario?: Record<string, number>; // scenario -> win rate (if available)
+  comparisonToAverage?: number; // difference from average (if available)
+  winLossCounts: {
+    overall: {
+      wins: number;
+      losses: number;
+      total: number;
+    };
+    byRole: Record<
+      string,
+      {
+        wins: number;
+        losses: number;
+        total: number;
+      }
+    >;
+  };
+}
+
+/**
+ * Response for win rate analysis API
+ */
+export type WinRateAnalysisResponse = WinRateAnalysis;
+
+/**
+ * Props for WinRateAnalysis component
+ */
+export interface WinRateAnalysisProps {
+  playerId: string;
+  dateRange?: DateRange;
+  roles?: PlayerRole[];
+}
