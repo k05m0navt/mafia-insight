@@ -18,13 +18,7 @@ export type PerformanceLevel = 'excellent' | 'good' | 'needs_improvement';
 export interface DateRange {
   startDate?: string | null;
   endDate?: string | null;
-  preset?:
-    | 'last_week'
-    | 'last_month'
-    | 'last_3_months'
-    | 'last_year'
-    | 'all_time'
-    | null;
+  preset?: 'last_month' | 'last_3_months' | 'last_6_months' | 'all_time' | null;
 }
 
 /**
@@ -71,4 +65,48 @@ export interface RoleMetricsDisplayProps {
 export interface RoleComparisonChartProps {
   roleMetrics: RoleMetrics[];
   highlightBest?: boolean;
+}
+
+/**
+ * ELO trend data point
+ */
+export interface ELOTrendPoint {
+  date: string; // ISO 8601 date string
+  elo: number;
+  gameId: string;
+}
+
+/**
+ * Period for aggregating ELO trends
+ */
+export type ELOTrendPeriod = 'day' | 'week' | 'month';
+
+/**
+ * Response for ELO trends API
+ */
+export interface ELOTrendsResponse {
+  trends: ELOTrendPoint[];
+  currentELO: number;
+  historicalHigh: number;
+  historicalLow: number;
+}
+
+/**
+ * Props for ELOTrendsChart component
+ */
+export interface ELOTrendsChartProps {
+  playerId: string;
+  dateRange?: DateRange;
+  period?: ELOTrendPeriod;
+}
+
+/**
+ * Props for TimeRangeSelector component
+ */
+export interface TimeRangeSelectorProps {
+  value: DateRange | null;
+  onChange: (range: DateRange | null) => void;
+  presets?: Array<
+    'last_month' | 'last_3_months' | 'last_6_months' | 'all_time'
+  >;
 }

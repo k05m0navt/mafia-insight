@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { PlayerStatistics } from '@/components/analytics/PlayerStatistics';
 import { TournamentHistory } from '@/components/analytics/TournamentHistory';
 import { RoleBasedMetricsSection } from '@/components/analytics/RoleBasedMetricsSection';
+import { ELOTrendsChart } from '@/components/analytics/ELOTrendsChart';
+import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -55,7 +57,10 @@ export default function PlayerStatisticsPage() {
           <TabsTrigger value="games">Recent Games</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
+        <TabsContent value="overview" className="space-y-6">
+          <ErrorBoundary>
+            <ELOTrendsChart playerId={playerId} />
+          </ErrorBoundary>
           <PlayerStatistics
             playerId={playerId}
             year={selectedYear || undefined}

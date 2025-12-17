@@ -73,7 +73,7 @@ development_status:
 
   epic-4: contexted
   4-1-role-based-performance-metrics-display: done
-  4-2-elo-rating-with-historical-trends: backlog
+  4-2-elo-rating-with-historical-trends: done
   4-3-win-rate-analysis-across-roles: backlog
   4-4-basic-performance-statistics-summaries: backlog
   4-5-date-range-filtering-for-analytics: backlog

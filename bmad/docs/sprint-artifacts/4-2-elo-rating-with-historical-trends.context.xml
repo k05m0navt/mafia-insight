@@ -1,0 +1,251 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.2</storyId>
+    <title>ELO Rating with Historical Trends</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/4-2-elo-rating-with-historical-trends.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>player</asA>
+    <iWant>to view my ELO rating with historical progression over time</iWant>
+    <soThat>I can track my skill improvement and see rating trends</soThat>
+    <tasks>
+      - [ ] Task 1: Create API endpoint for ELO trends (AC: #1, #2)
+        - [ ] Create `GET /api/players/[id]/analytics/elo-trends` route handler
+        - [ ] Implement query parameters support: `dateRange?` (required), `period?` ('day' | 'week' | 'month')
+        - [ ] Add authentication middleware (verify user owns player ID or is admin)
+        - [ ] Implement ELO trends calculation logic (fetch historical ELO data, aggregate by period)
+        - [ ] Calculate current ELO, historical high/low values
+        - [ ] Add input validation using Zod schemas
+        - [ ] Return `{ trends: ELOTrendPoint[], currentELO: number, historicalHigh: number, historicalLow: number }` response
+        - [ ] Add error handling (404 for player not found, 400 for invalid parameters)
+        - [ ] Add unit tests for API endpoint
+
+      - [ ] Task 2: Create domain service for ELO trends calculation (AC: #2)
+        - [ ] Create `ELOTrendCalculator` service in `src/domain/services/`
+        - [ ] Implement calculation logic: aggregate ELO data by time period (day/week/month)
+        - [ ] Calculate current ELO (most recent or player's current ELO)
+        - [ ] Calculate historical high/low ELO values
+        - [ ] Calculate ELO change indicators (up/down, percentage change)
+        - [ ] Add unit tests for calculation logic
+        - [ ] Handle edge cases (no games, insufficient data, single data point)
+
+      - [ ] Task 3: Create database query for ELO trends (AC: #2)
+        - [ ] Create Prisma query to fetch game participation data with ELO ratings
+        - [ ] Filter by player ID and date range
+        - [ ] Order by game date (chronological)
+        - [ ] Select ELO rating and game date fields
+        - [ ] Add database indexes if needed (player_id, game_date, elo)
+        - [ ] Optimize query performance (target < 500ms for aggregated data)
+        - [ ] Add integration tests for database queries
+
+      - [ ] Task 4: Create ELOTrendsChart component (AC: #1, #3, #4, #6)
+        - [ ] Create `ELOTrendsChart` component in `src/components/analytics/`
+        - [ ] Use TanStack Query to fetch data from API endpoint
+        - [ ] Use Recharts library for line chart visualization
+        - [ ] Display current ELO rating prominently (large number, card component)
+        - [ ] Display line chart with ELO progression (x-axis: date, y-axis: ELO)
+        - [ ] Add hover tooltips showing exact ELO value and date
+        - [ ] Display historical high/low ELO values (badges or indicators)
+        - [ ] Add ELO change indicators (up/down arrows, color-coded)
+        - [ ] Implement loading states (skeleton screens)
+        - [ ] Implement empty states for no data
+        - [ ] Add smooth animations for data loading/updates
+        - [ ] Make chart responsive (mobile: stacked, desktop: side-by-side)
+        - [ ] Add component tests using React Testing Library
+
+      - [ ] Task 5: Create time range selector component (AC: #1, #3)
+        - [ ] Create `TimeRangeSelector` component in `src/components/analytics/`
+        - [ ] Display preset options: last month, 3 months, 6 months, all time
+        - [ ] Allow custom date range selection (optional, future enhancement)
+        - [ ] Connect to analytics store (Zustand) for filter state
+        - [ ] Update chart when time range changes
+        - [ ] Show active selection with visual indicator
+        - [ ] Add smooth transitions when selection changes
+        - [ ] Add component tests
+
+      - [ ] Task 6: Integrate ELO trends into analytics dashboard (AC: #1, #3)
+        - [ ] Add `ELOTrendsChart` to analytics dashboard page
+        - [ ] Connect to filter state (Zustand store) for date range
+        - [ ] Implement filter application triggering data refetch
+        - [ ] Add smooth transitions when filters change (< 300ms)
+        - [ ] Test filter integration
+
+      - [ ] Task 7: Add TypeScript types and interfaces (AC: #1, #2)
+        - [ ] Define `ELOTrendPoint` interface matching tech spec data model
+        - [ ] Define `ELOTrendsChartProps` interface
+        - [ ] Define `ELOTrendsResponse` interface for API response
+        - [ ] Add types for API request/response
+        - [ ] Ensure type safety throughout component tree
+        - [ ] Add JSDoc comments for all public interfaces
+
+      - [ ] Task 8: Add error handling and edge cases (AC: #5, #6)
+        - [ ] Handle API errors (network, 404, 400) with user-friendly messages
+        - [ ] Display empty states for no ELO data
+        - [ ] Handle loading states gracefully
+        - [ ] Add retry logic for failed API calls (exponential backoff, 3 attempts)
+        - [ ] Add error boundary for component errors
+        - [ ] Handle edge cases (single data point, insufficient data for period)
+
+      - [ ] Task 9: Performance optimization (AC: #1, #6)
+        - [ ] Implement TanStack Query caching (5-minute stale time, 10-minute GC time)
+        - [ ] Add database query optimization (indexes, efficient aggregations)
+        - [ ] Lazy load chart library (code splitting)
+        - [ ] Optimize component re-renders (React.memo if needed)
+        - [ ] Optimize chart rendering for large datasets (data sampling if needed)
+        - [ ] Measure and verify performance targets (< 500ms API response, < 2s chart render)
+
+      - [ ] Task 10: Testing (AC: #1, #2, #3, #4, #5, #6)
+        - [ ] Unit tests for `ELOTrendCalculator` service (80%+ coverage)
+        - [ ] Integration tests for API endpoint (various query parameters, error cases)
+        - [ ] Component tests for `ELOTrendsChart` (rendering, loading states, empty states, tooltips)
+        - [ ] Component tests for `TimeRangeSelector` (selection, state updates)
+        - [ ] E2E test: Complete flow (load dashboard → view ELO trends → select time range → verify chart updates)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. **Given** I have ELO rating data from imported games  
+       **When** I view my ELO analytics  
+       **Then** the system displays:
+       - Current ELO rating (prominent, large number)
+       - Line chart/graph showing ELO progression over time (x-axis: date, y-axis: ELO)
+       - Historical high/low ELO values
+       - ELO change indicators (up/down arrows, color-coded)
+       - Time range selector (last month, 3 months, 6 months, all time)
+       - Hover tooltips showing exact ELO value and date
+
+    2. **Given** I have historical game data with ELO ratings  
+       **When** I view the ELO trends  
+       **Then** the system calculates and displays:
+       - Current ELO (most recent game's ELO or player's current ELO)
+       - Historical high ELO (maximum ELO achieved)
+       - Historical low ELO (minimum ELO achieved)
+       - ELO progression data points for the selected time range
+       - Change from previous period (e.g., +15 ELO this month)
+
+    3. **Given** I am viewing ELO trends  
+       **When** I select a different time range (last month, 3 months, 6 months, all time)  
+       **Then** the system updates the chart to show ELO progression for the selected range  
+       **And** the chart smoothly animates to the new data  
+       **And** the time range selector shows the active selection
+
+    4. **Given** I am viewing the ELO chart  
+       **When** I hover over a data point on the line chart  
+       **Then** the system displays a tooltip showing:
+       - Exact ELO value at that point
+       - Date of that ELO rating
+       - Game information (if available)
+       **And** the tooltip is positioned near the cursor and doesn't obstruct the chart
+
+    5. **Given** I have no ELO data or insufficient data for the selected time range  
+       **When** I view the ELO analytics  
+       **Then** the system displays an empty state with helpful messaging  
+       **And** suggests importing game data or selecting a different time range
+
+    6. **Given** I am viewing ELO trends  
+       **When** the data is loading  
+       **Then** the system displays loading states (skeleton screens or spinners)  
+       **And** when data is available, it transitions smoothly with animations
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Acceptance Criteria (Authoritative) - AC2" snippet="AC2: ELO Rating with Historical Trends - Given a user with ELO rating data, When viewing ELO analytics, Then the system displays current ELO rating prominently, line chart showing ELO progression over time (x-axis: date, y-axis: ELO), historical high/low ELO values, ELO change indicators, time range selector, and hover tooltips" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Data Models and Contracts" snippet="ELOTrendPoint interface: date (ISO 8601), elo (number), gameId (string). ELOTrendCalculator service calculates ELO progression over time from historical game data" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="APIs and Interfaces" snippet="GET /api/players/[id]/analytics/elo-trends - Query Parameters: dateRange? (required), period? ('day' | 'week' | 'month') - Response: { trends: ELOTrendPoint[], currentELO: number, historicalHigh: number, historicalLow: number } - Error Codes: 404, 400" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="System Architecture Alignment" snippet="Analytics components in Presentation Layer (src/components/analytics/), use cases in Application Layer, data access through Infrastructure Layer. TanStack Query for server state, Zustand for client state (filters)" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Performance" snippet="Analytics API endpoints: < 500ms for aggregated data. Chart rendering: < 2 seconds for initial render. Use database indexes on player_id, game_date, elo columns. Cache analytics data in Redis (5-minute TTL). Use TanStack Query caching (5-minute stale time, 10-minute GC time)" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Security" snippet="All analytics endpoints require authentication (NextAuth.js session). Users can only access their own analytics data (player ID must match session user). Admin users can access any player's analytics. API routes validate user session via authenticateRequest() middleware" />
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Project Structure" snippet="Clean Architecture + Hexagonal Architecture. Components in src/components/analytics/, API routes in src/app/api/players/[id]/analytics/, domain services in src/domain/services/, repositories in src/infrastructure/persistence/" />
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Decision Summary" snippet="Next.js 16.0.0, TypeScript 5.0.0, Tailwind CSS 3.3.0, ShadCN/UI, Prisma 5.0.0, TanStack Query 5.0.0, Zustand 4.4.0, Zod 4.1.12, Vitest 1.0.0, Playwright 1.56.1, Recharts 3.6.0" />
+      <doc path="bmad/docs/sprint-artifacts/4-2-elo-rating-with-historical-trends.md" title="Story 4.2: ELO Rating with Historical Trends" section="Dev Notes - Learnings from Previous Story" snippet="Chart Library: Recharts selected for better React integration. Lazy Loading: Chart libraries should be lazy-loaded via React.lazy with Suspense. Responsive Charts: Use ResponsiveContainer with 300ms debounce for mobile performance. TanStack Query: Use hooks with 5min stale time, 10min GC time for caching" />
+      <doc path="bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md" title="Story 4.1: Role-Based Performance Metrics Display" section="Completion Notes" snippet="Recharts library used for charts with ResponsiveContainer, lazy loading patterns, TanStack Query caching strategies, error handling with ApiError class, component structure in src/components/analytics/" />
+    </docs>
+    <code>
+      <code path="src/app/api/players/[id]/analytics/role-based/route.ts" kind="controller" symbol="GET handler" lines="51-209" reason="Existing role-based analytics API endpoint pattern - reference for implementing elo-trends endpoint with authentication, query parameter parsing, date range handling, and error handling" />
+      <code path="src/infrastructure/persistence/role-metrics.repository.ts" kind="repository" symbol="RoleMetricsRepository" lines="39-113" reason="Existing repository pattern for querying player analytics data with date range and role filtering - reference for implementing elo-trends repository with Prisma queries" />
+      <code path="src/domain/services/role-metrics-calculator.ts" kind="service" symbol="RoleMetricsCalculator" reason="Existing domain service pattern for calculating analytics metrics - reference for implementing ELOTrendCalculator service with aggregation logic" />
+      <code path="src/components/analytics/RoleMetricsDisplay.tsx" kind="component" symbol="RoleMetricsDisplay" lines="1-213" reason="Existing analytics component pattern using TanStack Query, Card components, loading/empty states, and animations - reference for implementing ELOTrendsChart component" />
+      <code path="src/components/analytics/RoleComparisonChart.tsx" kind="component" symbol="RoleComparisonChart" lines="1-145" reason="Existing chart component using Recharts with lazy loading via React.lazy and Suspense, ResponsiveContainer pattern - reference for implementing ELOTrendsChart with line chart visualization" />
+      <code path="src/hooks/useRoleBasedAnalytics.ts" kind="hook" symbol="useRoleBasedAnalytics" lines="89-114" reason="Existing TanStack Query hook pattern with ApiError class, retry logic, caching configuration (5min stale, 10min GC) - reference for implementing useELOTrends hook" />
+      <code path="src/store/analyticsStore.ts" kind="store" symbol="useAnalyticsStore" lines="1-49" reason="Zustand store for analytics filters with dateRange state management - reference for extending with time range selector integration" />
+      <code path="src/types/analytics.ts" kind="types" symbol="DateRange, PlayerRole types" lines="18-75" reason="Existing analytics TypeScript types including DateRange interface - reference for adding ELOTrendPoint, ELOTrendsResponse, ELOTrendsChartProps interfaces" />
+      <code path="src/components/ui/card.tsx" kind="component" symbol="Card component" reason="ShadCN/UI Card component with variants - use for displaying current ELO rating prominently in large card format" />
+      <code path="prisma/schema.prisma" kind="schema" symbol="Player, GameParticipation models" lines="100-200" reason="Database schema with Player.eloRating (Int) and GameParticipation models - reference for querying historical ELO data from game participations ordered by game date" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zustand" version="^4.4.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="recharts" version="^3.6.0" />
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="lucide-react" version="^0.548.0" />
+        <package name="vitest" version="^1.0.0" />
+        <package name="@testing-library/react" version="^16.0.0" />
+        <package name="playwright" version="^1.56.1" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture + Hexagonal Architecture: Analytics components in Presentation Layer (src/components/analytics/), domain services in Domain Layer (src/domain/services/), data access through Infrastructure Layer (src/infrastructure/persistence/)</constraint>
+    <constraint>All API endpoints must follow established request/response format patterns - use Next.js App Router API routes with authentication middleware</constraint>
+    <constraint>Components must use ShadCN/UI base components with custom styling - Card component for prominent ELO display</constraint>
+    <constraint>Data fetching must use TanStack Query for caching and background refetching - 5-minute stale time, 10-minute GC time</constraint>
+    <constraint>Filter state must be managed in Zustand store (src/store/analyticsStore.ts) - extend with time range selector support</constraint>
+    <constraint>All analytics calculations must be performed server-side for performance</constraint>
+    <constraint>All analytics endpoints require authentication via NextAuth.js session - users can only access their own data (player ID must match session user), admins can access any player</constraint>
+    <constraint>Input validation on all query parameters using Zod schemas</constraint>
+    <constraint>Responsive design must follow mobile-first approach (320px, 768px, 1024px breakpoints)</constraint>
+    <constraint>Chart library (Recharts) must be lazy-loaded via React.lazy with Suspense for code splitting</constraint>
+    <constraint>Use ResponsiveContainer from Recharts with 300ms debounce for mobile performance</constraint>
+    <constraint>Maintain minimum 80% test coverage for all new code</constraint>
+    <constraint>Performance targets: API response time < 500ms, chart rendering < 2 seconds</constraint>
+    <constraint>Use tailwind-variants with tv() function for component variants - do not use class-variance-authority</constraint>
+    <constraint>Error handling: Use ApiError class with statusCode property for proper retry logic in TanStack Query hooks</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/players/[id]/analytics/elo-trends" kind="REST endpoint" signature="GET /api/players/[id]/analytics/elo-trends?dateRange={preset}&amp;period={day|week|month} - Response: { trends: ELOTrendPoint[], currentELO: number, historicalHigh: number, historicalLow: number } - Error Codes: 404 (Player not found), 400 (Invalid parameters), 401 (Unauthorized)" path="src/app/api/players/[id]/analytics/elo-trends/route.ts" />
+    <interface name="ELOTrendPoint" kind="TypeScript interface" signature="interface ELOTrendPoint { date: string; // ISO 8601 elo: number; gameId: string; }" path="src/types/analytics.ts" />
+    <interface name="ELOTrendsResponse" kind="TypeScript interface" signature="interface ELOTrendsResponse { trends: ELOTrendPoint[]; currentELO: number; historicalHigh: number; historicalLow: number; }" path="src/types/analytics.ts" />
+    <interface name="ELOTrendsChartProps" kind="TypeScript interface" signature="interface ELOTrendsChartProps { playerId: string; dateRange: DateRange; period: 'day' | 'week' | 'month'; }" path="src/components/analytics/ELOTrendsChart.tsx" />
+    <interface name="ELOTrendCalculator" kind="class" signature="class ELOTrendCalculator { calculateTrends(playerId: string, dateRange?: DateRange, period?: 'day' | 'week' | 'month'): Promise&lt;ELOTrendPoint[]&gt;; calculateCurrentELO(playerId: string): Promise&lt;number&gt;; calculateHistoricalHighLow(playerId: string, dateRange?: DateRange): Promise&lt;{ high: number; low: number }&gt;; }" path="src/domain/services/elo-trend-calculator.ts" />
+    <interface name="useELOTrends" kind="TanStack Query hook" signature="useELOTrends(playerId: string, dateRange?: DateRange, period?: 'day' | 'week' | 'month'): UseQueryResult&lt;ELOTrendsResponse&gt;" path="src/hooks/useELOTrends.ts" />
+    <interface name="TimeRangeSelector" kind="component" signature="interface TimeRangeSelectorProps { value: DateRange | null; onChange: (range: DateRange | null) => void; presets?: Array&lt;'last_month' | 'last_3_months' | 'last_6_months' | 'all_time'&gt;; }" path="src/components/analytics/TimeRangeSelector.tsx" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest 1.0.0 for service logic and calculations (ELOTrendCalculator). Component tests use React Testing Library 16.0.0 for component rendering and interactions (ELOTrendsChart, TimeRangeSelector). Integration tests verify API endpoints with various query parameters and error cases. E2E tests use Playwright 1.56.1 for complete user flows. Maintain minimum 80% test coverage. Performance testing verifies API response time < 500ms and chart rendering < 2 seconds.
+    </standards>
+    <locations>
+      tests/unit/services/ELOTrendCalculator.test.ts - Unit tests for ELO trend calculation service
+      tests/integration/api/analytics/elo-trends.test.ts - Integration tests for ELO trends API endpoint
+      tests/components/analytics/ELOTrendsChart.test.tsx - Component tests for ELO trends chart component
+      tests/components/analytics/TimeRangeSelector.test.tsx - Component tests for time range selector component
+      tests/e2e/analytics/elo-trends.spec.ts - E2E tests for complete ELO trends flow
+    </locations>
+    <ideas>
+      <test ac="AC1" idea="Test ELO chart displays current ELO prominently (large number), line chart with ELO progression (x-axis: date, y-axis: ELO), historical high/low ELO values, ELO change indicators (up/down arrows, color-coded), time range selector with presets, hover tooltips showing exact ELO value and date" />
+      <test ac="AC2" idea="Unit test ELOTrendCalculator calculates current ELO (most recent or player's current ELO), historical high/low ELO values (max/min), ELO progression data points aggregated by time period (day/week/month), change from previous period calculation" />
+      <test ac="AC3" idea="Component test time range selector updates chart when selection changes, test chart smoothly animates to new data, test active selection visual indicator displays correctly" />
+      <test ac="AC4" idea="Component test hover tooltip displays exact ELO value and date, test tooltip positioning near cursor without obstructing chart, test game information display in tooltip if available" />
+      <test ac="AC5" idea="Component test empty state displays for no ELO data, test helpful messaging suggests importing game data or selecting different time range" />
+      <test ac="AC6" idea="Component test loading states display skeleton screens or spinners, test smooth transition animations when data becomes available" />
+      <test ac="Integration" idea="Integration test API endpoint with various query parameters (dateRange presets, period options), test 404 error when player not found, test 400 error for invalid parameters, test authentication middleware verifies user owns player ID or is admin, test database query performance < 500ms" />
+      <test ac="Performance" idea="Performance test API response time < 500ms for aggregated ELO trends data, test chart rendering < 2 seconds for initial render, test database query optimization with indexes on player_id, game_date, elo columns, test TanStack Query caching with 5-minute stale time" />
+      <test ac="E2E" idea="E2E test complete flow: load analytics dashboard → view ELO trends → verify chart displays → select time range → verify chart updates with smooth animation → hover over data point → verify tooltip displays" />
+    </ideas>
+  </tests>
+</story-context>
