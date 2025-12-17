@@ -270,18 +270,24 @@ export class WinRateAnalyzer {
     const overall = this.calculateOverallWinRate(data);
     const byRole = this.calculatePerRoleWinRates(data);
     const byScenario = this.calculateScenarioWinRates(data);
-    const comparisonToAverage = this.calculateComparisonToAverage(
-      { overall, byRole, byScenario },
-      averageWinRates
-    );
     const winLossCounts = this.calculateWinLossCounts(data);
 
-    return {
+    // Create complete WinRateAnalysis object for comparison
+    const winRateAnalysis: WinRateAnalysis = {
       overall,
       byRole,
       byScenario,
-      comparisonToAverage,
       winLossCounts,
+    };
+
+    const comparisonToAverage = this.calculateComparisonToAverage(
+      winRateAnalysis,
+      averageWinRates
+    );
+
+    return {
+      ...winRateAnalysis,
+      comparisonToAverage,
     };
   }
 }
