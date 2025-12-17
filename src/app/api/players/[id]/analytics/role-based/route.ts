@@ -16,7 +16,7 @@ import {
   PlayerIdParamSchema,
   RoleBasedAnalyticsQuerySchema,
 } from '@/lib/validations/roleMetricsSchemas';
-import type { RoleBasedAnalyticsResponse } from '@/types/analytics';
+import type { DateRange, RoleBasedAnalyticsResponse } from '@/types/analytics';
 
 const repository = new RoleMetricsRepository();
 const calculator = new RoleMetricsCalculator();
@@ -96,7 +96,20 @@ export async function GET(
     await verifyPlayerAccess(playerId, user.id, role);
 
     // Parse date range from query params or preset
-    let dateRange = validatedQuery.dateRange;
+    // Convert validated query dateRange (which may include 'last_week' and 'last_year')
+    // to DateRange type (which only includes specific presets)
+    let dateRange: DateRange | undefined = validatedQuery.dateRange
+      ? {
+          startDate: validatedQuery.dateRange.startDate ?? null,
+          endDate: validatedQuery.dateRange.endDate ?? null,
+          preset:
+            validatedQuery.dateRange.preset === 'last_week' ||
+            validatedQuery.dateRange.preset === 'last_year'
+              ? null
+              : (validatedQuery.dateRange.preset as DateRange['preset']),
+        }
+      : undefined;
+
     if (dateRange?.preset) {
       // Handle 'all_time' preset - no date filtering
       if (dateRange.preset === 'all_time') {
@@ -107,16 +120,6 @@ export async function GET(
         const preset = dateRange.preset;
 
         switch (preset) {
-          case 'last_week': {
-            const weekAgo = new Date(now);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            dateRange = {
-              startDate: weekAgo.toISOString(),
-              endDate: now.toISOString(),
-              preset: null,
-            };
-            break;
-          }
           case 'last_month': {
             const monthAgo = new Date(now);
             monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -137,16 +140,33 @@ export async function GET(
             };
             break;
           }
-          case 'last_year': {
-            const yearAgo = new Date(now);
-            yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-            dateRange = {
-              startDate: yearAgo.toISOString(),
-              endDate: now.toISOString(),
-              preset: null,
-            };
-            break;
-          }
+        }
+      }
+    } else if (validatedQuery.dateRange?.preset) {
+      // Handle presets that aren't in DateRange type ('last_week', 'last_year')
+      const now = new Date();
+      const preset = validatedQuery.dateRange.preset;
+
+      switch (preset) {
+        case 'last_week': {
+          const weekAgo = new Date(now);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          dateRange = {
+            startDate: weekAgo.toISOString(),
+            endDate: now.toISOString(),
+            preset: null,
+          };
+          break;
+        }
+        case 'last_year': {
+          const yearAgo = new Date(now);
+          yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+          dateRange = {
+            startDate: yearAgo.toISOString(),
+            endDate: now.toISOString(),
+            preset: null,
+          };
+          break;
         }
       }
     }
