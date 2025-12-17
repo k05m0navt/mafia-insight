@@ -1,0 +1,216 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.1</storyId>
+    <title>Role-Based Performance Metrics Display</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>player</asA>
+    <iWant>to view my performance metrics broken down by role (Don, Mafia, Sheriff, Citizen)</iWant>
+    <soThat>I can identify which roles I excel at and which need improvement</soThat>
+    <tasks>
+      - [ ] Task 1: Create API endpoint for role-based analytics (AC: #1, #2)
+        - [ ] Create `GET /api/players/[id]/analytics/role-based` route handler
+        - [ ] Implement query parameters support: `dateRange?`, `roles?`
+        - [ ] Add authentication middleware (verify user owns player ID or is admin)
+        - [ ] Implement role metrics calculation logic (GROUP BY role, aggregate wins/losses, count games, average ELO)
+        - [ ] Add input validation using Zod schemas
+        - [ ] Return `{ roleMetrics: RoleMetrics[] }` response
+        - [ ] Add error handling (404 for player not found, 400 for invalid parameters)
+        - [ ] Add unit tests for API endpoint
+
+      - [ ] Task 2: Create domain service for role metrics calculation (AC: #2)
+        - [ ] Create `RoleMetricsCalculator` service in `src/domain/services/`
+        - [ ] Implement calculation logic: win rate, games played, average ELO per role
+        - [ ] Add performance level determination (excellent/good/needs improvement) based on win rate thresholds
+        - [ ] Add unit tests for calculation logic
+        - [ ] Handle edge cases (no games, division by zero, missing data)
+
+      - [ ] Task 3: Create database query for role-based metrics (AC: #2)
+        - [ ] Create Prisma query to fetch game participation data grouped by role
+        - [ ] Filter by player ID and optional date range
+        - [ ] Aggregate: count games, sum wins/losses, average ELO
+        - [ ] Add database indexes if needed (player_id, role, game_date)
+        - [ ] Optimize query performance (target < 500ms for aggregated data)
+        - [ ] Add integration tests for database queries
+
+      - [ ] Task 4: Create RoleMetricsDisplay component (AC: #1, #3, #4)
+        - [ ] Create `RoleMetricsDisplay` component in `src/components/analytics/`
+        - [ ] Use TanStack Query to fetch data from API endpoint
+        - [ ] Display four role cards (Don, Mafia, Sheriff, Citizen) using Card component variants
+        - [ ] Show win rate percentage, games played, average ELO for each role
+        - [ ] Add visual indicators (color-coded, icons) for performance level
+        - [ ] Implement loading states (skeleton screens)
+        - [ ] Implement empty states for roles with no data
+        - [ ] Add smooth animations for data loading/updates
+        - [ ] Add component tests using React Testing Library
+
+      - [ ] Task 5: Create role comparison chart component (AC: #1)
+        - [ ] Create `RoleComparisonChart` component in `src/components/analytics/`
+        - [ ] Use chart library (Recharts or Chart.js) for visualization
+        - [ ] Display bar chart or comparison table showing relative performance across roles
+        - [ ] Highlight best-performing role (visual emphasis: color, badge)
+        - [ ] Make chart responsive (mobile: stacked, desktop: side-by-side)
+        - [ ] Add loading state for chart
+        - [ ] Add component tests
+
+      - [ ] Task 6: Integrate role metrics into analytics dashboard (AC: #1, #5)
+        - [ ] Add `RoleMetricsDisplay` to analytics dashboard page
+        - [ ] Connect to filter state (Zustand store) for date range and role filters
+        - [ ] Implement filter application triggering data refetch
+        - [ ] Add smooth transitions when filters change (< 300ms)
+        - [ ] Test filter integration (will be fully tested when filter stories are complete)
+
+      - [ ] Task 7: Add TypeScript types and interfaces (AC: #1, #2)
+        - [ ] Define `RoleMetrics` interface matching tech spec data model
+        - [ ] Define `RoleMetricsDisplayProps` interface
+        - [ ] Add types for API request/response
+        - [ ] Ensure type safety throughout component tree
+        - [ ] Add JSDoc comments for all public interfaces
+
+      - [ ] Task 8: Add error handling and edge cases (AC: #4)
+        - [ ] Handle API errors (network, 404, 400) with user-friendly messages
+        - [ ] Display empty states for roles with no data
+        - [ ] Handle loading states gracefully
+        - [ ] Add retry logic for failed API calls (exponential backoff, 3 attempts)
+        - [ ] Add error boundary for component errors
+
+      - [ ] Task 9: Performance optimization (AC: #1, #3)
+        - [ ] Implement TanStack Query caching (5-minute stale time, 10-minute GC time)
+        - [ ] Add database query optimization (indexes, efficient aggregations)
+        - [ ] Lazy load chart library (code splitting)
+        - [ ] Optimize component re-renders (React.memo if needed)
+        - [ ] Measure and verify performance targets (< 500ms API response, < 2s chart render)
+
+      - [ ] Task 10: Testing (AC: #1, #2, #3, #4, #5)
+        - [ ] Unit tests for `RoleMetricsCalculator` service (80%+ coverage)
+        - [ ] Integration tests for API endpoint (various query parameters, error cases)
+        - [ ] Component tests for `RoleMetricsDisplay` (rendering, loading states, empty states)
+        - [ ] Component tests for `RoleComparisonChart` (chart rendering, responsiveness)
+        - [ ] E2E test: Complete flow (load dashboard → view role metrics → verify data display)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. **Given** I am logged in and have imported game data  
+       **When** I view my analytics dashboard  
+       **Then** the system displays four role cards (Don, Mafia, Sheriff, Citizen) with win rate percentage, games played count, and average ELO for each role  
+       **And** visual indicators (color-coded, icons) show performance level (excellent/good/needs improvement)  
+       **And** a role comparison chart shows relative performance across roles  
+       **And** smooth animations occur when metrics load/update
+
+    2. **Given** I have game data for multiple roles  
+       **When** I view the role-based metrics  
+       **Then** the system calculates and displays accurate metrics for each role:
+       - Win rate percentage (wins / total games * 100)
+       - Total games played count
+       - Average ELO rating for that role
+       - Wins and losses count
+
+    3. **Given** I am viewing role-based metrics  
+       **When** the data is loading  
+       **Then** the system displays loading states (skeleton screens or spinners)  
+       **And** when data is available, it transitions smoothly with animations
+
+    4. **Given** I have no game data for a specific role  
+       **When** I view the role-based metrics  
+       **Then** the system displays an empty state with helpful messaging  
+       **And** the role card indicates no data available
+
+    5. **Given** I am viewing role-based metrics  
+       **When** I apply date range or role filters (from future stories)  
+       **Then** the role-based metrics update to reflect the filtered data  
+       **And** the update occurs with smooth animations (< 300ms transition)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Acceptance Criteria (Authoritative) - AC1" snippet="AC1: Role-Based Performance Metrics Display - Given a logged-in user with imported game data, When viewing the analytics dashboard, Then the system displays four role cards (Don, Mafia, Sheriff, Citizen) with win rate percentage, games played count, and average ELO for each role" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Data Models and Contracts" snippet="RoleMetrics interface: role, winRate (0-100%), gamesPlayed, wins, losses, averageELO, performanceLevel (excellent/good/needs_improvement)" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="APIs and Interfaces" snippet="GET /api/players/[id]/analytics/role-based - Query Parameters: dateRange?, roles? - Response: { roleMetrics: RoleMetrics[] } - Error Codes: 404 (Player not found), 400 (Invalid parameters)" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="Services and Modules" snippet="RoleMetricsCalculator - Calculate metrics per role (Don, Mafia, Sheriff, Citizen) - Input: Game participation data - Output: Role-specific metrics" />
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification: Player Analytics Dashboard" section="System Architecture Alignment" snippet="Analytics components in Presentation Layer (src/components/analytics/), use cases in Application Layer, data access through Infrastructure Layer. TanStack Query for server state, Zustand for client state (filters)" />
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Project Structure" snippet="Clean Architecture + Hexagonal Architecture. Components in src/components/analytics/, API routes in src/app/api/players/[id]/analytics/, domain services in src/domain/services/" />
+      <doc path="bmad/docs/architecture.md" title="Architecture" section="Decision Summary" snippet="Next.js 16.0.0, TypeScript 5.0.0, Tailwind CSS 3.3.0, ShadCN/UI, Prisma 5.0.0, TanStack Query 5.0.0, Zustand 4.4.0, Zod 4.1.12, Vitest 1.0.0, Playwright 1.56.1" />
+      <doc path="bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md" title="Story 4.1: Role-Based Performance Metrics Display" section="Dev Notes" snippet="Card component has enhanced variants including role variant for role cards. Components use tailwind-variants with tv() function. Chart library: Recharts or Chart.js" />
+      <doc path="bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md" title="Story 4.1: Role-Based Performance Metrics Display" section="Source Tree Components to Touch" snippet="src/app/api/players/[id]/analytics/role-based/route.ts (NEW), src/domain/services/RoleMetricsCalculator.ts (NEW), src/components/analytics/RoleMetricsDisplay.tsx (NEW), src/components/analytics/RoleComparisonChart.tsx (NEW)" />
+      <doc path="bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md" title="Story 4.1: Role-Based Performance Metrics Display" section="Testing Standards Summary" snippet="80%+ test coverage, Vitest for unit/integration tests, React Testing Library for component tests, Playwright for E2E tests, API response time < 500ms, chart rendering < 2 seconds" />
+      <doc path="bmad/docs/sprint-artifacts/4-1-role-based-performance-metrics-display.md" title="Story 4.1: Role-Based Performance Metrics Display" section="Architecture Patterns and Constraints" snippet="Clean Architecture + Hexagonal. API routes follow established patterns. State management: TanStack Query for server state, Zustand for client state. All analytics endpoints require authentication via NextAuth.js session" />
+    </docs>
+    <code>
+      <code path="src/app/api/players/[id]/analytics/route.ts" kind="controller" symbol="GET handler" lines="11-42" reason="Existing analytics API endpoint structure - reference for creating role-based endpoint" />
+      <code path="src/services/analyticsService.ts" kind="service" symbol="getPlayerAnalytics" lines="5-59" reason="Existing analytics service with roleStats query pattern - reference for role-based metrics calculation" />
+      <code path="src/components/ui/card.tsx" kind="component" symbol="Card component with role variant" lines="82-126" reason="Card component with role variant available for role cards - use variant='role' roleType prop" />
+      <code path="src/components/analytics/RoleStats.tsx" kind="component" symbol="RoleStats component" lines="31-115" reason="Existing role stats display component - reference for role-based metrics display patterns" />
+      <code path="src/components/analytics/PlayerCard.tsx" kind="component" symbol="PlayerCard component" lines="30-96" reason="Player card component showing role performance badges - reference for role color coding and display patterns" />
+      <code path="src/store/analyticsStore.ts" kind="store" symbol="useAnalyticsStore" lines="1-35" reason="Zustand store for analytics filters - extend with dateRange and roles filter state management" />
+      <code path="src/adapters/controllers/players-controller.ts" kind="controller" symbol="PlayersController" reason="Existing controller pattern - reference for implementing role-based analytics endpoint controller" />
+      <code path="prisma/schema.prisma" kind="schema" symbol="PlayerRoleStats model" lines="116-179" reason="Database schema with PlayerRoleStats model - use for querying pre-computed role statistics" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zustand" version="^4.4.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="lucide-react" version="^0.548.0" />
+        <package name="vitest" version="^1.0.0" />
+        <package name="@testing-library/react" version="^16.0.0" />
+        <package name="playwright" version="^1.56.1" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture + Hexagonal Architecture: Analytics components in Presentation Layer (src/components/analytics/), domain services in Domain Layer (src/domain/services/), data access through Infrastructure Layer</constraint>
+    <constraint>All API endpoints must follow established request/response format patterns - use Next.js App Router API routes</constraint>
+    <constraint>Components must use ShadCN/UI base components with custom styling - Card component with role variant available</constraint>
+    <constraint>Data fetching must use TanStack Query for caching and background refetching</constraint>
+    <constraint>Filter state must be managed in Zustand store (src/store/analyticsStore.ts)</constraint>
+    <constraint>All analytics calculations must be performed server-side for performance</constraint>
+    <constraint>All analytics endpoints require authentication via NextAuth.js session - users can only access their own data (player ID must match session user)</constraint>
+    <constraint>Input validation on all query parameters using Zod schemas</constraint>
+    <constraint>Responsive design must follow mobile-first approach (320px, 768px, 1024px breakpoints)</constraint>
+    <constraint>Maintain minimum 80% test coverage for all new code</constraint>
+    <constraint>Performance targets: API response time < 500ms, chart rendering < 2 seconds</constraint>
+    <constraint>Use tailwind-variants with tv() function for component variants - do not use class-variance-authority</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/players/[id]/analytics/role-based" kind="REST endpoint" signature="GET /api/players/[id]/analytics/role-based?dateRange={startDate}&amp;endDate={endDate}&amp;roles={role1,role2} - Response: { roleMetrics: RoleMetrics[] }" path="src/app/api/players/[id]/analytics/role-based/route.ts" />
+    <interface name="RoleMetrics" kind="TypeScript interface" signature="interface RoleMetrics { role: 'DON' | 'MAFIA' | 'SHERIFF' | 'CITIZEN'; winRate: number; gamesPlayed: number; wins: number; losses: number; averageELO: number; performanceLevel: 'excellent' | 'good' | 'needs_improvement'; }" path="src/types/analytics.ts" />
+    <interface name="RoleMetricsDisplayProps" kind="TypeScript interface" signature="interface RoleMetricsDisplayProps { playerId: string; dateRange?: DateRange; roles?: string[]; }" path="src/components/analytics/RoleMetricsDisplay.tsx" />
+    <interface name="RoleMetricsCalculator" kind="class" signature="class RoleMetricsCalculator { calculateRoleMetrics(playerId: string, dateRange?: DateRange, roles?: string[]): Promise&lt;RoleMetrics[]&gt;; }" path="src/domain/services/RoleMetricsCalculator.ts" />
+    <interface name="useAnalyticsStore" kind="Zustand store" signature="useAnalyticsStore: { dateRange: { startDate: string | null; endDate: string | null; preset: string | null }; roles: string[]; setDateRange: (range: DateRange) => void; setRoles: (roles: string[]) => void; reset: () => void; }" path="src/store/analyticsStore.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest 1.0.0 for service logic and calculations. Component tests use React Testing Library 16.0.0 for component rendering and interactions. Integration tests verify API endpoints with various query parameters and error cases. E2E tests use Playwright 1.56.1 for complete user flows. Maintain minimum 80% test coverage. Performance testing verifies API response time < 500ms and chart rendering < 2 seconds.
+    </standards>
+    <locations>
+      tests/unit/services/ - Unit tests for domain services
+      tests/integration/api/analytics/ - Integration tests for API endpoints
+      tests/components/analytics/ - Component tests for analytics components
+      tests/e2e/ - E2E tests for complete flows
+    </locations>
+    <ideas>
+      <test ac="AC1" idea="Test role cards render with correct metrics for all four roles (Don, Mafia, Sheriff, Citizen), test role comparison chart displays relative performance, test smooth animations on load" />
+      <test ac="AC2" idea="Unit test RoleMetricsCalculator calculates win rate correctly (wins / total games * 100), test average ELO calculation per role, test games played count aggregation, test wins/losses count" />
+      <test ac="AC3" idea="Component test loading states display skeleton screens or spinners, test smooth transition animations when data becomes available" />
+      <test ac="AC4" idea="Component test empty state displays for roles with no data, test helpful messaging in empty states, test role card indicates no data available" />
+      <test ac="AC5" idea="Integration test filter application triggers data refetch, test role-based metrics update with filtered data, test smooth animations (< 300ms) when filters change" />
+      <test ac="Integration" idea="Integration test API endpoint with various query parameters (dateRange, roles), test 404 error when player not found, test 400 error for invalid parameters, test authentication middleware verifies user owns player ID" />
+      <test ac="Performance" idea="Performance test API response time < 500ms for aggregated data, test chart rendering < 2 seconds, test database query optimization with indexes" />
+    </ideas>
+  </tests>
+</story-context>

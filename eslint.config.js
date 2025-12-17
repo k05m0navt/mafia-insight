@@ -129,6 +129,7 @@ export default [
       'out/',
       'dist/',
       'build/',
+      'storybook-static/',
 
       // Generated files
       '*.generated.*',
