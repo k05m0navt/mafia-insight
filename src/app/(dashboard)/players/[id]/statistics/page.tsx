@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { PlayerStatistics } from '@/components/analytics/PlayerStatistics';
 import { TournamentHistory } from '@/components/analytics/TournamentHistory';
+import { RoleBasedMetricsSection } from '@/components/analytics/RoleBasedMetricsSection';
 import { YearFilter } from '@/components/ui/YearFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,8 +48,9 @@ export default function PlayerStatisticsPage() {
 
       {/* Statistics Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="role-metrics">Role Metrics</TabsTrigger>
           <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
           <TabsTrigger value="games">Recent Games</TabsTrigger>
         </TabsList>
@@ -58,6 +60,10 @@ export default function PlayerStatisticsPage() {
             playerId={playerId}
             year={selectedYear || undefined}
           />
+        </TabsContent>
+
+        <TabsContent value="role-metrics">
+          <RoleBasedMetricsSection playerId={playerId} />
         </TabsContent>
 
         <TabsContent value="tournaments">

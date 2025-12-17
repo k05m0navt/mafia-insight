@@ -71,8 +71,8 @@ development_status:
   # All stories complete - design system migrated to tailwind-variants with enhanced Card variants
   # Note: class-variance-authority can be removed from package.json (optional cleanup)
 
-  epic-4: backlog
-  4-1-role-based-performance-metrics-display: backlog
+  epic-4: contexted
+  4-1-role-based-performance-metrics-display: done
   4-2-elo-rating-with-historical-trends: backlog
   4-3-win-rate-analysis-across-roles: backlog
   4-4-basic-performance-statistics-summaries: backlog
