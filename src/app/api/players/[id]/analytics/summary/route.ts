@@ -16,7 +16,11 @@ import {
   PlayerIdParamSchema,
   PerformanceSummaryQuerySchema,
 } from '@/lib/validations/performanceSummarySchemas';
-import type { PerformanceSummaryResponse } from '@/types/analytics';
+import type {
+  PerformanceSummaryResponse,
+  DateRangePreset,
+} from '@/types/analytics';
+import { calculatePresetDateRange } from '@/lib/utils/dateRange';
 
 const repository = new PerformanceSummaryRepository();
 const aggregator = new PerformanceStatsAggregator(repository);
@@ -46,43 +50,43 @@ async function verifyPlayerAccess(
 }
 
 /**
- * Convert date range preset to actual date range
+ * Type guard to check if a string is a valid DateRangePreset (excluding 'all_time')
+ */
+function isSupportedPreset(
+  preset: string
+): preset is Exclude<DateRangePreset, 'all_time'> {
+  const supportedPresets: readonly Exclude<DateRangePreset, 'all_time'>[] = [
+    'last_week',
+    'last_month',
+    'last_3_months',
+    'last_year',
+  ];
+  return supportedPresets.includes(
+    preset as Exclude<DateRangePreset, 'all_time'>
+  );
+}
+
+/**
+ * Convert date range preset to actual date range using utility function
  */
 function convertPresetToDateRange(
   preset: string
 ): { startDate: string; endDate: string } | null {
-  const now = new Date();
-
-  switch (preset) {
-    case 'last_month': {
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return {
-        startDate: monthAgo.toISOString(),
-        endDate: now.toISOString(),
-      };
-    }
-    case 'last_3_months': {
-      const threeMonthsAgo = new Date(now);
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      return {
-        startDate: threeMonthsAgo.toISOString(),
-        endDate: now.toISOString(),
-      };
-    }
-    case 'last_6_months': {
-      const sixMonthsAgo = new Date(now);
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      return {
-        startDate: sixMonthsAgo.toISOString(),
-        endDate: now.toISOString(),
-      };
-    }
-    case 'all_time':
-      return null; // No date filtering
-    default:
-      return null;
+  if (preset === 'all_time') {
+    return null; // No date filtering
   }
+
+  // Use utility function for supported presets
+  if (isSupportedPreset(preset)) {
+    const result = calculatePresetDateRange(preset);
+    // If result has empty strings, it means all_time
+    if (!result.startDate || !result.endDate) {
+      return null;
+    }
+    return result;
+  }
+
+  return null;
 }
 
 /**

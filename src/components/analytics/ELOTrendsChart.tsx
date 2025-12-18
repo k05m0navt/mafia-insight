@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { lazy, Suspense, useMemo, useEffect } from 'react';
+import React, { lazy, Suspense, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,17 +83,9 @@ export function ELOTrendsChart({
   dateRange: propDateRange,
   period = 'day',
 }: ELOTrendsChartProps) {
-  // Get dateRange from Zustand store, fallback to prop or default
+  // Get dateRange from Zustand store, fallback to prop or null (all time)
   const { dateRange: storeDateRange, setDateRange } = useAnalyticsStore();
-  const effectiveDateRange = storeDateRange ||
-    propDateRange || { preset: 'last_month' };
-
-  // Initialize store with default if not set
-  useEffect(() => {
-    if (!storeDateRange && !propDateRange) {
-      setDateRange({ preset: 'last_month' });
-    }
-  }, [storeDateRange, propDateRange, setDateRange]);
+  const effectiveDateRange = storeDateRange || propDateRange || null;
 
   const { data, isLoading, error } = useELOTrends(
     playerId,

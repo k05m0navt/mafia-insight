@@ -11,6 +11,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRoleBasedAnalytics } from '@/hooks/useRoleBasedAnalytics';
+import { useAnalyticsStore } from '@/store/analyticsStore';
 import type { RoleMetricsDisplayProps } from '@/types/analytics';
 import type { RoleMetrics, PerformanceLevel } from '@/types/analytics';
 import { Trophy, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
@@ -163,13 +164,20 @@ function RoleCardSkeleton() {
  */
 export function RoleMetricsDisplay({
   playerId,
-  dateRange,
-  roles,
+  dateRange: propDateRange,
+  roles: propRoles,
 }: RoleMetricsDisplayProps) {
+  // Get filters from Zustand store, fallback to props or null (all time)
+  const { dateRange: storeDateRange, selectedRoles: storeRoles } =
+    useAnalyticsStore();
+
+  const effectiveDateRange = storeDateRange || propDateRange || null;
+  const effectiveRoles = storeRoles.length > 0 ? storeRoles : propRoles;
+
   const { data, isLoading, error } = useRoleBasedAnalytics(
     playerId,
-    dateRange,
-    roles
+    effectiveDateRange || undefined,
+    effectiveRoles
   );
 
   // Loading state

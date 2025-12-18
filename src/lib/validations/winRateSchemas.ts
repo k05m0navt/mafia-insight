@@ -6,11 +6,13 @@ import { z } from 'zod';
 
 /**
  * Date range preset validation for win rates
+ * Supports all standard presets: last_week, last_month, last_3_months, last_year, all_time
  */
 export const WinRateDateRangePresetSchema = z.enum([
+  'last_week',
   'last_month',
   'last_3_months',
-  'last_6_months',
+  'last_year',
   'all_time',
 ]);
 

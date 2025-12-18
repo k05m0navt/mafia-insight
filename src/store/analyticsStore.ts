@@ -14,6 +14,7 @@ interface AnalyticsState {
   setSelectedRoles: (roles: PlayerRole[]) => void;
   setTimeRange: (range: string) => void;
   setDateRange: (range: DateRange | null) => void;
+  clearDateRange: () => void;
   setSelectedPlayer: (playerId: string | null) => void;
   setSelectedClub: (clubId: string | null) => void;
   setSelectedTournament: (tournamentId: string | null) => void;
@@ -38,6 +39,7 @@ export const useAnalyticsStore = create<AnalyticsState>()(
       setSelectedRoles: (roles) => set({ selectedRoles: roles }),
       setTimeRange: (range) => set({ timeRange: range }),
       setDateRange: (range) => set({ dateRange: range }),
+      clearDateRange: () => set({ dateRange: null }),
       setSelectedPlayer: (playerId) => set({ selectedPlayer: playerId }),
       setSelectedClub: (clubId) => set({ selectedClub: clubId }),
       setSelectedTournament: (tournamentId) =>

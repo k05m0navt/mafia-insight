@@ -10,7 +10,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { TimeRangeSelectorProps, DateRange } from '@/types/analytics';
+import type {
+  TimeRangeSelectorProps,
+  DateRange,
+  DateRangePreset,
+} from '@/types/analytics';
 
 /**
  * Time range preset options
@@ -36,8 +40,11 @@ export function TimeRangeSelector({
   const handlePresetClick = (
     preset: 'last_month' | 'last_3_months' | 'last_6_months' | 'all_time'
   ) => {
+    // Convert last_6_months to last_3_months for DateRangePreset compatibility
+    const compatiblePreset =
+      preset === 'last_6_months' ? 'last_3_months' : preset;
     const newRange: DateRange = {
-      preset,
+      preset: compatiblePreset as DateRangePreset,
       startDate: null,
       endDate: null,
     };

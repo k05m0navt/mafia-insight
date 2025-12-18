@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -88,16 +88,8 @@ export function WinRateAnalysis({
     setDateRange,
   } = useAnalyticsStore();
 
-  const effectiveDateRange = storeDateRange ||
-    propDateRange || { preset: 'last_month' };
+  const effectiveDateRange = storeDateRange || propDateRange || null;
   const effectiveRoles = storeRoles.length > 0 ? storeRoles : propRoles;
-
-  // Initialize store with default if not set
-  useEffect(() => {
-    if (!storeDateRange && !propDateRange) {
-      setDateRange({ preset: 'last_month' });
-    }
-  }, [storeDateRange, propDateRange, setDateRange]);
 
   const { data, isLoading, error } = useWinRateAnalysis(
     playerId,
