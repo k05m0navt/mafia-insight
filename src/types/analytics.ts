@@ -13,12 +13,31 @@ export type PlayerRole = 'DON' | 'MAFIA' | 'SHERIFF' | 'CITIZEN';
 export type PerformanceLevel = 'excellent' | 'good' | 'needs_improvement';
 
 /**
- * Date range for filtering analytics
+ * Date range preset options for quick date range selection
+ * - last_week: Last 7 days
+ * - last_month: Last 30 days
+ * - last_3_months: Last 90 days
+ * - last_year: Last 365 days
+ * - all_time: No date filtering (all available data)
+ */
+export type DateRangePreset =
+  | 'last_week'
+  | 'last_month'
+  | 'last_3_months'
+  | 'last_year'
+  | 'all_time';
+
+/**
+ * Date range for filtering analytics data
+ * Can be either a preset (quick selection) or custom date range
  */
 export interface DateRange {
+  /** Start date in ISO 8601 format (required for custom ranges) */
   startDate?: string | null;
+  /** End date in ISO 8601 format (required for custom ranges) */
   endDate?: string | null;
-  preset?: 'last_month' | 'last_3_months' | 'last_6_months' | 'all_time' | null;
+  /** Preset option (mutually exclusive with custom startDate/endDate) */
+  preset?: DateRangePreset | null;
 }
 
 /**

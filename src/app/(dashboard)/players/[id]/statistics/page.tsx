@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useIsFetching } from '@tanstack/react-query';
 import { PlayerStatistics } from '@/components/analytics/PlayerStatistics';
 import { TournamentHistory } from '@/components/analytics/TournamentHistory';
 import { RoleBasedMetricsSection } from '@/components/analytics/RoleBasedMetricsSection';
@@ -10,16 +11,37 @@ import { WinRateAnalysis } from '@/components/analytics/WinRateAnalysis';
 import { PerformanceSummary } from '@/components/analytics/PerformanceSummary';
 import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
+import { DateRangeFilter } from '@/components/analytics/DateRangeFilter';
+import { FilterIndicator } from '@/components/analytics/FilterIndicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAnalyticsStore } from '@/store/analyticsStore';
 
 export default function PlayerStatisticsPage() {
   const params = useParams();
   const playerId = params.id as string;
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const { dateRange, setDateRange, clearDateRange } = useAnalyticsStore();
+
+  // Check if any analytics queries are currently fetching
+  const isAnalyticsLoading =
+    useIsFetching({
+      predicate: (query) => {
+        const queryKey = query.queryKey;
+        return (
+          Array.isArray(queryKey) &&
+          queryKey.length > 0 &&
+          (queryKey[0] === 'roleBasedAnalytics' ||
+            queryKey[0] === 'eloTrends' ||
+            queryKey[0] === 'winRateAnalysis' ||
+            queryKey[0] === 'performanceSummary') &&
+          queryKey[1] === playerId
+        );
+      },
+    }) > 0;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -38,6 +60,27 @@ export default function PlayerStatisticsPage() {
           </p>
         </div>
       </div>
+
+      {/* Date Range Filter */}
+      <Card variant="info">
+        <CardHeader>
+          <CardTitle>Filter Analytics</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <DateRangeFilter
+            value={dateRange}
+            onChange={setDateRange}
+            className="w-full"
+          />
+          {dateRange && (
+            <FilterIndicator
+              dateRange={dateRange}
+              onClear={clearDateRange}
+              isLoading={isAnalyticsLoading}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Year Filter */}
       <Card variant="info">

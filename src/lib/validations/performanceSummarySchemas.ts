@@ -17,7 +17,13 @@ export const DateRangeSchema = z
     startDate: z.string().datetime().nullable().optional(),
     endDate: z.string().datetime().nullable().optional(),
     preset: z
-      .enum(['last_month', 'last_3_months', 'last_6_months', 'all_time'])
+      .enum([
+        'last_week',
+        'last_month',
+        'last_3_months',
+        'last_year',
+        'all_time',
+      ])
       .nullable()
       .optional(),
   })

@@ -11,11 +11,13 @@ export const ELOTrendPeriodSchema = z.enum(['day', 'week', 'month']);
 
 /**
  * Date range preset validation for ELO trends
+ * Supports all standard presets: last_week, last_month, last_3_months, last_year, all_time
  */
 export const ELOTrendsDateRangePresetSchema = z.enum([
+  'last_week',
   'last_month',
   'last_3_months',
-  'last_6_months',
+  'last_year',
   'all_time',
 ]);
 

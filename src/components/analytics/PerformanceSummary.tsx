@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -94,16 +94,8 @@ export function PerformanceSummary({
     reset,
   } = useAnalyticsStore();
 
-  const effectiveDateRange = storeDateRange ||
-    propDateRange || { preset: 'last_month' };
+  const effectiveDateRange = storeDateRange || propDateRange || null;
   const effectiveRoles = storeRoles.length > 0 ? storeRoles : propRoles;
-
-  // Initialize store with default if not set
-  useEffect(() => {
-    if (!storeDateRange && !propDateRange) {
-      setDateRange({ preset: 'last_month' });
-    }
-  }, [storeDateRange, propDateRange, setDateRange]);
 
   // Fetch performance summary data
   const {
@@ -111,7 +103,11 @@ export function PerformanceSummary({
     isLoading,
     error,
     isRefetching,
-  } = usePerformanceSummary(playerId, effectiveDateRange, effectiveRoles);
+  } = usePerformanceSummary(
+    playerId,
+    effectiveDateRange || undefined,
+    effectiveRoles
+  );
 
   // Loading state
   if (isLoading) {
@@ -145,10 +141,14 @@ export function PerformanceSummary({
     summary.winPercentage >= 50 ? 'positive' : 'negative';
 
   // Check if filters are active
+  // A filter is active if:
+  // - Date range is set and preset is not 'all_time' (or has custom dates)
+  // - Roles are selected
   const hasActiveFilters =
     (effectiveDateRange &&
-      effectiveDateRange.preset !== 'last_month' &&
-      (effectiveDateRange.startDate || effectiveDateRange.endDate)) ||
+      (effectiveDateRange.preset
+        ? effectiveDateRange.preset !== 'all_time'
+        : !!(effectiveDateRange.startDate || effectiveDateRange.endDate))) ||
     (effectiveRoles && effectiveRoles.length > 0);
 
   // Format date range for display
@@ -202,7 +202,7 @@ export function PerformanceSummary({
                       {dateRangeLabel}
                       <button
                         onClick={() => {
-                          setDateRange({ preset: 'last_month' });
+                          setDateRange(null);
                         }}
                         className="hover:bg-muted-foreground/20 rounded p-0.5"
                         aria-label="Clear date range filter"
