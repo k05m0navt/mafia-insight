@@ -7,6 +7,7 @@ import { TournamentHistory } from '@/components/analytics/TournamentHistory';
 import { RoleBasedMetricsSection } from '@/components/analytics/RoleBasedMetricsSection';
 import { ELOTrendsChart } from '@/components/analytics/ELOTrendsChart';
 import { WinRateAnalysis } from '@/components/analytics/WinRateAnalysis';
+import { PerformanceSummary } from '@/components/analytics/PerformanceSummary';
 import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +60,9 @@ export default function PlayerStatisticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <ErrorBoundary>
+            <PerformanceSummary playerId={playerId} />
+          </ErrorBoundary>
           <ErrorBoundary>
             <ELOTrendsChart playerId={playerId} />
           </ErrorBoundary>

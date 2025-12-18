@@ -149,3 +149,34 @@ export interface WinRateAnalysisProps {
   dateRange?: DateRange;
   roles?: PlayerRole[];
 }
+
+/**
+ * Performance summary data model
+ */
+export interface PerformanceSummary {
+  totalGames: number;
+  totalWins: number;
+  totalLosses: number;
+  winPercentage: number;
+  averageGameDuration?: number; // minutes (if available)
+  longestWinStreak: number;
+  bestELOAchieved: number;
+  recentActivity: {
+    thisWeek: number;
+    thisMonth: number;
+  };
+}
+
+/**
+ * Response for performance summary API
+ */
+export type PerformanceSummaryResponse = PerformanceSummary;
+
+/**
+ * Props for PerformanceSummary component
+ */
+export interface PerformanceSummaryProps {
+  playerId: string;
+  dateRange?: DateRange;
+  roles?: PlayerRole[];
+}

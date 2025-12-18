@@ -75,7 +75,7 @@ development_status:
   4-1-role-based-performance-metrics-display: done
   4-2-elo-rating-with-historical-trends: done
   4-3-win-rate-analysis-across-roles: done
-  4-4-basic-performance-statistics-summaries: backlog
+  4-4-basic-performance-statistics-summaries: done
   4-5-date-range-filtering-for-analytics: backlog
   4-6-role-filtering-for-analytics: backlog
   4-7-performance-trends-over-time: backlog
