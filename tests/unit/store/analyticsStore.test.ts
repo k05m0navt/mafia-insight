@@ -138,4 +138,110 @@ describe('analyticsStore date range actions', () => {
       expect(useAnalyticsStore.getState().dateRange).toEqual(range);
     });
   });
+
+  describe('role filter actions', () => {
+    describe('setRoles', () => {
+      it('should set roles array', () => {
+        const roles: PlayerRole[] = ['DON', 'MAFIA'];
+
+        useAnalyticsStore.getState().setRoles(roles);
+
+        const state = useAnalyticsStore.getState();
+        expect(state.roles).toEqual(roles);
+      });
+
+      it('should set empty array', () => {
+        useAnalyticsStore.getState().setRoles([]);
+
+        const state = useAnalyticsStore.getState();
+        expect(state.roles).toEqual([]);
+      });
+
+      it('should update existing roles', () => {
+        useAnalyticsStore.getState().setRoles(['DON']);
+        expect(useAnalyticsStore.getState().roles).toEqual(['DON']);
+
+        useAnalyticsStore.getState().setRoles(['MAFIA', 'SHERIFF']);
+        expect(useAnalyticsStore.getState().roles).toEqual([
+          'MAFIA',
+          'SHERIFF',
+        ]);
+      });
+    });
+
+    describe('clearRoles', () => {
+      it('should clear roles when roles are set', () => {
+        useAnalyticsStore.getState().setRoles(['DON', 'MAFIA']);
+        expect(useAnalyticsStore.getState().roles).toEqual(['DON', 'MAFIA']);
+
+        useAnalyticsStore.getState().clearRoles();
+        expect(useAnalyticsStore.getState().roles).toEqual([]);
+      });
+
+      it('should handle clearing when roles are already empty', () => {
+        expect(useAnalyticsStore.getState().roles).toEqual([]);
+
+        useAnalyticsStore.getState().clearRoles();
+        expect(useAnalyticsStore.getState().roles).toEqual([]);
+      });
+    });
+
+    describe('toggleRole', () => {
+      it('should add role when not selected', () => {
+        useAnalyticsStore.getState().setRoles([]);
+
+        useAnalyticsStore.getState().toggleRole('DON');
+        expect(useAnalyticsStore.getState().roles).toEqual(['DON']);
+      });
+
+      it('should remove role when already selected', () => {
+        useAnalyticsStore.getState().setRoles(['DON', 'MAFIA']);
+
+        useAnalyticsStore.getState().toggleRole('DON');
+        expect(useAnalyticsStore.getState().roles).toEqual(['MAFIA']);
+      });
+
+      it('should toggle multiple roles', () => {
+        useAnalyticsStore.getState().setRoles([]);
+
+        useAnalyticsStore.getState().toggleRole('DON');
+        useAnalyticsStore.getState().toggleRole('MAFIA');
+        expect(useAnalyticsStore.getState().roles).toEqual(['DON', 'MAFIA']);
+
+        useAnalyticsStore.getState().toggleRole('DON');
+        expect(useAnalyticsStore.getState().roles).toEqual(['MAFIA']);
+      });
+    });
+
+    describe('reset', () => {
+      it('should reset roles along with other state', () => {
+        useAnalyticsStore.getState().setRoles(['DON', 'MAFIA']);
+        useAnalyticsStore.getState().setDateRange({
+          preset: 'last_month',
+          startDate: '2024-12-27T00:00:00.000Z',
+          endDate: '2025-01-27T00:00:00.000Z',
+        });
+
+        expect(useAnalyticsStore.getState().roles).toEqual(['DON', 'MAFIA']);
+
+        useAnalyticsStore.getState().reset();
+
+        expect(useAnalyticsStore.getState().roles).toEqual([]);
+        expect(useAnalyticsStore.getState().dateRange).toBeNull();
+      });
+    });
+
+    describe('role filter state persistence', () => {
+      it('should maintain roles state across multiple calls', () => {
+        const roles: PlayerRole[] = ['DON', 'MAFIA', 'SHERIFF'];
+
+        useAnalyticsStore.getState().setRoles(roles);
+
+        // Get state multiple times - should be consistent
+        expect(useAnalyticsStore.getState().roles).toEqual(roles);
+        expect(useAnalyticsStore.getState().roles).toEqual(roles);
+        expect(useAnalyticsStore.getState().roles).toEqual(roles);
+      });
+    });
+  });
 });

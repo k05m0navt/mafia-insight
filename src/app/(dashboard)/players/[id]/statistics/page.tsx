@@ -12,6 +12,7 @@ import { PerformanceSummary } from '@/components/analytics/PerformanceSummary';
 import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
 import { DateRangeFilter } from '@/components/analytics/DateRangeFilter';
+import { RoleFilter } from '@/components/analytics/RoleFilter';
 import { FilterIndicator } from '@/components/analytics/FilterIndicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +25,14 @@ export default function PlayerStatisticsPage() {
   const params = useParams();
   const playerId = params.id as string;
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const { dateRange, setDateRange, clearDateRange } = useAnalyticsStore();
+  const {
+    dateRange,
+    roles,
+    setDateRange,
+    clearDateRange,
+    setRoles,
+    clearRoles,
+  } = useAnalyticsStore();
 
   // Check if any analytics queries are currently fetching
   const isAnalyticsLoading =
@@ -61,21 +69,36 @@ export default function PlayerStatisticsPage() {
         </div>
       </div>
 
-      {/* Date Range Filter */}
+      {/* Filters */}
       <Card variant="info">
         <CardHeader>
           <CardTitle>Filter Analytics</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <DateRangeFilter
-            value={dateRange}
-            onChange={setDateRange}
-            className="w-full"
-          />
-          {dateRange && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2">Date Range</h3>
+              <DateRangeFilter
+                value={dateRange}
+                onChange={setDateRange}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-2">Role Filter</h3>
+              <RoleFilter
+                value={roles}
+                onChange={setRoles}
+                className="w-full"
+              />
+            </div>
+          </div>
+          {(dateRange || roles.length > 0) && (
             <FilterIndicator
               dateRange={dateRange}
-              onClear={clearDateRange}
+              onClearDateRange={clearDateRange}
+              roles={roles}
+              onClearRoles={clearRoles}
               isLoading={isAnalyticsLoading}
             />
           )}

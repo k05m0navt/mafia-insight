@@ -9,6 +9,7 @@ import type {
   ELOTrendsResponse,
   DateRange,
   ELOTrendPeriod,
+  PlayerRole,
 } from '@/types/analytics';
 
 /**
@@ -30,7 +31,8 @@ class ApiError extends Error {
 async function fetchELOTrends(
   playerId: string,
   dateRange?: DateRange,
-  period?: ELOTrendPeriod
+  period?: ELOTrendPeriod,
+  roles?: PlayerRole[]
 ): Promise<ELOTrendsResponse> {
   const params = new URLSearchParams();
 
@@ -45,6 +47,9 @@ async function fetchELOTrends(
   }
   if (period) {
     params.append('period', period);
+  }
+  if (roles && roles.length > 0) {
+    params.append('roles', roles.join(','));
   }
 
   const url = `/api/players/${playerId}/analytics/elo-trends${
@@ -74,11 +79,12 @@ async function fetchELOTrends(
  * @param playerId - Player ID
  * @param dateRange - Optional date range filter
  * @param period - Optional aggregation period ('day', 'week', 'month')
+ * @param roles - Optional list of roles to filter by
  * @returns TanStack Query result with ELO trends
  *
  * @example
  * ```tsx
- * const { data, isLoading, error } = useELOTrends(playerId, dateRange, 'week');
+ * const { data, isLoading, error } = useELOTrends(playerId, dateRange, 'week', ['DON', 'MAFIA']);
  *
  * if (isLoading) return <div>Loading...</div>;
  * if (error) return <div>Error: {error.message}</div>;
@@ -89,11 +95,12 @@ async function fetchELOTrends(
 export function useELOTrends(
   playerId: string,
   dateRange?: DateRange,
-  period?: ELOTrendPeriod
+  period?: ELOTrendPeriod,
+  roles?: PlayerRole[]
 ) {
   return useQuery({
-    queryKey: ['eloTrends', playerId, dateRange, period],
-    queryFn: () => fetchELOTrends(playerId, dateRange, period),
+    queryKey: ['eloTrends', playerId, dateRange, period, roles],
+    queryFn: () => fetchELOTrends(playerId, dateRange, period, roles),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {

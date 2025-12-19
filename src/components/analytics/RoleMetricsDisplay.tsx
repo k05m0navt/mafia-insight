@@ -168,8 +168,7 @@ export function RoleMetricsDisplay({
   roles: propRoles,
 }: RoleMetricsDisplayProps) {
   // Get filters from Zustand store, fallback to props or null (all time)
-  const { dateRange: storeDateRange, selectedRoles: storeRoles } =
-    useAnalyticsStore();
+  const { dateRange: storeDateRange, roles: storeRoles } = useAnalyticsStore();
 
   const effectiveDateRange = storeDateRange || propDateRange || null;
   const effectiveRoles = storeRoles.length > 0 ? storeRoles : propRoles;

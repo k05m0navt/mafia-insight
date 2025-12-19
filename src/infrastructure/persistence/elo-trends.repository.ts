@@ -3,7 +3,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import type { DateRange } from '@/types/analytics';
+import type { DateRange, PlayerRole } from '@/types/analytics';
 
 /**
  * Raw ELO data point from database
@@ -32,6 +32,7 @@ export class ELOTrendsRepository {
    *
    * @param playerId - Player ID to query (UUID format)
    * @param dateRange - Optional date range filter with startDate, endDate, or preset
+   * @param roles - Optional list of roles to filter by (DON, MAFIA, SHERIFF, CITIZEN)
    * @returns Promise resolving to array of RawELODataPoint ordered by game date
    * @throws Error if database query fails
    *
@@ -39,13 +40,15 @@ export class ELOTrendsRepository {
    * ```typescript
    * const data = await repository.getELOTrendData(
    *   'player-id',
-   *   { startDate: '2024-01-01', endDate: '2024-12-31' }
+   *   { startDate: '2024-01-01', endDate: '2024-12-31' },
+   *   ['DON', 'MAFIA']
    * );
    * ```
    */
   async getELOTrendData(
     playerId: string,
-    dateRange?: DateRange
+    dateRange?: DateRange,
+    roles?: PlayerRole[]
   ): Promise<RawELODataPoint[]> {
     // Build date filter for game date
     const dateFilter: { gte?: Date; lte?: Date } = {};
@@ -55,6 +58,10 @@ export class ELOTrendsRepository {
     if (dateRange?.endDate) {
       dateFilter.lte = new Date(dateRange.endDate);
     }
+
+    // Build role filter
+    const roleFilter: PlayerRole[] | undefined =
+      roles && roles.length > 0 ? roles : undefined;
 
     // Get player's current ELO
     const player = await prisma.player.findUnique({
@@ -70,6 +77,7 @@ export class ELOTrendsRepository {
     const participations = await prisma.gameParticipation.findMany({
       where: {
         playerId,
+        ...(roleFilter && { role: { in: roleFilter } }),
         game: {
           ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
           status: 'COMPLETED', // Only count completed games

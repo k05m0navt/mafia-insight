@@ -83,14 +83,20 @@ export function ELOTrendsChart({
   dateRange: propDateRange,
   period = 'day',
 }: ELOTrendsChartProps) {
-  // Get dateRange from Zustand store, fallback to prop or null (all time)
-  const { dateRange: storeDateRange, setDateRange } = useAnalyticsStore();
+  // Get filters from Zustand store, fallback to prop or null (all time)
+  const {
+    dateRange: storeDateRange,
+    roles: storeRoles,
+    setDateRange,
+  } = useAnalyticsStore();
   const effectiveDateRange = storeDateRange || propDateRange || null;
+  const effectiveRoles = storeRoles.length > 0 ? storeRoles : undefined;
 
   const { data, isLoading, error } = useELOTrends(
     playerId,
     effectiveDateRange || undefined,
-    period
+    period,
+    effectiveRoles
   );
 
   // Calculate ELO change indicator

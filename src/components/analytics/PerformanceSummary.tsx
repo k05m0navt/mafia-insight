@@ -88,9 +88,9 @@ export function PerformanceSummary({
   // Get filters from Zustand store, fallback to props or default
   const {
     dateRange: storeDateRange,
-    selectedRoles: storeRoles,
+    roles: storeRoles,
     setDateRange,
-    setSelectedRoles,
+    setRoles,
     reset,
   } = useAnalyticsStore();
 
@@ -216,7 +216,7 @@ export function PerformanceSummary({
                       Roles: {roleLabels}
                       <button
                         onClick={() => {
-                          setSelectedRoles([]);
+                          setRoles([]);
                         }}
                         className="hover:bg-muted-foreground/20 rounded p-0.5"
                         aria-label="Clear role filter"
