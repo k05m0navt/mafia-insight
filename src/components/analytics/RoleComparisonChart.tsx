@@ -1,143 +1,262 @@
 /**
- * RoleComparisonChart - Component for displaying role comparison chart
+ * RoleComparisonChart - Component for displaying role comparison charts
  *
- * Shows a bar chart comparing performance metrics across different roles.
- * Optimized with useMemo for performance.
- * Chart library is lazy loaded for better code splitting.
+ * Shows bar charts comparing metrics across roles (win rate, games played,
+ * average ELO, win streak) with tooltips and best-performing role highlighting.
  */
 
 'use client';
 
-import React, { useMemo, lazy, Suspense } from 'react';
+import React, { useMemo, useState } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Cell,
+} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Trophy } from 'lucide-react';
 import type { RoleComparisonChartProps } from '@/types/analytics';
-import type { RoleMetrics } from '@/types/analytics';
-
-// Lazy load chart component for code splitting
-const ChartContent = lazy(() =>
-  import('./RoleComparisonChartContent').then((mod) => ({
-    default: mod.ChartContent,
-  }))
-);
 
 /**
- * Role colors for chart bars
+ * Metric type for chart display
  */
-const roleColors: Record<string, string> = {
-  DON: '#9333ea', // purple-600
-  MAFIA: '#000000', // black
-  SHERIFF: '#facc15', // yellow-400
-  CITIZEN: '#ef4444', // red-500
-};
+type MetricType = 'winRate' | 'gamesPlayed' | 'averageELO' | 'winStreak';
 
 /**
- * Dark mode role colors
+ * Custom tooltip for role comparison chart
  */
-const roleColorsDark: Record<string, string> = {
-  DON: '#a855f7', // purple-500
-  MAFIA: '#374151', // gray-700
-  SHERIFF: '#fbbf24', // yellow-500
-  CITIZEN: '#f87171', // red-400
-};
-
-/**
- * Find the best performing role based on win rate
- */
-function findBestPerformingRole(metrics: RoleMetrics[]): RoleMetrics | null {
-  const rolesWithData = metrics.filter((m) => m.gamesPlayed > 0);
-  if (rolesWithData.length === 0) return null;
-
-  return rolesWithData.reduce((best, current) => {
-    return current.winRate > best.winRate ? current : best;
-  });
-}
-
-/**
- * Format data for chart display
- */
-function formatChartData(metrics: RoleMetrics[]) {
-  return metrics.map((m) => ({
-    role: m.role,
-    winRate: m.winRate,
-    gamesPlayed: m.gamesPlayed,
-    averageELO: m.averageELO,
-  }));
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    dataKey: string;
+  }>;
+  label?: string;
+}) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
+        <p className="text-sm font-medium mb-2">{label}</p>
+        <div className="space-y-1">
+          {payload.map((entry, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between gap-4"
+            >
+              <span className="text-xs text-muted-foreground">
+                {entry.name}:
+              </span>
+              <span className="text-sm font-semibold">
+                {entry.dataKey === 'winRate'
+                  ? `${entry.value.toFixed(1)}%`
+                  : entry.dataKey === 'averageELO'
+                    ? Math.round(entry.value).toString()
+                    : entry.value.toString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 /**
  * RoleComparisonChart Component
  */
 export function RoleComparisonChart({
-  roleMetrics,
+  comparison,
   highlightBest = true,
 }: RoleComparisonChartProps) {
-  // Filter out roles with no data
-  const metricsWithData = roleMetrics.filter((m) => m.gamesPlayed > 0);
-
-  // Find best performing role
-  const bestRole = useMemo(
-    () => (highlightBest ? findBestPerformingRole(roleMetrics) : null),
-    [roleMetrics, highlightBest]
+  const [selectedMetric, setSelectedMetric] = useState<MetricType | 'all'>(
+    'all'
   );
 
-  // Format data for chart
-  const chartData = useMemo(
-    () => formatChartData(metricsWithData),
-    [metricsWithData]
-  );
+  // Transform data for Recharts
+  const chartData = useMemo(() => {
+    return comparison.roles.map((role) => ({
+      role: role.role,
+      winRate: role.winRate,
+      gamesPlayed: role.gamesPlayed,
+      averageELO: role.averageELO,
+      winStreak: role.winStreak,
+    }));
+  }, [comparison.roles]);
 
-  // If no data, show empty state
-  if (metricsWithData.length === 0) {
+  // Determine which metrics to display
+  const metricsToShow = useMemo(() => {
+    if (selectedMetric === 'all') {
+      return [
+        { key: 'winRate', name: 'Win Rate (%)', color: 'hsl(var(--chart-1))' },
+        {
+          key: 'gamesPlayed',
+          name: 'Games Played',
+          color: 'hsl(var(--chart-2))',
+        },
+        {
+          key: 'averageELO',
+          name: 'Average ELO',
+          color: 'hsl(var(--chart-3))',
+        },
+        {
+          key: 'winStreak',
+          name: 'Win Streak',
+          color: 'hsl(var(--chart-4))',
+        },
+      ];
+    }
+
+    const metricMap: Record<MetricType, { name: string; color: string }> = {
+      winRate: { name: 'Win Rate (%)', color: 'hsl(var(--chart-1))' },
+      gamesPlayed: { name: 'Games Played', color: 'hsl(var(--chart-2))' },
+      averageELO: { name: 'Average ELO', color: 'hsl(var(--chart-3))' },
+      winStreak: { name: 'Win Streak', color: 'hsl(var(--chart-4))' },
+    };
+
+    return [
+      {
+        key: selectedMetric,
+        name: metricMap[selectedMetric].name,
+        color: metricMap[selectedMetric].color,
+      },
+    ];
+  }, [selectedMetric]);
+
+  if (chartData.length === 0) {
     return (
       <Card variant="chart">
-        <CardHeader>
-          <CardTitle>Role Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <p>No data available for comparison</p>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-lg font-medium mb-2">No comparison data</p>
+            <p className="text-sm text-muted-foreground">
+              No role data available for comparison.
+            </p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Detect dark mode (simplified - could use a theme hook)
-  const isDark =
-    typeof window !== 'undefined' &&
-    document.documentElement.classList.contains('dark');
-  const colors = isDark ? roleColorsDark : roleColors;
+  // Get best-performing role index for highlighting
+  const _bestRoleIndex = chartData.findIndex(
+    (d) => d.role === comparison.bestPerformingRole
+  );
 
   return (
     <Card variant="chart" className="transition-all duration-300">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Role Comparison</span>
-          {bestRole && highlightBest && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Trophy className="h-3 w-3 text-yellow-500" />
-              Best: {bestRole.role}
-            </Badge>
-          )}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle>Role Comparison</CardTitle>
+            {highlightBest && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 text-xs"
+              >
+                <Trophy className="h-3 w-3" />
+                Best: {comparison.bestPerformingRole}
+              </Badge>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={selectedMetric === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedMetric('all')}
+              className="text-xs"
+            >
+              All
+            </Button>
+            <Button
+              variant={selectedMetric === 'winRate' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedMetric('winRate')}
+              className="text-xs"
+            >
+              Win Rate
+            </Button>
+            <Button
+              variant={selectedMetric === 'gamesPlayed' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedMetric('gamesPlayed')}
+              className="text-xs"
+            >
+              Games
+            </Button>
+            <Button
+              variant={selectedMetric === 'averageELO' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedMetric('averageELO')}
+              className="text-xs"
+            >
+              ELO
+            </Button>
+            <Button
+              variant={selectedMetric === 'winStreak' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedMetric('winStreak')}
+              className="text-xs"
+            >
+              Streak
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground">Loading chart...</div>
-            </div>
-          }
-        >
-          <ChartContent
-            chartData={chartData}
-            colors={colors}
-            bestRole={bestRole}
-            highlightBest={highlightBest}
-          />
-        </Suspense>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%" debounce={300}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="role"
+                className="text-xs"
+                tick={{ fill: 'currentColor' }}
+              />
+              <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              {metricsToShow.map((metric) => (
+                <Bar
+                  key={metric.key}
+                  dataKey={metric.key}
+                  name={metric.name}
+                  fill={metric.color}
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={500}
+                >
+                  {highlightBest &&
+                    chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          entry.role === comparison.bestPerformingRole
+                            ? metric.color
+                            : `${metric.color}80` // 50% opacity for non-best
+                        }
+                      />
+                    ))}
+                </Bar>
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,0 +1,192 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>8</storyId>
+    <title>Role Comparison Capability</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/4-8-role-comparison-capability.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>player</asA>
+    <iWant>to compare my performance across different roles side-by-side</iWant>
+    <soThat>I can easily identify which role I perform best in</soThat>
+    <tasks>
+      <task id="1">Create RoleComparison component (AC: #1, #2, #3)</task>
+      <task id="2">Create role comparison API endpoint (AC: #1, #2)</task>
+      <task id="3">Create role comparison repository (AC: #1, #2)</task>
+      <task id="4">Create role comparison use case (AC: #1, #2)</task>
+      <task id="5">Create comparison charts component (AC: #1, #3)</task>
+      <task id="6">Create role comparison hook (AC: #1, #2)</task>
+      <task id="7">Integrate role comparison into analytics dashboard (AC: #1, #2)</task>
+      <task id="8">Add TypeScript types and interfaces (AC: #1, #2, #3)</task>
+      <task id="9">Add error handling and edge cases (AC: #4, #5)</task>
+      <task id="10">Performance optimization (AC: #1, #2)</task>
+      <task id="11">Testing (AC: #1, #2, #3, #4, #5)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>I have performance data for multiple roles</given>
+      <when>I view role comparison</when>
+      <then>
+        - Side-by-side comparison table or cards showing metrics for each role: win rate, games played, average ELO, win streak
+        - Comparison charts (bar chart comparing metrics across roles)
+        - Highlighting of best-performing role (visual emphasis: color, badge)
+        - Ability to select which metrics to compare
+        - Smooth animations when data loads/updates
+      </then>
+    </criterion>
+    <criterion id="2">
+      <given>I am viewing role comparison</given>
+      <when>I apply date range or role filters</when>
+      <then>
+        - Updates comparison data to reflect filtered results
+        - Refreshes comparison table and charts
+        - Maintains filter selection across updates
+        - Shows active filters in comparison view
+      </then>
+    </criterion>
+    <criterion id="3">
+      <given>I am viewing role comparison</given>
+      <when>I hover over comparison elements</when>
+      <then>
+        - Shows tooltips with detailed metric values
+        - Displays role-specific information
+        - Highlights related elements in charts
+      </then>
+    </criterion>
+    <criterion id="4">
+      <given>I am viewing role comparison</given>
+      <when>the data is loading</when>
+      <then>
+        - Shows loading skeleton screens for comparison table
+        - Displays loading indicators on charts
+        - Maintains filter selections during loading
+      </then>
+    </criterion>
+    <criterion id="5">
+      <given>I have insufficient data for comparison (less than 2 roles with data)</given>
+      <when>I view role comparison</when>
+      <then>
+        - Displays helpful empty state message
+        - Explains why comparison is unavailable
+        - Suggests actions (import more data, adjust filters)
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification" section="Role Comparison Capability">
+        Defines role comparison requirements, data models (RoleComparison interface), API endpoint specification (GET /api/players/[id]/analytics/role-comparison), and acceptance criteria AC8.
+      </doc>
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 3: Player Analytics Dashboard">
+        Story 3.8 corresponds to Epic 4 Story 4.8. Defines role comparison as part of player analytics scope with FR23 coverage.
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="System Architecture Alignment">
+        Clean Architecture + Hexagonal patterns. Components in Presentation Layer (src/components/analytics/), use cases in Application Layer, repositories in Infrastructure Layer. State management: TanStack Query for server state, Zustand for client state (filters).
+      </doc>
+      <doc path="bmad/docs/sprint-artifacts/4-7-performance-trends-over-time.md" title="Story 4.7: Performance Trends Over Time" section="Dev Agent Record">
+        Learnings: Zustand store pattern for filters, TanStack Query integration (5min stale, 10min GC), component structure in src/components/analytics/, filter integration via Zustand store, repository pattern, API parameter handling, type safety, testing patterns, chart library usage (Recharts).
+      </doc>
+      <doc path="bmad/docs/architecture.md" title="Architecture Document" section="Decision Summary">
+        Chart library: Recharts (^3.6.0) or Chart.js. Styling: Tailwind CSS 3.3.0 with tailwind-variants. Type safety: TypeScript 5.0.0 strict mode. Validation: Zod 4.1.12. Authentication: NextAuth.js session required for all analytics endpoints.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/components/analytics/TrendComparison.tsx" kind="component" symbol="TrendComparison" reason="Similar comparison component pattern - shows period comparison with metrics, badges, tooltips. Role comparison should follow similar structure." />
+      <artifact path="src/components/analytics/TrendsChart.tsx" kind="component" symbol="TrendsChart" reason="Chart component using Recharts - role comparison charts should follow same pattern for bar charts comparing metrics across roles." />
+      <artifact path="src/store/analyticsStore.ts" kind="store" symbol="useAnalyticsStore" reason="Zustand store for analytics filters - role comparison should read dateRange and roles from this store to ensure filter changes trigger data refetch." />
+      <artifact path="src/hooks/usePerformanceTrends.ts" kind="hook" symbol="usePerformanceTrends" reason="TanStack Query hook pattern - role comparison hook should follow same pattern: 5min stale time, 10min GC time, include dateRange and roles in query key." />
+      <artifact path="src/infrastructure/persistence/trends.repository.ts" kind="repository" symbol="TrendsRepository" reason="Repository pattern for analytics data - role comparison repository should follow same pattern: date range filtering, role filtering, indexed queries for performance." />
+      <artifact path="src/application/use-cases/get-performance-trends.use-case.ts" kind="use-case" symbol="GetPerformanceTrendsUseCase" reason="Use case pattern for analytics - role comparison use case should orchestrate repository calls, calculate best-performing role, format response data." />
+      <artifact path="src/app/api/players/[id]/analytics/trends/route.ts" kind="api-route" symbol="GET /api/players/[id]/analytics/trends" reason="API endpoint pattern - role comparison endpoint should follow same pattern: authenticateRequest, requireRole, Zod validation, error handling, query parameter processing." />
+      <artifact path="src/types/analytics.ts" kind="types" symbol="DateRange, PlayerRole, TrendPeriod" reason="TypeScript types for analytics - add RoleComparison, RoleComparisonMetrics types here following existing type patterns." />
+      <artifact path="src/lib/validations/analyticsSchemas.ts" kind="validation" symbol="TrendsQuerySchema" reason="Zod validation schemas - add role comparison validation schemas following same pattern as trends endpoint." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zustand" version="^4.4.0" />
+        <package name="recharts" version="^3.6.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="date-fns" version="^4.1.0" />
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+        <package name="tailwindcss" version="^3.3.0" />
+        <package name="tailwind-variants" version="^3.2.2" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="next-auth" version="^4.24.12" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture + Hexagonal: RoleComparison component in Presentation Layer (src/components/analytics/), use case in Application Layer (src/application/use-cases/), repository in Infrastructure Layer (src/infrastructure/persistence/)</constraint>
+    <constraint>API Routes: Follow established request/response format patterns in src/app/api/players/[id]/analytics/ - add role-comparison endpoint following same pattern as trends endpoint</constraint>
+    <constraint>State Management: Use TanStack Query for server state (comparison data), Zustand for client state (filters) - role comparison hook should use TanStack Query, read filters from Zustand store</constraint>
+    <constraint>Chart Library: Use Recharts for comparison visualizations - follow same patterns as TrendsChart component</constraint>
+    <constraint>Styling: Use Tailwind CSS 3.3.0 with tailwind-variants for component variants</constraint>
+    <constraint>Type Safety: TypeScript 5.0.0 with strict mode - maintain type safety throughout</constraint>
+    <constraint>Validation: Use Zod 4.1.12 for API request/response validation - add role comparison validation schemas</constraint>
+    <constraint>Authentication: All analytics endpoints require authentication via NextAuth.js session - role comparison endpoint should follow same auth pattern</constraint>
+    <constraint>Performance: API response time target &lt; 500ms - use database indexes for date range and role filtering</constraint>
+    <constraint>Testing: Maintain minimum 80% test coverage - unit tests for repository/use case/hook, integration tests for API endpoint, component tests for components, E2E test for complete flow</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/players/[id]/analytics/role-comparison" kind="REST endpoint" signature="GET /api/players/[id]/analytics/role-comparison?startDate?&amp;endDate?&amp;roles?" path="src/app/api/players/[id]/analytics/role-comparison/route.ts">
+      Query Parameters: startDate? (ISO 8601), endDate? (ISO 8601), roles? (comma-separated: DON,MAFIA,SHERIFF,CITIZEN)
+      Response: RoleComparison { roles: RoleMetrics[], bestPerformingRole: PlayerRole, metrics: { winRate: Record&lt;string, number&gt;, gamesPlayed: Record&lt;string, number&gt;, averageELO: Record&lt;string, number&gt;, winStreak: Record&lt;string, number&gt; } }
+      Error Codes: 400 (Invalid parameters), 404 (Player not found), 401 (Unauthorized)
+    </interface>
+    <interface name="RoleComparison" kind="TypeScript interface" signature="interface RoleComparison { roles: RoleMetrics[]; bestPerformingRole: PlayerRole; metrics: { winRate: Record&lt;string, number&gt;; gamesPlayed: Record&lt;string, number&gt;; averageELO: Record&lt;string, number&gt;; winStreak: Record&lt;string, number&gt;; } }" path="src/types/analytics.ts">
+      Role comparison data structure with metrics per role and best-performing role identification.
+    </interface>
+    <interface name="RoleComparisonMetrics" kind="TypeScript interface" signature="interface RoleComparisonMetrics { role: PlayerRole; winRate: number; gamesPlayed: number; averageELO: number; winStreak: number; }" path="src/types/analytics.ts">
+      Metrics for a single role in comparison view.
+    </interface>
+    <interface name="useRoleComparison" kind="React hook" signature="function useRoleComparison(playerId: string, dateRange?: DateRange, roles?: PlayerRole[]): UseQueryResult&lt;RoleComparison&gt;" path="src/hooks/useRoleComparison.ts">
+      TanStack Query hook for fetching role comparison data. Includes dateRange and roles in query key for cache invalidation. 5min stale time, 10min GC time.
+    </interface>
+    <interface name="RoleComparisonProps" kind="Component props" signature="interface RoleComparisonProps { playerId: string; dateRange?: DateRange; }" path="src/components/analytics/RoleComparison.tsx">
+      Props for RoleComparison component. Reads filters from Zustand store.
+    </interface>
+    <interface name="RoleComparisonRepository" kind="Repository interface" signature="class RoleComparisonRepository { getRoleComparison(playerId: string, dateRange?: DateRange, roles?: PlayerRole[]): Promise&lt;RawRoleComparisonData[]&gt; }" path="src/infrastructure/persistence/role-comparison.repository.ts">
+      Repository for querying role comparison data from database. Applies date range and role filtering, uses indexed columns for performance.
+    </interface>
+    <interface name="GetRoleComparisonUseCase" kind="Use case interface" signature="class GetRoleComparisonUseCase { execute(playerId: string, dateRange?: DateRange, roles?: PlayerRole[]): Promise&lt;RoleComparison&gt; }" path="src/application/use-cases/get-role-comparison.use-case.ts">
+      Use case orchestrates repository calls, calculates best-performing role (based on win rate and ELO), formats response data.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Test Coverage: Maintain minimum 80% test coverage for all new code. Unit Tests: Vitest 1.0.0 for repository logic, use cases, and hooks. Component Tests: React Testing Library for component rendering and interactions. Integration Tests: Test API endpoints with various date range and role filter parameters. E2E Tests: Playwright 1.56.1 for complete user flows. Performance Testing: Verify API response time &lt; 500ms.
+    </standards>
+    <locations>
+      Unit tests: tests/unit/repositories/, tests/unit/use-cases/, tests/unit/hooks/
+      Integration tests: tests/integration/api/analytics/
+      Component tests: tests/components/analytics/
+      E2E tests: tests/e2e/analytics/
+    </locations>
+    <ideas>
+      <idea criterionId="1">Unit test: Role comparison repository aggregation logic - test win rate, games played, average ELO, win streak calculations per role with date range and role filtering</idea>
+      <idea criterionId="1">Unit test: Role comparison use case - test best-performing role calculation (based on win rate and ELO), response formatting</idea>
+      <idea criterionId="1">Unit test: Role comparison hook - test TanStack Query integration, query key includes dateRange and roles, cache invalidation</idea>
+      <idea criterionId="1">Component test: RoleComparison component - test comparison table/cards display, metric selection, best role highlighting, responsiveness</idea>
+      <idea criterionId="1">Component test: RoleComparisonChart component - test bar chart rendering, tooltips, best role highlighting in chart</idea>
+      <idea criterionId="2">Integration test: Role comparison API endpoint - test with various date range and role filter combinations, verify filtered results</idea>
+      <idea criterionId="2">Integration test: Filter integration - test filter changes trigger comparison data refetch, filter persistence across updates</idea>
+      <idea criterionId="3">Component test: Hover tooltips - test tooltip display on comparison elements, role-specific information, chart element highlighting</idea>
+      <idea criterionId="4">Component test: Loading states - test loading skeleton screens, loading indicators on charts, filter selection maintained during loading</idea>
+      <idea criterionId="5">Component test: Empty state - test empty state message when insufficient data (&lt; 2 roles), helpful messaging, action suggestions</idea>
+      <idea criterionId="1,2,3,4,5">E2E test: Complete flow - view comparison → apply filters → select metrics → view charts → hover tooltips → verify best role highlighting</idea>
+    </ideas>
+  </tests>
+</story-context>
