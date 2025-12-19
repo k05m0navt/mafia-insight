@@ -9,6 +9,9 @@ import { RoleBasedMetricsSection } from '@/components/analytics/RoleBasedMetrics
 import { ELOTrendsChart } from '@/components/analytics/ELOTrendsChart';
 import { WinRateAnalysis } from '@/components/analytics/WinRateAnalysis';
 import { PerformanceSummary } from '@/components/analytics/PerformanceSummary';
+import { TrendsChart } from '@/components/analytics/TrendsChart';
+import { TrendComparison } from '@/components/analytics/TrendComparison';
+import { usePerformanceTrends } from '@/hooks/usePerformanceTrends';
 import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
 import { DateRangeFilter } from '@/components/analytics/DateRangeFilter';
@@ -20,6 +23,32 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAnalyticsStore } from '@/store/analyticsStore';
+
+/**
+ * TrendComparisonSection - Shows comparison if available
+ */
+function TrendComparisonSection({ playerId }: { playerId: string }) {
+  const { dateRange, roles } = useAnalyticsStore();
+  const effectiveDateRange = dateRange || null;
+  const effectiveRoles = roles.length > 0 ? roles : undefined;
+
+  const { data } = usePerformanceTrends(
+    playerId,
+    'month', // Use month period for comparison
+    effectiveDateRange || undefined,
+    effectiveRoles
+  );
+
+  if (!data?.comparison) {
+    return null;
+  }
+
+  return (
+    <ErrorBoundary>
+      <TrendComparison comparison={data.comparison} />
+    </ErrorBoundary>
+  );
+}
 
 export default function PlayerStatisticsPage() {
   const params = useParams();
@@ -45,7 +74,8 @@ export default function PlayerStatisticsPage() {
           (queryKey[0] === 'roleBasedAnalytics' ||
             queryKey[0] === 'eloTrends' ||
             queryKey[0] === 'winRateAnalysis' ||
-            queryKey[0] === 'performanceSummary') &&
+            queryKey[0] === 'performanceSummary' ||
+            queryKey[0] === 'performanceTrends') &&
           queryKey[1] === playerId
         );
       },
@@ -129,6 +159,10 @@ export default function PlayerStatisticsPage() {
           <ErrorBoundary>
             <PerformanceSummary playerId={playerId} />
           </ErrorBoundary>
+          <ErrorBoundary>
+            <TrendsChart playerId={playerId} />
+          </ErrorBoundary>
+          <TrendComparisonSection playerId={playerId} />
           <ErrorBoundary>
             <ELOTrendsChart playerId={playerId} />
           </ErrorBoundary>
