@@ -80,7 +80,7 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 - **[Testing Guide](./docs/testing/README.md)** - Testing strategy and guides
 - **[Component Library](./bmad/docs/component-library.md)** - Component library documentation and usage
 - **[Component Discovery Report](./bmad/docs/component-discovery-report.md)** - Discovered components from registries
-- **[Storybook Documentation](http://localhost:6006)** - Interactive component documentation (run `npm run storybook`)
+- **[Storybook Documentation](http://localhost:6006)** - Interactive component documentation (run `bun run storybook`)
 
 **Note:** When building Storybook, warnings about "use client" directives being ignored are expected and can be safely ignored. See [Component Library Documentation](./bmad/docs/component-library.md#build-warnings) for details.
 
@@ -88,8 +88,7 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 
 ### Prerequisites
 
-- Node.js 18+
-- Yarn package manager
+- Bun (latest version) - [Installation Guide](https://bun.sh/docs/installation)
 - PostgreSQL database
 - Redis server
 
@@ -105,7 +104,7 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 2. **Install dependencies**
 
    ```bash
-   yarn install
+   bun install
    ```
 
 3. **Environment Configuration**
@@ -120,13 +119,13 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 
    ```bash
    # Generate Prisma client
-   yarn db:generate
+   bun run db:generate
 
    # Run database migrations
-   yarn db:migrate
+   bun run db:migrate
 
    # Seed the database (optional)
-   yarn db:seed
+   bun run db:seed
    ```
 
 5. **Create First Admin User**
@@ -137,7 +136,7 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 
    ```bash
    # Start the development server
-   yarn dev
+   bun run dev
    ```
 
    Then visit [http://localhost:3000/admin/bootstrap](http://localhost:3000/admin/bootstrap) to create your first admin user through the web interface.
@@ -146,12 +145,12 @@ A comprehensive analytics platform for Sport Mafia game players, teams, and tour
 
    ```bash
    # Create admin user via script
-   node scripts/create-first-admin.js admin@example.com "Admin User"
+   bun scripts/create-first-admin.js admin@example.com "Admin User"
    ```
 
 6. **Start Development Server**
    ```bash
-   yarn dev
+   bun run dev
    ```
 
 Visit [http://localhost:3000](http://localhost:3000) to see the application.
@@ -186,29 +185,29 @@ src/
 
 ```bash
 # Development
-yarn dev              # Start development server
-yarn build            # Build for production
-yarn start            # Start production server
+bun run dev              # Start development server
+bun run build            # Build for production
+bun run start            # Start production server
 
 # Code Quality
-yarn lint             # Run ESLint
-yarn lint:fix         # Fix ESLint issues
-yarn format           # Format code with Prettier
-yarn type-check       # Run TypeScript checks
+bun run lint             # Run ESLint
+bun run lint:fix         # Fix ESLint issues
+bun run format           # Format code with Prettier
+bun run type-check       # Run TypeScript checks
 
 # Testing
-yarn test             # Run unit tests
-yarn test:watch       # Run tests in watch mode
-yarn test:coverage    # Run tests with coverage
-yarn test:e2e         # Run E2E tests
+bun run test             # Run unit tests
+bun run test:watch       # Run tests in watch mode
+bun run test:coverage    # Run tests with coverage
+bun run test:e2e         # Run E2E tests
 
 # Database
-yarn db:generate      # Generate Prisma client
-yarn db:migrate       # Run database migrations
-yarn db:deploy        # Deploy migrations to production
-yarn db:seed          # Seed database with sample data
-yarn db:reset         # Reset database
-yarn db:studio        # Open Prisma Studio
+bun run db:generate      # Generate Prisma client
+bun run db:migrate       # Run database migrations
+bun run db:deploy        # Deploy migrations to production
+bun run db:seed          # Seed database with sample data
+bun run db:reset         # Reset database
+bun run db:studio        # Open Prisma Studio
 ```
 
 ### Code Quality

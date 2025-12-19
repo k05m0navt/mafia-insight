@@ -1,4 +1,7 @@
 {
-  "*.{js,jsx,ts,tsx}": ["eslint --fix --no-warn-ignored", "prettier --write"],
-  "*.{json,md,yml,yaml}": ["prettier --write"]
+  "*.{js,jsx,ts,tsx}": [
+    "bunx eslint --fix --no-warn-ignored",
+    "bunx prettier --write"
+  ],
+  "*.{json,md,yml,yaml}": ["bunx prettier --write"]
 }

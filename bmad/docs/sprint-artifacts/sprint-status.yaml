@@ -105,3 +105,13 @@ development_status:
   6-5-judge-analytics-date-range-filtering: backlog
   6-6-judge-analytics-trends-patterns: backlog
   epic-6-retrospective: optional
+
+  # Infrastructure Changes
+  bun-migration: done
+  # Sprint Change: Node.js to Bun Migration + Tailwind Variants Setup
+  # See: bmad/docs/sprint-change-proposal-bun-migration-2025-01-27.md
+  # Phase 1: ✅ package.json updated, dependencies installed with Bun, yarn.lock removed, bun.lock created
+  # Phase 2: ✅ Tailwind variants verified, VSCode IntelliSense configured
+  # Phase 3: ✅ README.md and technology-stack.md updated
+  # Phase 4: ✅ vercel.json and GitHub Actions CI updated
+  # Phase 5: ✅ .nvmrc removed, final verification complete

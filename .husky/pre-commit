@@ -1,1 +1,6 @@
-npx lint-staged
+#!/usr/bin/env sh
+
+# Add Bun to PATH if not already present
+export PATH="$HOME/.bun/bin:$PATH"
+
+bunx lint-staged

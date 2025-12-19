@@ -155,8 +155,8 @@
 
 ## Runtime Environment
 
-- **Node.js**: >=25.1.0
-- **Package Manager**: Yarn
+- **Bun**: >=1.0.0 (JavaScript/TypeScript runtime, bundler, test runner, and package manager)
+- **Package Manager**: Bun (built-in)
 - **Module System**: ES Modules (type: "module")
 
 ## Deployment Target
@@ -178,25 +178,26 @@
 
 ## Technology Stack Table
 
-| Category     | Technology           | Version | Purpose                    |
-| ------------ | -------------------- | ------- | -------------------------- |
-| Framework    | Next.js              | 16.0.0  | Full-stack React framework |
-| Language     | TypeScript           | 5.0.0   | Type-safe development      |
-| UI Library   | React                | 19.2.0  | Component framework        |
-| Styling      | Tailwind CSS         | 3.3.0   | Utility-first CSS          |
-| Components   | ShadCN/UI + Radix UI | Latest  | Accessible components      |
-| Server State | TanStack Query       | 5.0.0   | Server state management    |
-| Client State | Zustand              | 4.4.0   | Global state               |
-| Database     | PostgreSQL           | Latest  | Primary database           |
-| ORM          | Prisma               | 5.0.0   | Database toolkit           |
-| Backend      | Supabase             | 2.38.0  | BaaS platform              |
-| Auth         | NextAuth.js          | 4.24.12 | Authentication             |
-| Cache        | Redis                | 4.6.0   | Caching and sessions       |
-| Validation   | Zod                  | 4.1.12  | Schema validation          |
-| Testing      | Vitest               | 1.0.0   | Unit/integration tests     |
-| E2E Testing  | Playwright           | 1.56.1  | End-to-end tests           |
-| Linting      | ESLint               | 9.0.0   | Code linting               |
-| Formatting   | Prettier             | 3.0.0   | Code formatting            |
-| Monitoring   | Sentry               | 10.22.0 | Error tracking             |
+| Category     | Technology           | Version | Purpose                                                              |
+| ------------ | -------------------- | ------- | -------------------------------------------------------------------- |
+| Runtime      | Bun                  | >=1.0.0 | JavaScript/TypeScript runtime, bundler, test runner, package manager |
+| Framework    | Next.js              | 16.0.0  | Full-stack React framework                                           |
+| Language     | TypeScript           | 5.0.0   | Type-safe development                                                |
+| UI Library   | React                | 19.2.0  | Component framework                                                  |
+| Styling      | Tailwind CSS         | 3.3.0   | Utility-first CSS                                                    |
+| Components   | ShadCN/UI + Radix UI | Latest  | Accessible components                                                |
+| Server State | TanStack Query       | 5.0.0   | Server state management                                              |
+| Client State | Zustand              | 4.4.0   | Global state                                                         |
+| Database     | PostgreSQL           | Latest  | Primary database                                                     |
+| ORM          | Prisma               | 5.0.0   | Database toolkit                                                     |
+| Backend      | Supabase             | 2.38.0  | BaaS platform                                                        |
+| Auth         | NextAuth.js          | 4.24.12 | Authentication                                                       |
+| Cache        | Redis                | 4.6.0   | Caching and sessions                                                 |
+| Validation   | Zod                  | 4.1.12  | Schema validation                                                    |
+| Testing      | Vitest               | 1.0.0   | Unit/integration tests                                               |
+| E2E Testing  | Playwright           | 1.56.1  | End-to-end tests                                                     |
+| Linting      | ESLint               | 9.0.0   | Code linting                                                         |
+| Formatting   | Prettier             | 3.0.0   | Code formatting                                                      |
+| Monitoring   | Sentry               | 10.22.0 | Error tracking                                                       |
 
 Generated: 2025-11-22T15:52:49.300Z
