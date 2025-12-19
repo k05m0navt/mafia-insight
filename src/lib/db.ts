@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -71,14 +72,14 @@ function buildConnectionUrl(baseUrl: string | undefined): string {
  * IPv4 Compatibility: The pooler supports both IPv4 and IPv6, making it ideal for
  * connections from regions where IPv6 may not be available (e.g., Russia).
  */
+// Create PostgreSQL adapter with optimized connection URL
+const connectionString = buildConnectionUrl(process.env.DATABASE_URL);
+const adapter = new PrismaPg({ connectionString });
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasources: {
-      db: {
-        url: buildConnectionUrl(process.env.DATABASE_URL),
-      },
-    },
+    adapter,
     log:
       process.env.NODE_ENV === 'development'
         ? ['query', 'error', 'warn']
