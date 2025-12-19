@@ -199,3 +199,71 @@ export interface PerformanceSummaryProps {
   dateRange?: DateRange;
   roles?: PlayerRole[];
 }
+
+/**
+ * Period for aggregating performance trends
+ */
+export type TrendPeriod = 'week' | 'month' | 'quarter';
+
+/**
+ * Performance trend data point for a specific period
+ */
+export interface PerformanceTrend {
+  /** Period identifier (e.g., 'week', 'month', 'quarter') */
+  period: TrendPeriod;
+  /** Start date of the period (ISO 8601 format) */
+  startDate: string;
+  /** End date of the period (ISO 8601 format) */
+  endDate: string;
+  /** Metrics for this period */
+  metrics: {
+    /** Win rate percentage (0-100) */
+    winRate: number;
+    /** Average ELO rating for the period */
+    elo: number;
+    /** Number of games played in the period */
+    gamesPlayed: number;
+  };
+  /** Trend direction indicator */
+  trend: 'up' | 'down' | 'stable';
+  /** Percentage change from previous period (can be positive or negative) */
+  changeFromPrevious: number;
+}
+
+/**
+ * Comparison between current and previous period
+ */
+export interface TrendComparison {
+  /** Current period metrics */
+  currentPeriod: PerformanceTrend;
+  /** Previous period metrics */
+  previousPeriod: PerformanceTrend;
+  /** Percentage changes for each metric */
+  change: {
+    /** Win rate change percentage */
+    winRate: number;
+    /** ELO change (absolute, not percentage) */
+    elo: number;
+    /** Games played change percentage */
+    gamesPlayed: number;
+  };
+}
+
+/**
+ * Response for performance trends API
+ */
+export interface PerformanceTrendsResponse {
+  /** Array of performance trends grouped by period */
+  trends: PerformanceTrend[];
+  /** Comparison between current and previous period */
+  comparison?: TrendComparison;
+}
+
+/**
+ * Props for TrendsChart component
+ */
+export interface TrendsChartProps {
+  playerId: string;
+  dateRange?: DateRange;
+  period?: TrendPeriod;
+}

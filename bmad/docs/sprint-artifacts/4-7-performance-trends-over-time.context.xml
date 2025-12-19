@@ -1,0 +1,121 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>7</storyId>
+    <title>Performance Trends Over Time</title>
+    <status>drafted</status>
+    <generatedAt>2025-01-27</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>bmad/docs/sprint-artifacts/4-7-performance-trends-over-time.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>player</asA>
+    <iWant>to view performance trends over time</iWant>
+    <soThat>I can see how my skills are improving or declining</soThat>
+    <tasks>
+      - Task 1: Create TrendsChart component (AC: #1, #2, #5)
+      - Task 2: Create trends API endpoint (AC: #1, #2, #4)
+      - Task 3: Create trends repository (AC: #1, #2, #4)
+      - Task 4: Create trends use case (AC: #1, #2, #4)
+      - Task 5: Create comparative analysis component (AC: #3)
+      - Task 6: Create trends hook (AC: #1, #4)
+      - Task 7: Integrate trends into analytics dashboard (AC: #1, #4)
+      - Task 8: Add TypeScript types and interfaces (AC: #1, #2, #3)
+      - Task 9: Add error handling and edge cases (AC: #6)
+      - Task 10: Performance optimization (AC: #1, #4)
+      - Task 11: Testing (AC: #1, #2, #3, #4, #5, #6)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Given I have historical game data, When I view trends analytics, Then the system displays: Time-series charts showing key metrics over time (win rate, ELO, games played per period), Trend indicators (upward/downward arrows, trend lines), Period grouping options (by week, month, quarter), Comparative analysis (this month vs last month), Visual trend lines with annotations for significant changes
+
+    2. Given I am viewing performance trends, When I select a period grouping (week, month, quarter), Then the system: Aggregates metrics by the selected period, Updates charts to show data grouped by selected period, Displays period labels clearly on x-axis, Maintains period selection across filter changes
+
+    3. Given I am viewing performance trends, When I view comparative analysis, Then the system displays: Current period metrics (e.g., this month), Previous period metrics (e.g., last month), Percentage change indicators (up/down arrows, color-coded), Side-by-side comparison cards or visual indicators
+
+    4. Given I have applied date range and role filters, When I view performance trends, Then the system: Applies date range filter to trend data, Applies role filter to trend data (if role filter is active), Updates all trend charts with filtered data, Shows active filters in trend view
+
+    5. Given I am viewing performance trends, When I hover over data points on the chart, Then the system: Shows tooltip with exact metric values for that period, Displays period label (e.g., "Week of Jan 1, 2025"), Shows all metrics for that period (win rate, ELO, games played)
+
+    6. Given I am viewing performance trends, When the data is loading, Then the system: Shows loading skeleton screens for charts, Displays loading indicators on trend cards, Maintains filter selections during loading
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="bmad/docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification" section="Performance Trends Over Time (AC7)" snippet="Performance trends show time-series charts for key metrics (win rate, ELO, games per period) with period grouping options (week, month, quarter) and comparative analysis. API endpoint: GET /api/players/[id]/analytics/trends with period, dateRange, and roles query parameters." />
+      <doc path="bmad/docs/architecture.md" title="Architecture Documentation" section="Analytics Components" snippet="Analytics components in src/components/analytics/ directory. Use TanStack Query for server state (5min stale time, 10min GC time), Zustand for client state (filters). Chart library: Recharts or Chart.js for time-series visualizations. Follow Clean Architecture + Hexagonal patterns." />
+      <doc path="bmad/docs/sprint-artifacts/4-6-role-filtering-for-analytics.md" title="Previous Story: Role Filtering" section="Learnings" snippet="Use useAnalyticsStore() hook for shared filter state. Trends should read dateRange and roles from this store. Use TanStack Query hooks with period, dateRange, and roles in query key for cache invalidation. Follow same patterns as ELOTrendsChart component." />
+      <doc path="bmad/docs/epics.md" title="Epic Breakdown" section="Epic 4: Player Analytics Dashboard" snippet="Epic 4 Story 4.7: Performance Trends Over Time. Shows time-series trends for key metrics (win rate, ELO, games per period) with period grouping and comparative analysis." />
+    </docs>
+    <code>
+      <artifact path="src/components/analytics/ELOTrendsChart.tsx" kind="component" symbol="ELOTrendsChart" lines="1-233" reason="Reference implementation for trends chart component. Shows pattern for: lazy loading chart content, using useAnalyticsStore for filters, TanStack Query hook integration, loading/error/empty states, period selector, responsive design." />
+      <artifact path="src/infrastructure/persistence/elo-trends.repository.ts" kind="repository" symbol="ELOTrendsRepository" lines="1-174" reason="Reference implementation for trends repository. Shows pattern for: date range filtering, role filtering, database queries with Prisma, chronological ordering, player access verification." />
+      <artifact path="src/hooks/useELOTrends.ts" kind="hook" symbol="useELOTrends" lines="1-121" reason="Reference implementation for trends hook. Shows pattern for: TanStack Query integration, query key with filters, 5min stale time, 10min GC time, error handling, retry logic." />
+      <artifact path="src/app/api/players/[id]/analytics/elo-trends/route.ts" kind="api-route" symbol="GET /api/players/[id]/analytics/elo-trends" lines="1-235" reason="Reference implementation for trends API endpoint. Shows pattern for: authentication, parameter validation with Zod, date range preset conversion, repository calls, domain service usage, error handling." />
+      <artifact path="src/store/analyticsStore.ts" kind="store" symbol="useAnalyticsStore" lines="1-67" reason="Zustand store for analytics filters. Trends should read dateRange and roles from this store. Store manages filter state that triggers data refetch across analytics components." />
+      <artifact path="src/app/(dashboard)/players/[id]/statistics/page.tsx" kind="page" symbol="PlayerStatisticsPage" lines="1-180" reason="Analytics dashboard page. Shows integration pattern: using useAnalyticsStore, connecting filters to components, TanStack Query integration, responsive layout." />
+      <artifact path="src/types/analytics.ts" kind="types" symbol="ELOTrendsResponse, DateRange, PlayerRole" lines="99-116" reason="TypeScript types for analytics. Add PerformanceTrend, TrendPeriod, TrendComparison types here. Follow same pattern as ELOTrendsResponse." />
+      <artifact path="src/lib/validations/eloTrendsSchemas.ts" kind="validation" symbol="ELOTrendsQuerySchema" lines="1-50" reason="Zod validation schemas for trends. Add trends validation schemas following same pattern. Include period, dateRange, roles validation." />
+      <artifact path="src/domain/services/elo-trend-calculator.ts" kind="domain-service" symbol="ELOTrendCalculator" lines="1-164" reason="Domain service for calculating trends. Create similar TrendCalculator for performance trends. Shows pattern for: business logic separation, period aggregation, trend calculation." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="recharts" version="^3.6.0" />
+        <package name="@tanstack/react-query" version="^5.0.0" />
+        <package name="zustand" version="^4.4.0" />
+        <package name="zod" version="^4.1.12" />
+        <package name="date-fns" version="^4.1.0" />
+        <package name="@prisma/client" version="^5.0.0" />
+        <package name="next" version="^16.0.0" />
+        <package name="react" version="^19.2.0" />
+        <package name="typescript" version="^5.0.0" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture + Hexagonal: TrendsChart component in Presentation Layer (src/components/analytics/), trends use case in Application Layer (src/application/use-cases/), trends repository in Infrastructure Layer (src/infrastructure/persistence/)</constraint>
+    <constraint>API Routes: Follow established request/response format patterns in src/app/api/players/[id]/analytics/ - add trends endpoint following same pattern as elo-trends endpoint</constraint>
+    <constraint>State Management: Use TanStack Query for server state (trends data), Zustand for client state (filters) - trends hook should use TanStack Query, read filters from Zustand store</constraint>
+    <constraint>Chart Library: Use Recharts or Chart.js for time-series visualizations - follow same patterns as ELOTrendsChart component</constraint>
+    <constraint>Styling: Use Tailwind CSS 3.3.0 with tailwind-variants for component variants</constraint>
+    <constraint>Type Safety: TypeScript 5.0.0 with strict mode - maintain type safety throughout</constraint>
+    <constraint>Validation: Use Zod 4.1.12 for API request/response validation - add trends validation schemas</constraint>
+    <constraint>Authentication: All analytics endpoints require authentication via NextAuth.js session - trends endpoint should follow same auth pattern</constraint>
+    <constraint>Filter Integration: Filter state managed in Zustand store ensures filter changes trigger data refetch across all analytics components - trends should follow same pattern</constraint>
+    <constraint>Repository Pattern: Use repository pattern in Infrastructure Layer for database queries - trends repository should follow same pattern as elo-trends.repository.ts</constraint>
+    <constraint>Testing: Maintain minimum 80% test coverage for all new code. Unit tests: Vitest 1.0.0. Component tests: React Testing Library. Integration tests: Test API endpoints. E2E tests: Playwright 1.56.1</constraint>
+    <constraint>Performance: API response time target &lt; 500ms. Use database indexes for date range and role filtering. Implement TanStack Query caching with period and filters as part of cache key</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/players/[id]/analytics/trends" kind="REST endpoint" signature="GET /api/players/[id]/analytics/trends?period=week|month|quarter&amp;startDate=YYYY-MM-DD&amp;endDate=YYYY-MM-DD&amp;roles=DON,MAFIA,SHERIFF,CITIZEN" path="src/app/api/players/[id]/analytics/trends/route.ts" />
+    <interface name="PerformanceTrend" kind="TypeScript interface" signature="interface PerformanceTrend { period: 'week' | 'month' | 'quarter'; startDate: string; endDate: string; metrics: { winRate: number; elo: number; gamesPlayed: number; }; trend: 'up' | 'down' | 'stable'; changeFromPrevious: number; }" path="src/types/analytics.ts" />
+    <interface name="TrendPeriod" kind="TypeScript type" signature="type TrendPeriod = 'week' | 'month' | 'quarter'" path="src/types/analytics.ts" />
+    <interface name="TrendComparison" kind="TypeScript interface" signature="interface TrendComparison { currentPeriod: PerformanceTrend; previousPeriod: PerformanceTrend; change: { winRate: number; elo: number; gamesPlayed: number; }; }" path="src/types/analytics.ts" />
+    <interface name="TrendsChartProps" kind="Component props" signature="interface TrendsChartProps { playerId: string; dateRange?: DateRange; period?: TrendPeriod; }" path="src/components/analytics/TrendsChart.tsx" />
+    <interface name="usePerformanceTrends" kind="React hook" signature="function usePerformanceTrends(playerId: string, period: TrendPeriod, dateRange?: DateRange, roles?: PlayerRole[]): UseQueryResult&lt;PerformanceTrendsResponse&gt;" path="src/hooks/usePerformanceTrends.ts" />
+    <interface name="GetPerformanceTrendsUseCase" kind="Use case" signature="class GetPerformanceTrendsUseCase { execute(playerId: string, period: TrendPeriod, dateRange?: DateRange, roles?: PlayerRole[]): Promise&lt;PerformanceTrendsResponse&gt;; }" path="src/application/use-cases/get-performance-trends.use-case.ts" />
+    <interface name="TrendsRepository" kind="Repository" signature="class TrendsRepository { getTrendData(playerId: string, period: TrendPeriod, dateRange?: DateRange, roles?: PlayerRole[]): Promise&lt;RawTrendDataPoint[]&gt;; }" path="src/infrastructure/persistence/trends.repository.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>Maintain minimum 80% test coverage for all new code. Unit tests: Vitest 1.0.0 for repository logic, use cases, and hooks. Component tests: React Testing Library for component rendering and interactions. Integration tests: Test API endpoints with various period, date range, and role filter parameters. E2E tests: Playwright 1.56.1 for complete user flows. Performance testing: Verify API response time &lt; 500ms.</standards>
+    <locations>Unit tests: tests/unit/repositories/, tests/unit/use-cases/, tests/unit/hooks/. Component tests: tests/components/analytics/. Integration tests: tests/integration/api/analytics/. E2E tests: tests/e2e/analytics/.</locations>
+    <ideas>
+      <test ac="1">Unit test: trends repository aggregation logic - test period grouping (week/month/quarter), date range filtering, role filtering, chronological ordering</test>
+      <test ac="1">Unit test: trends use case - test trend calculation, period comparison, percentage change calculation, trend indicator logic (up/down/stable)</test>
+      <test ac="1">Unit test: trends hook - test TanStack Query integration, query key includes period/dateRange/roles, cache invalidation on filter changes</test>
+      <test ac="2">Component test: TrendsChart - test period selector updates chart, period labels display correctly, period selection persists across filter changes</test>
+      <test ac="3">Component test: TrendComparison - test current vs previous period display, percentage change indicators, color-coding for up/down, comparison cards render correctly</test>
+      <test ac="4">Integration test: trends API endpoint - test with various period values (week/month/quarter), date range combinations, role filter combinations, error handling (400, 404)</test>
+      <test ac="5">Component test: TrendsChart tooltips - test hover shows exact metric values, period label displays correctly, all metrics shown (win rate, ELO, games played)</test>
+      <test ac="6">Component test: Loading states - test skeleton screens display during loading, loading indicators on trend cards, filter selections maintained during loading</test>
+      <test ac="4">Integration test: Filter integration - test date range filter updates trend data, role filter updates trend data, filter changes trigger data refetch, active filters displayed</test>
+      <test>E2E test: Complete flow - view trends → change period → apply filters → view comparison → hover over data points → verify tooltips</test>
+      <test>Performance test: API response time &lt; 500ms with large datasets, database query optimization with indexes, TanStack Query caching effectiveness</test>
+    </ideas>
+  </tests>
+</story-context>
