@@ -107,6 +107,7 @@ export async function GET(
     const dateRangeEnd = searchParams.get('endDate');
     const dateRangePreset = searchParams.get('dateRangePreset');
     const periodParam = searchParams.get('period');
+    const rolesParam = searchParams.get('roles');
 
     const queryParams: {
       dateRange?: {
@@ -115,6 +116,7 @@ export async function GET(
         preset?: string | null;
       };
       period?: string;
+      roles?: string;
     } = {};
 
     // Only include dateRange if at least one date param is provided
@@ -128,6 +130,10 @@ export async function GET(
 
     if (periodParam) {
       queryParams.period = periodParam;
+    }
+
+    if (rolesParam) {
+      queryParams.roles = rolesParam;
     }
 
     // Parse with schema (allows optional params)
@@ -161,7 +167,11 @@ export async function GET(
     }
 
     // Fetch raw ELO data from database
-    const rawData = await repository.getELOTrendData(playerId, dateRange);
+    const rawData = await repository.getELOTrendData(
+      playerId,
+      dateRange,
+      validatedQuery.roles
+    );
 
     // Calculate trends using domain service
     const period = validatedQuery.period || 'day';

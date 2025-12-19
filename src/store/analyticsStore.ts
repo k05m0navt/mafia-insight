@@ -5,6 +5,7 @@ import type { DateRange, PlayerRole } from '@/types/analytics';
 interface AnalyticsState {
   selectedRole: string | null;
   selectedRoles: PlayerRole[];
+  roles: PlayerRole[]; // Role filter state (replaces selectedRoles for consistency)
   timeRange: string;
   dateRange: DateRange | null;
   selectedPlayer: string | null;
@@ -12,6 +13,9 @@ interface AnalyticsState {
   selectedTournament: string | null;
   setSelectedRole: (role: string | null) => void;
   setSelectedRoles: (roles: PlayerRole[]) => void;
+  setRoles: (roles: PlayerRole[]) => void; // Set role filter
+  clearRoles: () => void; // Clear role filter
+  toggleRole: (role: PlayerRole) => void; // Toggle individual role
   setTimeRange: (range: string) => void;
   setDateRange: (range: DateRange | null) => void;
   clearDateRange: () => void;
@@ -24,6 +28,7 @@ interface AnalyticsState {
 const initialState = {
   selectedRole: null,
   selectedRoles: [],
+  roles: [], // Role filter state
   timeRange: 'all_time',
   dateRange: null,
   selectedPlayer: null,
@@ -37,6 +42,17 @@ export const useAnalyticsStore = create<AnalyticsState>()(
       ...initialState,
       setSelectedRole: (role) => set({ selectedRole: role }),
       setSelectedRoles: (roles) => set({ selectedRoles: roles }),
+      setRoles: (roles) => set({ roles }),
+      clearRoles: () => set({ roles: [] }),
+      toggleRole: (role) =>
+        set((state) => {
+          const isSelected = state.roles.includes(role);
+          if (isSelected) {
+            return { roles: state.roles.filter((r) => r !== role) };
+          } else {
+            return { roles: [...state.roles, role] };
+          }
+        }),
       setTimeRange: (range) => set({ timeRange: range }),
       setDateRange: (range) => set({ dateRange: range }),
       clearDateRange: () => set({ dateRange: null }),

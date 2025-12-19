@@ -84,7 +84,7 @@ export function WinRateAnalysis({
   // Get filters from Zustand store, fallback to props or default
   const {
     dateRange: storeDateRange,
-    selectedRoles: storeRoles,
+    roles: storeRoles,
     setDateRange,
   } = useAnalyticsStore();
 

@@ -33,9 +33,14 @@ describe('FilterIndicator', () => {
     vi.clearAllMocks();
   });
 
-  it('should not render when dateRange is null', () => {
+  it('should not render when both dateRange and roles are empty', () => {
     const { container } = render(
-      <FilterIndicator dateRange={null} onClear={defaultOnClear} />
+      <FilterIndicator
+        dateRange={null}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
+      />
     );
 
     expect(container.firstChild).toBeNull();
@@ -48,9 +53,16 @@ describe('FilterIndicator', () => {
       endDate: '2025-01-27T00:00:00.000Z',
     };
 
-    render(<FilterIndicator dateRange={dateRange} onClear={defaultOnClear} />);
+    render(
+      <FilterIndicator
+        dateRange={dateRange}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
+      />
+    );
 
-    expect(screen.getByText('Showing:')).toBeInTheDocument();
+    expect(screen.getByText('Date:')).toBeInTheDocument();
     expect(screen.getByText('Last Month')).toBeInTheDocument();
   });
 
@@ -61,28 +73,42 @@ describe('FilterIndicator', () => {
       endDate: '2025-01-15T00:00:00.000Z',
     };
 
-    render(<FilterIndicator dateRange={dateRange} onClear={defaultOnClear} />);
+    render(
+      <FilterIndicator
+        dateRange={dateRange}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
+      />
+    );
 
-    expect(screen.getByText('Showing:')).toBeInTheDocument();
+    expect(screen.getByText('Date:')).toBeInTheDocument();
     expect(screen.getByText('Custom Range')).toBeInTheDocument();
   });
 
-  it('should display clear button', () => {
+  it('should display clear button for date range', () => {
     const dateRange: DateRange = {
       preset: 'last_week',
       startDate: '2025-01-20T00:00:00.000Z',
       endDate: '2025-01-27T00:00:00.000Z',
     };
 
-    render(<FilterIndicator dateRange={dateRange} onClear={defaultOnClear} />);
+    render(
+      <FilterIndicator
+        dateRange={dateRange}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
+      />
+    );
 
     const clearButton = screen.getByLabelText('Clear date range filter');
     expect(clearButton).toBeInTheDocument();
   });
 
-  it('should call onClear when clear button is clicked', async () => {
+  it('should call onClearDateRange when clear button is clicked', async () => {
     const user = userEvent.setup();
-    const onClear = vi.fn();
+    const onClearDateRange = vi.fn();
 
     const dateRange: DateRange = {
       preset: 'last_month',
@@ -90,12 +116,19 @@ describe('FilterIndicator', () => {
       endDate: '2025-01-27T00:00:00.000Z',
     };
 
-    render(<FilterIndicator dateRange={dateRange} onClear={onClear} />);
+    render(
+      <FilterIndicator
+        dateRange={dateRange}
+        onClearDateRange={onClearDateRange}
+        roles={[]}
+        onClearRoles={vi.fn()}
+      />
+    );
 
     const clearButton = screen.getByLabelText('Clear date range filter');
     await user.click(clearButton);
 
-    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(onClearDateRange).toHaveBeenCalledTimes(1);
   });
 
   it('should show loading state when isLoading is true', () => {
@@ -108,7 +141,9 @@ describe('FilterIndicator', () => {
     const { container } = render(
       <FilterIndicator
         dateRange={dateRange}
-        onClear={defaultOnClear}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
         isLoading={true}
       />
     );
@@ -128,7 +163,9 @@ describe('FilterIndicator', () => {
     const { container } = render(
       <FilterIndicator
         dateRange={dateRange}
-        onClear={defaultOnClear}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
         isLoading={false}
       />
     );
@@ -148,7 +185,9 @@ describe('FilterIndicator', () => {
     const { container } = render(
       <FilterIndicator
         dateRange={dateRange}
-        onClear={defaultOnClear}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
         isLoading={true}
       />
     );
@@ -167,7 +206,9 @@ describe('FilterIndicator', () => {
     const { container } = render(
       <FilterIndicator
         dateRange={dateRange}
-        onClear={defaultOnClear}
+        onClearDateRange={defaultOnClear}
+        roles={[]}
+        onClearRoles={vi.fn()}
         className="custom-class"
       />
     );
@@ -193,11 +234,115 @@ describe('FilterIndicator', () => {
       };
 
       const { unmount } = render(
-        <FilterIndicator dateRange={dateRange} onClear={defaultOnClear} />
+        <FilterIndicator
+          dateRange={dateRange}
+          onClearDateRange={defaultOnClear}
+          roles={[]}
+          onClearRoles={vi.fn()}
+        />
       );
 
-      expect(screen.getByText('Showing:')).toBeInTheDocument();
+      expect(screen.getByText('Date:')).toBeInTheDocument();
       unmount();
+    });
+  });
+
+  describe('role filter support', () => {
+    it('should not render when both dateRange and roles are empty', () => {
+      const { container } = render(
+        <FilterIndicator
+          dateRange={null}
+          onClearDateRange={defaultOnClear}
+          roles={[]}
+          onClearRoles={vi.fn()}
+        />
+      );
+
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('should render role filter badge when roles are selected', () => {
+      render(
+        <FilterIndicator
+          dateRange={null}
+          onClearDateRange={defaultOnClear}
+          roles={['DON']}
+          onClearRoles={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Roles:')).toBeInTheDocument();
+      expect(screen.getByText('Don selected')).toBeInTheDocument();
+    });
+
+    it('should render both date range and role filter badges', () => {
+      const dateRange: DateRange = {
+        preset: 'last_month',
+        startDate: '2024-12-27T00:00:00.000Z',
+        endDate: '2025-01-27T00:00:00.000Z',
+      };
+
+      render(
+        <FilterIndicator
+          dateRange={dateRange}
+          onClearDateRange={defaultOnClear}
+          roles={['DON', 'MAFIA']}
+          onClearRoles={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Date:')).toBeInTheDocument();
+      expect(screen.getByText('Roles:')).toBeInTheDocument();
+      expect(screen.getByText('Don + Mafia selected')).toBeInTheDocument();
+    });
+
+    it('should call onClearRoles when role clear button is clicked', async () => {
+      const user = userEvent.setup();
+      const onClearRoles = vi.fn();
+
+      render(
+        <FilterIndicator
+          dateRange={null}
+          onClearDateRange={defaultOnClear}
+          roles={['DON']}
+          onClearRoles={onClearRoles}
+        />
+      );
+
+      const clearButton = screen.getByLabelText('Clear role filter');
+      await user.click(clearButton);
+
+      expect(onClearRoles).toHaveBeenCalledTimes(1);
+    });
+
+    it('should show loading state for role filter', () => {
+      const { container } = render(
+        <FilterIndicator
+          dateRange={null}
+          onClearDateRange={defaultOnClear}
+          roles={['DON']}
+          onClearRoles={vi.fn()}
+          isLoading={true}
+        />
+      );
+
+      const loadingIcon = container.querySelector('.animate-spin');
+      expect(loadingIcon).toBeInTheDocument();
+    });
+
+    it('should format multiple roles correctly', () => {
+      render(
+        <FilterIndicator
+          dateRange={null}
+          onClearDateRange={defaultOnClear}
+          roles={['DON', 'MAFIA', 'SHERIFF']}
+          onClearRoles={vi.fn()}
+        />
+      );
+
+      expect(
+        screen.getByText('Don + Mafia + Sheriff selected')
+      ).toBeInTheDocument();
     });
   });
 });

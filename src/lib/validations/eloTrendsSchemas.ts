@@ -33,11 +33,28 @@ export const ELOTrendsDateRangeSchema = z
   .optional();
 
 /**
+ * Player role validation (reuse from roleMetricsSchemas)
+ */
+export { PlayerRoleSchema } from './roleMetricsSchemas';
+
+/**
  * Query parameters for ELO trends endpoint
  */
 export const ELOTrendsQuerySchema = z.object({
   dateRange: ELOTrendsDateRangeSchema,
   period: ELOTrendPeriodSchema.optional(),
+  roles: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const roles = val.split(',').map((r) => r.trim().toUpperCase());
+      // Validate each role
+      const validRoles = roles.filter((r) =>
+        ['DON', 'MAFIA', 'SHERIFF', 'CITIZEN'].includes(r)
+      ) as Array<'DON' | 'MAFIA' | 'SHERIFF' | 'CITIZEN'>;
+      return validRoles.length > 0 ? validRoles : undefined;
+    }),
 });
 
 /**

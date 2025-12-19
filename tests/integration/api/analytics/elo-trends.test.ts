@@ -46,12 +46,10 @@ describe('GET /api/players/[id]/analytics/elo-trends', () => {
 
   it('should return ELO trends for a player', async () => {
     const { authenticateRequest } = await import('@/lib/apiAuth');
-    const { ELOTrendsRepository } = await import(
-      '@/infrastructure/persistence/elo-trends.repository'
-    );
-    const { ELOTrendCalculator } = await import(
-      '@/domain/services/elo-trend-calculator'
-    );
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
+    const { ELOTrendCalculator } =
+      await import('@/domain/services/elo-trend-calculator');
 
     // Mock authentication
     vi.mocked(authenticateRequest).mockResolvedValue({
@@ -110,12 +108,10 @@ describe('GET /api/players/[id]/analytics/elo-trends', () => {
 
   it('should filter by date range preset', async () => {
     const { authenticateRequest } = await import('@/lib/apiAuth');
-    const { ELOTrendsRepository } = await import(
-      '@/infrastructure/persistence/elo-trends.repository'
-    );
-    const { ELOTrendCalculator } = await import(
-      '@/domain/services/elo-trend-calculator'
-    );
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
+    const { ELOTrendCalculator } =
+      await import('@/domain/services/elo-trend-calculator');
 
     vi.mocked(authenticateRequest).mockResolvedValue({
       user: { id: mockUserId },
@@ -147,14 +143,62 @@ describe('GET /api/players/[id]/analytics/elo-trends', () => {
     expect(mockRepository.getELOTrendData).toHaveBeenCalled();
   });
 
+  it('should filter by roles when roles parameter is provided', async () => {
+    const { authenticateRequest } = await import('@/lib/apiAuth');
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
+    const { ELOTrendCalculator } =
+      await import('@/domain/services/elo-trend-calculator');
+
+    vi.mocked(authenticateRequest).mockResolvedValue({
+      user: { id: mockUserId },
+      role: 'user',
+    } as any);
+
+    const mockRepository = new ELOTrendsRepository();
+    vi.mocked(mockRepository.verifyPlayerAccess).mockResolvedValue(true);
+    vi.mocked(mockRepository.getCurrentELO).mockResolvedValue(1500);
+    vi.mocked(mockRepository.getELOTrendData).mockResolvedValue([
+      {
+        gameId: 'game-1',
+        gameDate: new Date('2024-01-01'),
+        eloChange: 10,
+        playerEloAfter: null,
+      },
+    ] as any);
+
+    const mockCalculator = new ELOTrendCalculator();
+    vi.mocked(mockCalculator.calculateTrends).mockReturnValue([
+      { date: '2024-01-01', elo: 1500, gameId: 'game-1' },
+    ] as any);
+    vi.mocked(mockCalculator.calculateCurrentELO).mockReturnValue(1500);
+    vi.mocked(mockCalculator.calculateHistoricalHighLow).mockReturnValue({
+      high: 1500,
+      low: 1500,
+    });
+
+    const request = new NextRequest(
+      `http://localhost:3000/api/players/${mockPlayerId}/analytics/elo-trends?roles=DON,MAFIA`
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ id: mockPlayerId }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockRepository.getELOTrendData).toHaveBeenCalledWith(
+      mockPlayerId,
+      undefined,
+      ['DON', 'MAFIA']
+    );
+  });
+
   it('should support period aggregation', async () => {
     const { authenticateRequest } = await import('@/lib/apiAuth');
-    const { ELOTrendsRepository } = await import(
-      '@/infrastructure/persistence/elo-trends.repository'
-    );
-    const { ELOTrendCalculator } = await import(
-      '@/domain/services/elo-trend-calculator'
-    );
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
+    const { ELOTrendCalculator } =
+      await import('@/domain/services/elo-trend-calculator');
 
     vi.mocked(authenticateRequest).mockResolvedValue({
       user: { id: mockUserId },
@@ -193,9 +237,8 @@ describe('GET /api/players/[id]/analytics/elo-trends', () => {
 
   it('should return 404 when player not found', async () => {
     const { authenticateRequest } = await import('@/lib/apiAuth');
-    const { ELOTrendsRepository } = await import(
-      '@/infrastructure/persistence/elo-trends.repository'
-    );
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
 
     vi.mocked(authenticateRequest).mockResolvedValue({
       user: { id: mockUserId },
@@ -260,12 +303,10 @@ describe('GET /api/players/[id]/analytics/elo-trends', () => {
 
   it('should handle all_time preset correctly', async () => {
     const { authenticateRequest } = await import('@/lib/apiAuth');
-    const { ELOTrendsRepository } = await import(
-      '@/infrastructure/persistence/elo-trends.repository'
-    );
-    const { ELOTrendCalculator } = await import(
-      '@/domain/services/elo-trend-calculator'
-    );
+    const { ELOTrendsRepository } =
+      await import('@/infrastructure/persistence/elo-trends.repository');
+    const { ELOTrendCalculator } =
+      await import('@/domain/services/elo-trend-calculator');
 
     vi.mocked(authenticateRequest).mockResolvedValue({
       user: { id: mockUserId },
