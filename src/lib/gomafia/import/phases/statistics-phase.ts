@@ -26,7 +26,9 @@ export class StatisticsPhase {
     console.log('[StatisticsPhase] Starting statistics calculation...');
 
     // Get all players
-    const players = await resilientDB.execute((db) =>
+    const players = await resilientDB.execute<
+      Array<{ id: string; name: string }>
+    >((db) =>
       db.player.findMany({
         select: { id: true, name: true },
       })
@@ -43,8 +45,9 @@ export class StatisticsPhase {
 
     await batchProcessor.process(
       players,
-      async (batch, batchIndex, totalBatches) => {
-        for (const player of batch as Array<{ id: string }>) {
+      async (batch: unknown[], batchIndex: number, totalBatches: number) => {
+        const typedBatch = batch as Array<{ id: string; name: string }>;
+        for (const player of typedBatch) {
           // Calculate stats for each role
           const roles: PlayerRole[] = ['DON', 'MAFIA', 'SHERIFF', 'CITIZEN'];
 
@@ -71,13 +74,13 @@ export class StatisticsPhase {
             const winRate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0;
             const averagePerformance =
               participations.reduce(
-                (sum, p) => sum + (p.performanceScore || 0),
+                (sum: number, p) => sum + (p.performanceScore || 0),
                 0
               ) / gamesPlayed;
             const lastPlayed =
               participations.length > 0
                 ? participations.reduce(
-                    (latest, p) =>
+                    (latest: Date, p) =>
                       p.game.date > latest ? p.game.date : latest,
                     participations[0].game.date
                   )
@@ -121,7 +124,7 @@ export class StatisticsPhase {
         const checkpoint = this.createCheckpoint(
           batchIndex,
           totalBatches,
-          (batch as Array<{ id: string }>).map((p: { id: string }) => p.id)
+          typedBatch.map((p) => p.id)
         );
         await this.orchestrator.saveCheckpoint(checkpoint);
 

@@ -35,7 +35,7 @@ export class SkippedEntitiesManager {
    * Record a skipped entity for later retry.
    */
   async recordSkippedEntity(data: SkippedEntityData): Promise<string> {
-    const skippedEntity = await resilientDB.execute((db) =>
+    const skippedEntity = await resilientDB.execute<{ id: string }>((db) =>
       db.skippedEntity.create({
         data: {
           phase: data.phase,
@@ -87,7 +87,19 @@ export class SkippedEntitiesManager {
       where.status = status;
     }
 
-    const entities = await resilientDB.execute((db) =>
+    const entities = await resilientDB.execute<
+      Array<{
+        id: string;
+        entityType: string;
+        entityId: string | null;
+        pageNumber: number | null;
+        errorCode: string;
+        errorMessage: string;
+        retryCount: number;
+        status: string;
+        createdAt: Date;
+      }>
+    >((db) =>
       db.skippedEntity.findMany({
         where,
         select: {
@@ -126,7 +138,19 @@ export class SkippedEntitiesManager {
       createdAt: Date;
     }>
   > {
-    const entities = await resilientDB.execute((db) =>
+    const entities = await resilientDB.execute<
+      Array<{
+        id: string;
+        phase: string;
+        entityType: string;
+        pageNumber: number | null;
+        errorCode: string;
+        errorMessage: string;
+        retryCount: number;
+        status: string;
+        createdAt: Date;
+      }>
+    >((db) =>
       db.skippedEntity.findMany({
         where: {
           entityType: 'player',
@@ -170,7 +194,18 @@ export class SkippedEntitiesManager {
       createdAt: Date;
     }>
   > {
-    const entities = await resilientDB.execute((db) =>
+    const entities = await resilientDB.execute<
+      Array<{
+        id: string;
+        entityType: string;
+        entityId: string | null;
+        errorCode: string;
+        errorMessage: string;
+        retryCount: number;
+        status: string;
+        createdAt: Date;
+      }>
+    >((db) =>
       db.skippedEntity.findMany({
         where: {
           phase,
@@ -257,7 +292,9 @@ export class SkippedEntitiesManager {
       }
     >
   > {
-    const allEntities = await resilientDB.execute((db) =>
+    const allEntities = await resilientDB.execute<
+      Array<{ phase: string; status: string }>
+    >((db) =>
       db.skippedEntity.findMany({
         select: {
           phase: true,
@@ -305,7 +342,7 @@ export class SkippedEntitiesManager {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-    const result = await resilientDB.execute((db) =>
+    const result = await resilientDB.execute<{ count: number }>((db) =>
       db.skippedEntity.deleteMany({
         where: {
           status: 'COMPLETED',

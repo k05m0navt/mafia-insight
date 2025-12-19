@@ -113,8 +113,12 @@ export class TournamentService {
       ]);
 
       // Filter out exact matches from allMatches to get only partial matches
-      const exactMatchIds = new Set(exactMatches.map((t) => t.id));
-      const partialMatches = allMatches.filter((t) => !exactMatchIds.has(t.id));
+      const exactMatchIds = new Set(
+        exactMatches.map((t: { id: string }) => t.id)
+      );
+      const partialMatches = allMatches.filter(
+        (t: { id: string }) => !exactMatchIds.has(t.id)
+      );
 
       // Combine: exact matches first, then partial matches
       const allTournaments = [...exactMatches, ...partialMatches];
@@ -294,50 +298,62 @@ export class TournamentService {
     }
 
     const gamesPlayed = tournament.games.filter(
-      (game) => game.status === 'COMPLETED'
+      (game: { status: string }) => game.status === 'COMPLETED'
     ).length;
     const totalDuration = tournament.games.reduce(
-      (sum, game) => sum + (game.durationMinutes || 0),
+      (sum: number, game: { durationMinutes: number | null }) =>
+        sum + (game.durationMinutes || 0),
       0
     );
     const averageDuration = gamesPlayed > 0 ? totalDuration / gamesPlayed : 0;
 
     const winnerDistribution = {
-      blackWins: tournament.games.filter((game) => game.winnerTeam === 'BLACK')
-        .length,
-      redWins: tournament.games.filter((game) => game.winnerTeam === 'RED')
-        .length,
-      draws: tournament.games.filter((game) => game.winnerTeam === 'DRAW')
-        .length,
+      blackWins: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'BLACK'
+      ).length,
+      redWins: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'RED'
+      ).length,
+      draws: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'DRAW'
+      ).length,
     };
 
     // Calculate participant statistics
     const participants = new Map();
-    tournament.games.forEach((game) => {
-      game.participations.forEach((participation) => {
-        const playerId = participation.player.id;
-        if (!participants.has(playerId)) {
-          participants.set(playerId, {
-            id: participation.player.id,
-            name: participation.player.name,
-            eloRating: participation.player.eloRating,
-            gamesPlayed: 0,
-            wins: 0,
-            losses: 0,
-            roles: new Set(),
-          });
-        }
+    tournament.games.forEach(
+      (game: {
+        participations: Array<{
+          player: { id: string; name: string; eloRating: number };
+          isWinner: boolean;
+          role: string;
+        }>;
+      }) => {
+        game.participations.forEach((participation) => {
+          const playerId = participation.player.id;
+          if (!participants.has(playerId)) {
+            participants.set(playerId, {
+              id: participation.player.id,
+              name: participation.player.name,
+              eloRating: participation.player.eloRating,
+              gamesPlayed: 0,
+              wins: 0,
+              losses: 0,
+              roles: new Set(),
+            });
+          }
 
-        const player = participants.get(playerId);
-        player.gamesPlayed++;
-        if (participation.isWinner) {
-          player.wins++;
-        } else {
-          player.losses++;
-        }
-        player.roles.add(participation.role);
-      });
-    });
+          const player = participants.get(playerId);
+          player.gamesPlayed++;
+          if (participation.isWinner) {
+            player.wins++;
+          } else {
+            player.losses++;
+          }
+          player.roles.add(participation.role);
+        });
+      }
+    );
 
     const participantStats = Array.from(participants.values()).map(
       (player) => ({
@@ -373,9 +389,13 @@ export class TournamentService {
     // Get recent games and their status
     const recentGames = tournament.games
       .filter(
-        (game) => game.status === 'IN_PROGRESS' || game.status === 'COMPLETED'
+        (game: { status: string }) =>
+          game.status === 'IN_PROGRESS' || game.status === 'COMPLETED'
       )
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort(
+        (a: { date: Date }, b: { date: Date }) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
       .slice(0, 10);
 
     return {

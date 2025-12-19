@@ -101,17 +101,20 @@ export class AnalyticsService {
 
     const memberCount = club.players.length;
     const totalGames = club.players.reduce(
-      (sum, player) => sum + player.totalGames,
+      (sum: number, player: { totalGames: number }) => sum + player.totalGames,
       0
     );
     const totalWins = club.players.reduce(
-      (sum, player) => sum + player.wins,
+      (sum: number, player: { wins: number }) => sum + player.wins,
       0
     );
     const averageElo =
       club.players.length > 0
-        ? club.players.reduce((sum, player) => sum + player.eloRating, 0) /
-          club.players.length
+        ? club.players.reduce(
+            (sum: number, player: { eloRating: number }) =>
+              sum + player.eloRating,
+            0
+          ) / club.players.length
         : 0;
 
     const trends = await this.calculateClubTrends();
@@ -154,21 +157,25 @@ export class AnalyticsService {
     }
 
     const gamesPlayed = tournament.games.filter(
-      (game) => game.status === 'COMPLETED'
+      (game: { status: string }) => game.status === 'COMPLETED'
     ).length;
     const totalDuration = tournament.games.reduce(
-      (sum, game) => sum + (game.durationMinutes || 0),
+      (sum: number, game: { durationMinutes: number | null }) =>
+        sum + (game.durationMinutes || 0),
       0
     );
     const averageDuration = gamesPlayed > 0 ? totalDuration / gamesPlayed : 0;
 
     const winnerDistribution = {
-      blackWins: tournament.games.filter((game) => game.winnerTeam === 'BLACK')
-        .length,
-      redWins: tournament.games.filter((game) => game.winnerTeam === 'RED')
-        .length,
-      draws: tournament.games.filter((game) => game.winnerTeam === 'DRAW')
-        .length,
+      blackWins: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'BLACK'
+      ).length,
+      redWins: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'RED'
+      ).length,
+      draws: tournament.games.filter(
+        (game: { winnerTeam: string | null }) => game.winnerTeam === 'DRAW'
+      ).length,
     };
 
     return {
@@ -209,7 +216,7 @@ export class AnalyticsService {
       take: limit,
     });
 
-    return players.map((player, index) => ({
+    return players.map((player: { eloRating: number }, index: number) => ({
       rank: index + 1,
       entity: player,
       metricValue: player.eloRating,
@@ -229,33 +236,44 @@ export class AnalyticsService {
       take: limit,
     });
 
-    const clubStats = clubs.map((club) => {
-      const totalGames = club.players.reduce(
-        (sum, player) => sum + player.totalGames,
-        0
-      );
-      const totalWins = club.players.reduce(
-        (sum, player) => sum + player.wins,
-        0
-      );
-      const averageElo =
-        club.players.length > 0
-          ? club.players.reduce((sum, player) => sum + player.eloRating, 0) /
-            club.players.length
-          : 0;
+    const clubStats = clubs.map(
+      (club: {
+        players: Array<{ totalGames: number; wins: number; eloRating: number }>;
+      }) => {
+        const totalGames = club.players.reduce(
+          (sum: number, player: { totalGames: number }) =>
+            sum + player.totalGames,
+          0
+        );
+        const totalWins = club.players.reduce(
+          (sum: number, player: { wins: number }) => sum + player.wins,
+          0
+        );
+        const averageElo =
+          club.players.length > 0
+            ? club.players.reduce(
+                (sum: number, player: { eloRating: number }) =>
+                  sum + player.eloRating,
+                0
+              ) / club.players.length
+            : 0;
 
-      return {
-        club,
-        totalGames,
-        totalWins,
-        averageElo,
-        winRate: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
-      };
-    });
+        return {
+          club,
+          totalGames,
+          totalWins,
+          averageElo,
+          winRate: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
+        };
+      }
+    );
 
     return clubStats
-      .sort((a, b) => b.averageElo - a.averageElo)
-      .map((club, index) => ({
+      .sort(
+        (a: { averageElo: number }, b: { averageElo: number }) =>
+          b.averageElo - a.averageElo
+      )
+      .map((club: { club: unknown; averageElo: number }, index: number) => ({
         rank: index + 1,
         entity: club.club,
         metricValue: club.averageElo,

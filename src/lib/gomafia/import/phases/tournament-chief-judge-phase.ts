@@ -133,7 +133,9 @@ export class TournamentChiefJudgePhase {
             }
 
             // Find player by gomafiaId and update tournament's chiefJudgeId
-            const chiefJudgePlayer = await resilientDB.execute((db) =>
+            const chiefJudgePlayer = await resilientDB.execute<{
+              id: string;
+            } | null>((db) =>
               db.player.findUnique({
                 where: { gomafiaId: chiefJudge.gomafiaId },
                 select: { id: true },

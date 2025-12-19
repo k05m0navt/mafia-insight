@@ -62,7 +62,7 @@ async function getRandomSample<T extends { id: string }>(
 async function verifyPlayers(): Promise<VerificationResult> {
   try {
     // Get all players from database
-    const allPlayers = await prisma.player.findMany({
+    const allPlayers = (await prisma.player.findMany({
       select: {
         id: true,
         gomafiaId: true,
@@ -70,7 +70,13 @@ async function verifyPlayers(): Promise<VerificationResult> {
         wins: true,
         eloRating: true,
       },
-    });
+    })) as Array<{
+      id: string;
+      gomafiaId: string;
+      name: string;
+      wins: number;
+      eloRating: number;
+    }>;
 
     // Get 1% random sample
     const sample = await getRandomSample(allPlayers);
@@ -85,26 +91,26 @@ async function verifyPlayers(): Promise<VerificationResult> {
         let hasDiscrepancy = false;
 
         // Check name
-        if (externalData.name !== player.name) {
+        if (externalData.name !== (player as { name: string }).name) {
           discrepancies.push({
             id: player.id,
             type: 'player',
             field: 'name',
             expected: externalData.name,
-            actual: player.name,
+            actual: (player as { name: string }).name,
             severity: 'MEDIUM',
           });
           hasDiscrepancy = true;
         }
 
         // Check wins
-        if (externalData.wins !== player.wins) {
+        if (externalData.wins !== (player as { wins: number }).wins) {
           discrepancies.push({
             id: player.id,
             type: 'player',
             field: 'wins',
             expected: externalData.wins,
-            actual: player.wins,
+            actual: (player as { wins: number }).wins,
             severity: 'LOW',
           });
           hasDiscrepancy = true;
@@ -113,14 +119,16 @@ async function verifyPlayers(): Promise<VerificationResult> {
         // Check rating (eloRating)
         if (
           externalData.rating &&
-          Math.abs(externalData.rating - player.eloRating) > 1
+          Math.abs(
+            externalData.rating - (player as { eloRating: number }).eloRating
+          ) > 1
         ) {
           discrepancies.push({
             id: player.id,
             type: 'player',
             field: 'eloRating',
             expected: externalData.rating,
-            actual: player.eloRating,
+            actual: (player as { eloRating: number }).eloRating,
             severity: 'MEDIUM',
           });
           hasDiscrepancy = true;
@@ -157,14 +165,19 @@ async function verifyPlayers(): Promise<VerificationResult> {
  */
 async function verifyClubs(): Promise<VerificationResult> {
   try {
-    const allClubs = await prisma.club.findMany({
+    const allClubs = (await prisma.club.findMany({
       select: {
         id: true,
         gomafiaId: true,
         name: true,
         region: true,
       },
-    });
+    })) as Array<{
+      id: string;
+      gomafiaId: string | null;
+      name: string;
+      region: string | null;
+    }>;
 
     const sample = await getRandomSample(allClubs);
     const discrepancies: DiscrepancyDetail[] = [];
@@ -172,30 +185,35 @@ async function verifyClubs(): Promise<VerificationResult> {
 
     for (const club of sample) {
       try {
-        if (!club.gomafiaId) continue; // Skip clubs without gomafiaId
-        const externalData = await fetchClubDetails(club.gomafiaId);
+        if (!(club as { gomafiaId: string | null }).gomafiaId) continue; // Skip clubs without gomafiaId
+        const externalData = await fetchClubDetails(
+          (club as { gomafiaId: string }).gomafiaId
+        );
 
         let hasDiscrepancy = false;
 
-        if (externalData.name !== club.name) {
+        if (externalData.name !== (club as { name: string }).name) {
           discrepancies.push({
             id: club.id,
             type: 'club',
             field: 'name',
             expected: externalData.name,
-            actual: club.name,
+            actual: (club as { name: string }).name,
             severity: 'MEDIUM',
           });
           hasDiscrepancy = true;
         }
 
-        if (externalData.city && externalData.city !== club.region) {
+        if (
+          externalData.city &&
+          externalData.city !== (club as { region: string | null }).region
+        ) {
           discrepancies.push({
             id: club.id,
             type: 'club',
             field: 'region',
             expected: externalData.city,
-            actual: club.region,
+            actual: (club as { region: string | null }).region,
             severity: 'LOW',
           });
           hasDiscrepancy = true;
@@ -231,7 +249,7 @@ async function verifyClubs(): Promise<VerificationResult> {
  */
 async function verifyTournaments(): Promise<VerificationResult> {
   try {
-    const allTournaments = await prisma.tournament.findMany({
+    const allTournaments = (await prisma.tournament.findMany({
       select: {
         id: true,
         gomafiaId: true,
@@ -243,7 +261,12 @@ async function verifyTournaments(): Promise<VerificationResult> {
           gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year only
         },
       },
-    });
+    })) as Array<{
+      id: string;
+      gomafiaId: string | null;
+      name: string;
+      startDate: Date;
+    }>;
 
     const sample = await getRandomSample(allTournaments);
     const discrepancies: DiscrepancyDetail[] = [];
@@ -251,18 +274,20 @@ async function verifyTournaments(): Promise<VerificationResult> {
 
     for (const tournament of sample) {
       try {
-        if (!tournament.gomafiaId) continue; // Skip tournaments without gomafiaId
-        const externalData = await fetchTournamentDetails(tournament.gomafiaId);
+        if (!(tournament as { gomafiaId: string | null }).gomafiaId) continue; // Skip tournaments without gomafiaId
+        const externalData = await fetchTournamentDetails(
+          (tournament as { gomafiaId: string }).gomafiaId
+        );
 
         let hasDiscrepancy = false;
 
-        if (externalData.name !== tournament.name) {
+        if (externalData.name !== (tournament as { name: string }).name) {
           discrepancies.push({
             id: tournament.id,
             type: 'tournament',
             field: 'name',
             expected: externalData.name,
-            actual: tournament.name,
+            actual: (tournament as { name: string }).name,
             severity: 'MEDIUM',
           });
           hasDiscrepancy = true;

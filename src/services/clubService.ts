@@ -108,9 +108,11 @@ export class ClubService {
       const filteredAllMatches = allMatches.filter(meetsMemberThreshold);
 
       // Filter out exact matches from allMatches to get only partial matches
-      const exactMatchIds = new Set(filteredExactMatches.map((c) => c.id));
+      const exactMatchIds = new Set(
+        filteredExactMatches.map((c: { id: string }) => c.id)
+      );
       const partialMatches = filteredAllMatches.filter(
-        (c) => !exactMatchIds.has(c.id)
+        (c: { id: string }) => !exactMatchIds.has(c.id)
       );
 
       // Combine: exact matches first, then partial matches
@@ -335,28 +337,36 @@ export class ClubService {
 
     const memberCount = club.players.length;
     const totalGames = club.players.reduce(
-      (sum, player) => sum + player.totalGames,
+      (sum: number, player: { totalGames: number }) => sum + player.totalGames,
       0
     );
     const totalWins = club.players.reduce(
-      (sum, player) => sum + player.wins,
+      (sum: number, player: { wins: number }) => sum + player.wins,
       0
     );
     const averageElo =
       club.players.length > 0
-        ? club.players.reduce((sum, player) => sum + player.eloRating, 0) /
-          club.players.length
+        ? club.players.reduce(
+            (sum: number, player: { eloRating: number }) =>
+              sum + player.eloRating,
+            0
+          ) / club.players.length
         : 0;
 
     // Calculate role distribution
     const roleDistribution = club.players.reduce(
-      (acc, player) => {
-        player.roleStats.forEach((roleStat) => {
-          if (!acc[roleStat.role]) {
-            acc[roleStat.role] = 0;
+      (
+        acc: Record<string, number>,
+        player: { roleStats: Array<{ role: string; gamesPlayed: number }> }
+      ) => {
+        player.roleStats.forEach(
+          (roleStat: { role: string; gamesPlayed: number }) => {
+            if (!acc[roleStat.role]) {
+              acc[roleStat.role] = 0;
+            }
+            acc[roleStat.role] += roleStat.gamesPlayed;
           }
-          acc[roleStat.role] += roleStat.gamesPlayed;
-        });
+        );
         return acc;
       },
       {} as Record<string, number>
@@ -364,17 +374,28 @@ export class ClubService {
 
     // Calculate top performers
     const topPerformers = club.players
-      .sort((a, b) => b.eloRating - a.eloRating)
+      .sort(
+        (a: { eloRating: number }, b: { eloRating: number }) =>
+          b.eloRating - a.eloRating
+      )
       .slice(0, 5)
-      .map((player) => ({
-        id: player.id,
-        name: player.name,
-        eloRating: player.eloRating,
-        totalGames: player.totalGames,
-        wins: player.wins,
-        winRate:
-          player.totalGames > 0 ? (player.wins / player.totalGames) * 100 : 0,
-      }));
+      .map(
+        (player: {
+          id: string;
+          name: string;
+          eloRating: number;
+          totalGames: number;
+          wins: number;
+        }) => ({
+          id: player.id,
+          name: player.name,
+          eloRating: player.eloRating,
+          totalGames: player.totalGames,
+          wins: player.wins,
+          winRate:
+            player.totalGames > 0 ? (player.wins / player.totalGames) * 100 : 0,
+        })
+      );
 
     return {
       club,

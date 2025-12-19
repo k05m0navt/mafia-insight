@@ -24,7 +24,11 @@ export async function sendSyncCompletionNotification(
 ): Promise<void> {
   try {
     // Get user preferences
-    const user = await resilientDB.execute((db) =>
+    const user = await resilientDB.execute<{
+      email: string;
+      name: string;
+      emailNotifications: boolean;
+    } | null>((db) =>
       db.user.findUnique({
         where: { id: data.userId },
         select: {

@@ -38,21 +38,25 @@ export async function getSyncMetrics(): Promise<SyncMetrics> {
 
     const totalSyncs = syncLogs.length;
     const successfulSyncs = syncLogs.filter(
-      (log) => log.status === 'COMPLETED'
+      (log: { status: string }) => log.status === 'COMPLETED'
     ).length;
     const failedSyncs = syncLogs.filter(
-      (log) => log.status === 'FAILED'
+      (log: { status: string }) => log.status === 'FAILED'
     ).length;
 
     const completedSyncs = syncLogs.filter(
-      (log) => log.status === 'COMPLETED' && log.endTime
-    );
+      (log: { status: string; endTime: Date | null }) =>
+        log.status === 'COMPLETED' && log.endTime !== null
+    ) as Array<{ endTime: Date; startTime: Date }>;
     const averageDuration =
       completedSyncs.length > 0
-        ? completedSyncs.reduce((sum, log) => {
-            const duration = log.endTime!.getTime() - log.startTime.getTime();
-            return sum + duration;
-          }, 0) / completedSyncs.length
+        ? completedSyncs.reduce(
+            (sum: number, log: { endTime: Date; startTime: Date }) => {
+              const duration = log.endTime.getTime() - log.startTime.getTime();
+              return sum + duration;
+            },
+            0
+          ) / completedSyncs.length
         : 0;
 
     const errorRate = totalSyncs > 0 ? (failedSyncs / totalSyncs) * 100 : 0;
