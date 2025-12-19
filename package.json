@@ -40,7 +40,7 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "prepare": "husky",
+    "prepare": "bun .husky/install.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
