@@ -51,7 +51,32 @@ export function RoleBasedMetricsSection({
         {data?.roleMetrics && data.roleMetrics.length > 0 && (
           <div className="transition-all duration-300">
             <RoleComparisonChart
-              roleMetrics={data.roleMetrics}
+              comparison={{
+                roles: data.roleMetrics.map((rm) => ({
+                  role: rm.role,
+                  winRate: rm.winRate,
+                  gamesPlayed: rm.gamesPlayed,
+                  averageELO: rm.averageELO,
+                  winStreak: 0, // winStreak not available in RoleMetrics
+                })),
+                bestPerformingRole: data.roleMetrics.reduce((best, current) =>
+                  current.winRate > best.winRate ? current : best
+                ).role,
+                metrics: {
+                  winRate: Object.fromEntries(
+                    data.roleMetrics.map((rm) => [rm.role, rm.winRate])
+                  ),
+                  gamesPlayed: Object.fromEntries(
+                    data.roleMetrics.map((rm) => [rm.role, rm.gamesPlayed])
+                  ),
+                  averageELO: Object.fromEntries(
+                    data.roleMetrics.map((rm) => [rm.role, rm.averageELO])
+                  ),
+                  winStreak: Object.fromEntries(
+                    data.roleMetrics.map((rm) => [rm.role, 0])
+                  ),
+                },
+              }}
               highlightBest={true}
             />
           </div>

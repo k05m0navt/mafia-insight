@@ -79,14 +79,6 @@ export interface RoleMetricsDisplayProps {
 }
 
 /**
- * Props for RoleComparisonChart component
- */
-export interface RoleComparisonChartProps {
-  roleMetrics: RoleMetrics[];
-  highlightBest?: boolean;
-}
-
-/**
  * ELO trend data point
  */
 export interface ELOTrendPoint {
@@ -266,4 +258,64 @@ export interface TrendsChartProps {
   playerId: string;
   dateRange?: DateRange;
   period?: TrendPeriod;
+}
+
+/**
+ * Metrics for a single role in comparison view
+ */
+export interface RoleComparisonMetrics {
+  role: PlayerRole;
+  winRate: number; // percentage (0-100)
+  gamesPlayed: number;
+  averageELO: number;
+  winStreak: number; // current consecutive wins
+}
+
+/**
+ * Role comparison data structure
+ */
+export interface RoleComparison {
+  /** Array of role metrics for comparison */
+  roles: RoleComparisonMetrics[];
+  /** Best-performing role based on win rate and ELO */
+  bestPerformingRole: PlayerRole;
+  /** Aggregated metrics by role for chart display */
+  metrics: {
+    winRate: Record<string, number>; // role -> win rate percentage
+    gamesPlayed: Record<string, number>; // role -> games played count
+    averageELO: Record<string, number>; // role -> average ELO
+    winStreak: Record<string, number>; // role -> win streak
+  };
+}
+
+/**
+ * Response for role comparison API
+ */
+export interface RoleComparisonResponse {
+  roles: RoleComparisonMetrics[];
+  bestPerformingRole: PlayerRole;
+  metrics: {
+    winRate: Record<string, number>;
+    gamesPlayed: Record<string, number>;
+    averageELO: Record<string, number>;
+    winStreak: Record<string, number>;
+  };
+}
+
+/**
+ * Props for RoleComparison component
+ */
+export interface RoleComparisonProps {
+  playerId: string;
+  dateRange?: DateRange;
+}
+
+/**
+ * Props for RoleComparisonChart component
+ */
+export interface RoleComparisonChartProps {
+  /** Role comparison data */
+  comparison: RoleComparison;
+  /** Whether to highlight best-performing role */
+  highlightBest?: boolean;
 }

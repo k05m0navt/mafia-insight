@@ -150,7 +150,9 @@ export async function checkSyncHealthAndNotify(
     }
 
     // Calculate error rate
-    const failedLogs = recentLogs.filter((log) => log.status === 'FAILED');
+    const failedLogs = recentLogs.filter(
+      (log: { status: string }) => log.status === 'FAILED'
+    );
     const errorRate = (failedLogs.length / recentLogs.length) * 100;
 
     // Check for high error rate
@@ -191,7 +193,9 @@ export async function checkSyncHealthAndNotify(
     }
 
     // Check for long-running syncs
-    const runningSyncs = recentLogs.filter((log) => log.status === 'RUNNING');
+    const runningSyncs = recentLogs.filter(
+      (log: { status: string }) => log.status === 'RUNNING'
+    );
     for (const sync of runningSyncs) {
       const durationMinutes =
         (Date.now() - sync.startTime.getTime()) / (1000 * 60);

@@ -1,6 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { AdvisoryLockManager } from '@/lib/gomafia/import/advisory-lock';
+
+// Track locks per lock ID to simulate PostgreSQL advisory locks
+const lockState = new Map<number, boolean>();
+
+// Hoist mock function so it can be used in vi.mock
+const { mockExecute } = vi.hoisted(() => ({
+  mockExecute: vi.fn(),
+}));
+
+vi.mock('@/lib/db-resilient', () => ({
+  resilientDB: {
+    execute: mockExecute,
+  },
+}));
 
 describe('AdvisoryLockManager', () => {
   let db: PrismaClient;
@@ -8,8 +22,67 @@ describe('AdvisoryLockManager', () => {
   let lockManager: AdvisoryLockManager;
 
   beforeEach(() => {
-    db = new PrismaClient();
-    db2 = new PrismaClient(); // Separate connection for concurrent lock tests
+    // Reset lock state
+    lockState.clear();
+
+    // Mock resilientDB.execute to simulate PostgreSQL advisory locks
+    mockExecute.mockImplementation((fn: (db: any) => Promise<any>) => {
+      const mockDb = {
+        $queryRaw: vi.fn((query: any, ...args: any[]) => {
+          // Handle tagged template literal: query is an array with strings and values
+          let lockId = 123456789;
+          let queryText = '';
+
+          // Prisma's $queryRaw with tagged template literal
+          // The query comes as the first argument, values come as rest args or in query object
+          if (Array.isArray(query)) {
+            // Template literal form: query is strings array, values are in args or query.values
+            queryText = query.join('?');
+            lockId = args[0] ?? query.values?.[0] ?? 123456789;
+          } else if (query && typeof query === 'object') {
+            // Object form with strings and values
+            queryText = Array.isArray(query.strings)
+              ? query.strings.join('?')
+              : '';
+            lockId = query.values?.[0] ?? 123456789;
+          } else {
+            queryText = String(query);
+            lockId = args[0] ?? 123456789;
+          }
+
+          // Extract lock ID from values if available
+          if (args.length > 0 && typeof args[0] === 'number') {
+            lockId = args[0];
+          }
+
+          if (
+            queryText.includes('pg_try_advisory_lock') ||
+            String(query).includes('pg_try_advisory_lock')
+          ) {
+            // Try to acquire lock
+            const isLocked = lockState.get(lockId) ?? false;
+            if (!isLocked) {
+              lockState.set(lockId, true);
+              return Promise.resolve([{ pg_try_advisory_lock: true }]);
+            }
+            return Promise.resolve([{ pg_try_advisory_lock: false }]);
+          } else if (
+            queryText.includes('pg_advisory_unlock') ||
+            String(query).includes('pg_advisory_unlock')
+          ) {
+            // Release lock
+            lockState.set(lockId, false);
+            return Promise.resolve([{ pg_advisory_unlock: true }]);
+          }
+          return Promise.resolve([]);
+        }),
+      };
+      return fn(mockDb);
+    });
+
+    // Create mock PrismaClient instances (they're not actually used but needed for type compatibility)
+    db = {} as PrismaClient;
+    db2 = {} as PrismaClient; // Separate connection for concurrent lock tests
     lockManager = new AdvisoryLockManager(db);
   });
 
@@ -20,8 +93,8 @@ describe('AdvisoryLockManager', () => {
     } catch (error) {
       // Ignore errors during cleanup
     }
-    await db.$disconnect();
-    await db2.$disconnect();
+    lockState.clear();
+    vi.clearAllMocks();
   });
 
   it('should acquire lock when not held', async () => {

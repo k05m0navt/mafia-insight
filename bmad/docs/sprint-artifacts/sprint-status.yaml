@@ -79,7 +79,7 @@ development_status:
   4-5-date-range-filtering-for-analytics: done
   4-6-role-filtering-for-analytics: done
   4-7-performance-trends-over-time: done
-  4-8-role-comparison-capability: backlog
+  4-8-role-comparison-capability: done
   4-9-analytics-navigation-data-display-components: backlog
   4-10-mobile-pwa-access-responsive-layouts: backlog
   4-11-responsive-charts-data-visualization: backlog
@@ -115,3 +115,13 @@ development_status:
   # Phase 3: ✅ README.md and technology-stack.md updated
   # Phase 4: ✅ vercel.json and GitHub Actions CI updated
   # Phase 5: ✅ .nvmrc removed, final verification complete
+
+  prisma-7-upgrade: done
+  # Sprint Change: Prisma ORM Upgrade to Version 7
+  # See: bmad/docs/sprint-change-proposal-prisma-7-upgrade-2025-12-19.md
+  # Phase 1: ✅ Sprint change proposal created
+  # Phase 2: ✅ Updated package.json: @prisma/client and prisma to ^7.1.0 (installed 7.2.0)
+  # Phase 3: ✅ Migrated datasource config to prisma.config.ts, updated schema.prisma
+  # Phase 4: ✅ Updated src/lib/db.ts to use PrismaPg adapter (Prisma 7 requirement)
+  # Phase 5: ✅ Prisma Client generated successfully, TypeScript compilation passes
+  # Phase 6: ⏳ Integration and E2E tests pending, manual testing pending

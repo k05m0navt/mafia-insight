@@ -21,21 +21,23 @@ import { parseGomafiaDate } from '@/lib/gomafia/parsers/date-parser';
  */
 async function getSystemUser(): Promise<string> {
   // Try to find existing system user
-  let systemUser = await resilientDB.execute((db) =>
+  let systemUser = await resilientDB.execute<{ id: string } | null>((db) =>
     db.user.findFirst({
       where: { email: 'system@mafia-insight.com' },
+      select: { id: true },
     })
   );
 
   if (!systemUser) {
     // Create system user if it doesn't exist
-    systemUser = await resilientDB.execute((db) =>
+    systemUser = await resilientDB.execute<{ id: string }>((db) =>
       db.user.create({
         data: {
           email: 'system@mafia-insight.com',
           name: 'System',
           role: 'admin',
         },
+        select: { id: true },
       })
     );
   }

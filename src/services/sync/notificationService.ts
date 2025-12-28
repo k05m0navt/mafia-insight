@@ -34,7 +34,7 @@ export async function createAdminNotification(
 
     // Create in-app notification for each admin
     const notifications: Prisma.NotificationCreateManyInput[] = admins.map(
-      (admin) => {
+      (admin: { id: string }) => {
         const notification: Prisma.NotificationCreateManyInput = {
           userId: admin.id,
           type: notificationData.type,

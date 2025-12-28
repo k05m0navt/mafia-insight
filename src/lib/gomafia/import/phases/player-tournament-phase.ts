@@ -374,7 +374,7 @@ export class PlayerTournamentPhase {
         if (batchLinksToInsert.length > 0) {
           const insertStartTime = Date.now();
           try {
-            const result = await resilientDB.execute((db) =>
+            const result = await resilientDB.execute<{ count: number }>((db) =>
               db.playerTournament.createMany({
                 data: batchLinksToInsert,
                 skipDuplicates: true,

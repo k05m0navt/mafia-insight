@@ -652,3 +652,14 @@ This change can be implemented directly by the development team. It's an infrast
 **Workflow Version**: 4-implementation/correct-course  
 **Date**: 2025-01-27  
 **Agent**: PM (Product Manager)
+
+---
+
+## 7. Related Documentation
+
+### Future Migration Plans
+
+- **Vitest to Bun Test Runner Migration**: See `bmad/docs/vitest-to-bun-test-runner-migration-plan.md`
+  - Comprehensive migration plan for transitioning from Vitest to Bun's built-in test runner
+  - Includes step-by-step instructions, risk assessment, and rollback plan
+  - **Status**: Future reference (not recommended for immediate implementation)

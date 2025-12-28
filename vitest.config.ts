@@ -11,6 +11,9 @@ export default defineConfig({
     teardownTimeout: 30000,
     mockReset: true,
     restoreMocks: true,
+    // Explicitly use forks pool to avoid worker termination issues in CI
+    // This is especially important when using Bun or Node.js fetch API
+    pool: 'forks',
     include: [
       'tests/unit/**/*.test.{ts,tsx}',
       'tests/unit/**/*.spec.{ts,tsx}',

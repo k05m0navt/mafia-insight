@@ -1,18 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { BatchProcessor } from '@/lib/gomafia/import/batch-processor';
+
+vi.mock('@prisma/client', () => ({
+  PrismaClient: vi.fn(() => ({})),
+}));
 
 describe('BatchProcessor', () => {
   let db: PrismaClient;
   let batchProcessor: BatchProcessor<{ id: string; value: number }>;
 
   beforeEach(() => {
-    db = new PrismaClient();
+    db = new PrismaClient() as any;
     batchProcessor = new BatchProcessor(db, 10); // Small batch size for testing
-  });
-
-  afterEach(async () => {
-    await db.$disconnect();
   });
 
   it('should split data into correct batch sizes', async () => {

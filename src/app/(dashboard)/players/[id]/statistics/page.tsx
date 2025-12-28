@@ -11,6 +11,7 @@ import { WinRateAnalysis } from '@/components/analytics/WinRateAnalysis';
 import { PerformanceSummary } from '@/components/analytics/PerformanceSummary';
 import { TrendsChart } from '@/components/analytics/TrendsChart';
 import { TrendComparison } from '@/components/analytics/TrendComparison';
+import { RoleComparison } from '@/components/analytics/RoleComparison';
 import { usePerformanceTrends } from '@/hooks/usePerformanceTrends';
 import { AnalyticsErrorBoundary as ErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { YearFilter } from '@/components/ui/YearFilter';
@@ -163,6 +164,9 @@ export default function PlayerStatisticsPage() {
             <TrendsChart playerId={playerId} />
           </ErrorBoundary>
           <TrendComparisonSection playerId={playerId} />
+          <ErrorBoundary>
+            <RoleComparison playerId={playerId} />
+          </ErrorBoundary>
           <ErrorBoundary>
             <ELOTrendsChart playerId={playerId} />
           </ErrorBoundary>
