@@ -41,6 +41,8 @@ jobs:
 
       - name: Unit tests
         run: bun run test:unit
+        env:
+          CI: true
 
       # - name: Integration tests
       #   run: bun run test:integration
