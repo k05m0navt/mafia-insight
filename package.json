@@ -31,7 +31,7 @@
     "test:e2e:quick": "playwright test --config=playwright.quick.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:ci": "playwright test --reporter=json --outputFile=test-results-e2e.json",
-    "test:arch": "dependency-cruiser --config config/architecture-rules.json src",
+    "test:arch": "bunx dependency-cruiser --config config/architecture-rules.json src",
     "test:validate": "bun run test:ci && bun run test:e2e:ci",
     "arch:map": "tsx scripts/architecture/generate-map.ts",
     "db:generate": "prisma generate",
