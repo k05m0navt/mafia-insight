@@ -271,6 +271,9 @@ describe('RoleComparisonRepository', () => {
         eloRating: 1500,
       } as any);
 
+      // Mock gameParticipation.findMany to return empty array
+      vi.mocked(prisma.gameParticipation.findMany).mockResolvedValueOnce([]);
+
       await repository.getRoleComparison(mockPlayerId);
 
       expect(prisma.gameParticipation.findMany).toHaveBeenCalledWith(

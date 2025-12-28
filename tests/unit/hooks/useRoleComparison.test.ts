@@ -205,18 +205,25 @@ describe('useRoleComparison', () => {
   it('should handle fetch error', async () => {
     const mockPlayerId = 'test-player-id';
 
-    (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+    // Mock fetch to reject (will be called multiple times due to retries)
+    (global.fetch as any).mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useRoleComparison(mockPlayerId), {
       wrapper,
     });
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    // Wait for query to finish (either success or error)
+    await waitFor(
+      () => {
+        // Query should be done loading and have an error
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.error).toBeTruthy();
+      },
+      { timeout: 10000 } // Increased timeout to allow for retries
+    );
 
-    expect(result.current.error).toBeTruthy();
     expect(result.current.data).toBeUndefined();
+    expect(result.current.isError).toBe(true);
   });
 
   it('should handle API error response (4xx)', async () => {
